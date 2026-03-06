@@ -1,0 +1,35 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "DevEx Despatch API",
+    "version": "1.0.0",
+    "description": "API for handling Category 2 - Despatch related documents. A valid API key is required to access the endpoints, please contact a team member using https://unswcse.atlassian.net/wiki/spaces/DevEx/pages/1431896088/Team+Roles."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Returns a hello world message",
+        "description": "A simple endpoint that returns a greeting message",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello World!"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
