@@ -12,7 +12,7 @@
     }
   ],
   "paths": {
-    "/api/hello": {
+    "/api/v1/hello": {
       "get": {
         "summary": "Returns a hello world message",
         "description": "A simple endpoint that returns a greeting message",
