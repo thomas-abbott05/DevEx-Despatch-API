@@ -15,10 +15,16 @@
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "build": "esbuild src/App.jsx --bundle --outfile=public/bundle.js",
+    "start": "npm run build && node main.js"
   },
   "dependencies": {
     "express": "^5.2.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.3"
   }
 }

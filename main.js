@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 // Set up Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecJSON))
 
-app.get('/api/hello', (req, res) => {
+app.get('/api/v1/hello', (req, res) => {
   res.send('Hello World!')
 })
 
