@@ -7,23 +7,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-southeast-2
-    
     - name: Deploy to EC2
       run: |
         echo "${{ secrets.EC2_SSH_KEY }}" > private_key
         chmod 600 private_key
-        ssh -o StrictHostKeyChecking=no -i private_key ec2-user@${{ secrets.EC2_HOST }} '
-          cd /home/ec2-user
-          echo Hello world > test.txt
+        ssh -o StrictHostKeyChecking=no -i private_key ubuntu@${{ secrets.EC2_HOST }} '
+          cd /home/ubuntu
+          rm -rf DevEx-Despatch-API
+          git clone https://oauth2:${{ secrets.REPOSITORY_TOKEN }}@github.com/thomas-abbott05/DevEx-Despatch-API.git
+          cd DevEx-Despatch-API
+          docker build -t devex-despatch-api .
+          docker stop devex-despatch-api || true
+          docker rm devex-despatch-api || true
+          docker run -d -p 80:80 --restart unless-stopped --name devex-despatch-api devex-despatch-api
         '
