@@ -10,16 +10,15 @@ jobs:
     steps:
     - name: Deploy to EC2
       run: |
-        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[1/4] :warning: Automatic deployment starting - deploying commit $GITHUB_SHA - connecting to EC2 instance..."}'
+        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": ":hourglass: Automatic deployment started for main branch with commit comment: `${{ github.event.head_commit.message }}` - building Docker image and starting container, one moment..."}'
         echo "${{ secrets.EC2_SSH_KEY }}" > private_key
         chmod 600 private_key
         ssh -o StrictHostKeyChecking=no -i private_key ubuntu@${{ secrets.EC2_HOST }} '
           cd /home/ubuntu
-          curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[2/4] :hourglass: Cloning repository on EC2 instance..."}'
           rm -rf DevEx-Despatch-API
           git clone https://oauth2:${{ secrets.REPOSITORY_TOKEN }}@github.com/thomas-abbott05/DevEx-Despatch-API.git
           cd DevEx-Despatch-API
-          curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[3/4] :hourglass: Building Docker image and starting container..."}'
+          docker image prune -f
           docker build -t devex-despatch-api .
           docker stop devex-despatch-api || true
           docker rm devex-despatch-api || true
@@ -27,4 +26,4 @@ jobs:
             -v /etc/letsencrypt:/etc/letsencrypt:ro \
             --name devex-despatch-api devex-despatch-api
         '
-        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[4/4] :white_check_mark: Successfully deployed to AWS EC2 instance. Newest API version now live at ${{ vars.EC2_WEB_URL }}"}'
+        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": ":white_check_mark: **Successfully deployed changes to AWS EC2 instance.** Newest API version now live at: ${{ vars.EC2_WEB_URL }}"}'
