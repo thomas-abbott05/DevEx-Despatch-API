@@ -27,4 +27,4 @@ jobs:
             -v /etc/letsencrypt:/etc/letsencrypt:ro \
             --name devex-despatch-api devex-despatch-api
         '
-        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[4/4] :white_check_mark: Successfully deployed to AWS EC2 instance. Newest API version now live!"}'
+        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[4/4] :white_check_mark: Successfully deployed to AWS EC2 instance. Newest API version now live at ${{ vars.EC2_WEB_URL }}"}'
