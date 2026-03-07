@@ -6,7 +6,6 @@ const swaggerSpecJSON = require('./swagger.json')
 const os = require('os')
 const fs = require('fs')
 const https = require('https')
-const { Http2ServerResponse } = require('http2')
 
 var PORT = 80
 const API_VERSION = 'v1'
