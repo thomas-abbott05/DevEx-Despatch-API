@@ -23,6 +23,8 @@ jobs:
           docker build -t devex-despatch-api .
           docker stop devex-despatch-api || true
           docker rm devex-despatch-api || true
-          docker run -d -p 80:80 --restart unless-stopped --name devex-despatch-api devex-despatch-api
+          docker run -d -p 80:80 -p 443:443 --restart unless-stopped \
+            -v /etc/letsencrypt:/etc/letsencrypt:ro \
+            --name devex-despatch-api devex-despatch-api
         '
         curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": "[4/4] :white_check_mark: Successfully deployed to AWS EC2 instance. Newest API version now live!"}'
