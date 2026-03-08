@@ -3,3 +3,6 @@ node_modules
 
 # build output
 public/bundle.js
+
+# environment variables
+.env
