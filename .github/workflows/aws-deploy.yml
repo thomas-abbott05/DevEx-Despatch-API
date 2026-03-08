@@ -18,6 +18,7 @@ jobs:
           rm -rf DevEx-Despatch-API
           git clone https://oauth2:${{ secrets.REPOSITORY_TOKEN }}@github.com/thomas-abbott05/DevEx-Despatch-API.git
           cd DevEx-Despatch-API
+          echo ${{ secrets.ENV_FILE }} > .env
           docker image prune -f
           docker build -t devex-despatch-api .
           docker stop devex-despatch-api || true
