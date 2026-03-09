@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 
-function App() {
+function Index() {
   const [message, setMessage] = useState('Loading...')
 
   useEffect(() => {
@@ -26,4 +26,4 @@ function App() {
 }
 
 const root = createRoot(document.getElementById('root'))
-root.render(<App/>)
+root.render(<Index/>)

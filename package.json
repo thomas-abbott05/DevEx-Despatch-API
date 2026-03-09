@@ -15,7 +15,7 @@
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
-    "build": "esbuild src/App.jsx --bundle --outfile=public/bundle.js",
+    "build": "esbuild src/client/Index.jsx --bundle --outfile=public/compiled-js/bundle.js",
     "start": "npm run build && node main.js"
   },
   "dependencies": {
