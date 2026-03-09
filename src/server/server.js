@@ -2,7 +2,7 @@ const https = require('https');
 const SSLConfig = require('./config/ssl-config');
 const { createExpressApp, setupErrorHandling } = require('./config/server-config');
 const { connectToDatabase } = require('./database');
-const apiRouter = require('./routes');
+const apiRouter = require('./api-routes');
 
 class DevExServer {
   constructor() {

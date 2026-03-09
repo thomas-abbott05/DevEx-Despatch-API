@@ -26,6 +26,11 @@ function createExpressApp() {
     const swaggerSpecJSON = require('./swagger-config.json');
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecJSON));
 
+    // temporary frontend route
+    app.get('/', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../../public/html/index.html'));
+    });
+
     return app;
 }
 
