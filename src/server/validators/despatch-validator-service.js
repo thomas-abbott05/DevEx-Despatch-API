@@ -1,6 +1,29 @@
-// Mock implementation of the despatch validator service
-// In a real implementation, this would perform actual validation logic
+const { validate, version } = require('uuid');
 
+const UBL_ORDER_NS = {
+  order: 'urn:oasis:names:specification:ubl:schema:xsd:Order-2',
+  cbc: 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
+};
+
+let libxml2ModulePromise;
+
+function isValidUuidV4(value) {
+  return typeof value === 'string' && validate(value) && version(value) === 4;
+}
+
+async function getXmlDocumentClass() {
+  if (!libxml2ModulePromise) {
+    libxml2ModulePromise = import('libxml2-wasm');
+  }
+
+  const { XmlDocument } = await libxml2ModulePromise;
+  return XmlDocument;
+}
+
+function getNodeContent(xmlDoc, xpath, namespaces, fallbackXpath) {
+  const node = xmlDoc.get(xpath, namespaces) || xmlDoc.get(fallbackXpath);
+  return node ? node.content.trim() : null;
+}
 
 // Implement basic exception for invalid XML with one error message for simplicity
 class DespatchValidationError extends Error {
@@ -11,7 +34,7 @@ class DespatchValidationError extends Error {
   }
 }
 
-async function validateDespatchAdvice(rawXml, metadata) {
+async function validateOrderXml(rawXml, metadata) {
   // Simulate validation logic
   if (!rawXml || typeof rawXml !== 'string' || rawXml.trim() === '') {
     return {
@@ -20,14 +43,93 @@ async function validateDespatchAdvice(rawXml, metadata) {
     };
   }
 
-  // Simulate successful validation
-  return {
-    success: true,
-    errors: []
-  };
+  let XmlDocument;
+  try {
+    XmlDocument = await getXmlDocumentClass();
+  } catch (error) {
+    return {
+      success: false,
+      errors: ['Error initializing XML parser: ' + error.message]
+    };
+  }
+
+  let xmlDoc;
+  try {
+    xmlDoc = XmlDocument.fromString(rawXml);
+  } catch (error) {
+    return {
+      success: false,
+      errors: ['Invalid XML content']
+    };
+  }
+
+  try {
+    const orderRoot = xmlDoc.get('/order:Order', UBL_ORDER_NS) || xmlDoc.get('/*[local-name()="Order"]');
+    if (!orderRoot) {
+      return {
+        success: false,
+        errors: ['Missing Order root element']
+      };
+    }
+
+    const uuidValue = getNodeContent(
+      xmlDoc,
+      '/order:Order/cbc:UUID',
+      UBL_ORDER_NS,
+      '/*[local-name()="Order"]/*[local-name()="UUID"]'
+    );
+
+    if (!uuidValue) {
+      return {
+        success: false,
+        errors: ['Missing Order/cbc:UUID element']
+      };
+    }
+
+    if (!isValidUuidV4(uuidValue)) {
+      return {
+        success: false,
+        errors: ['Invalid UUID format in Order/cbc:UUID']
+      };
+    }
+
+    const orderId = getNodeContent(
+      xmlDoc,
+      '/order:Order/cbc:ID',
+      UBL_ORDER_NS,
+      '/*[local-name()="Order"]/*[local-name()="ID"]'
+    );
+    const salesOrderId = getNodeContent(
+      xmlDoc,
+      '/order:Order/cbc:SalesOrderID',
+      UBL_ORDER_NS,
+      '/*[local-name()="Order"]/*[local-name()="SalesOrderID"]'
+    );
+    const issueDate = getNodeContent(
+      xmlDoc,
+      '/order:Order/cbc:IssueDate',
+      UBL_ORDER_NS,
+      '/*[local-name()="Order"]/*[local-name()="IssueDate"]'
+    );
+
+    return {
+      success: true,
+      id: uuidValue,
+      orderId,
+      salesOrderId,
+      issueDate
+    };
+  } catch (error) {
+    return {
+      success: false,
+      errors: ['Error parsing XML: ' + error.message]
+    };
+  } finally {
+    xmlDoc.dispose();
+  }
 }
 
 module.exports = {
-  validateDespatchAdvice,
+  validateOrderXml,
   DespatchValidationError
 };

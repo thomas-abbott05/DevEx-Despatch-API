@@ -62,16 +62,20 @@ router.get('/dbtest', async (req, res) => {
 
 router.post('/despatch/create', rawXmlParser, async (req, res) => {
   const apiKey = req.apiKey;
-  const rawXml = req.body;
+  const orderXml = req.body;
 
   try {
     const requestMetadata = buildRequestMetadata(req);
-    const newAdviceId = await createDespatchAdvice(apiKey, rawXml, requestMetadata);
+    const { adviceId, despatchXml } = await createDespatchAdvice(apiKey, orderXml, requestMetadata);
+    const executedAt = Math.floor(Date.now() / 1000);
 
-    res.send({
-      "advice-id": newAdviceId,
-      "executed-at": Math.floor(Date.now() / 1000)
-    });
+    res
+      .set({
+        'Content-Type': 'application/xml',
+        'advice-id': adviceId,
+        'executed-at': String(executedAt)
+      })
+      .send(despatchXml);
 
   } catch (error) {
       if (error instanceof RequestValidationError || error instanceof DespatchValidationError) {
@@ -79,6 +83,33 @@ router.post('/despatch/create', rawXmlParser, async (req, res) => {
     }
     console.error('Error creating despatch advice:', error);
     res.status(500).send({ success: false, error: error.message });
+  }
+});
+
+router.get('/despatch/retrieve', async (req, res) => {
+  const apiKey = req.apiKey;
+
+  res.status(501).send({
+    success: false,
+    error: 'Not implemented yet',
+    "executed-at": Math.floor(Date.now() / 1000)
+  });
+});
+
+router.get('/despatch/list', async (req, res) => {
+  const apiKey = req.apiKey;
+  try {
+    const results = await listDespatchAdvices(apiKey);
+    res.send({ 
+      results: results,
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  } catch (error) {
+    console.error('Error fetching despatches:', error);
+    res.status(500).send({ 
+      success: false, 
+      error: error.message
+    });
   }
 });
 
