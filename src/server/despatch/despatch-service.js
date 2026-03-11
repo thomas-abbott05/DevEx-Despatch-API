@@ -2,22 +2,6 @@
 const { getDb } = require('../database');
 const { validateDespatchAdvice } = require('../validators/despatch-validator-service');
 
-async function listDespatchAdvices(apiKey) {
-  try {
-    const db = getDb();
-    const collection = db.collection('despatch-advices');
-    const despatchAdvices = await collection.find({ apiKey: apiKey }).toArray();
-    const mappedDespatchAdvices = despatchAdvices.map(da => ({
-      "advice-id": da._id,
-      "despatch-advice": da
-    }));
-    return mappedDespatchAdvices;
-  } catch (error) {
-    console.error('Error fetching despatch advices:', error);
-    throw error;
-  }
-}
-
 async function createDespatchAdvice(apiKey, rawXml, requestMetadata = {}) {
   try {
     const db = getDb();
@@ -48,6 +32,5 @@ async function createDespatchAdvice(apiKey, rawXml, requestMetadata = {}) {
 }
 
 module.exports = {
-  listDespatchAdvices,
   createDespatchAdvice
 };

@@ -3,6 +3,7 @@ const { getServerConstants } = require('./config/server-config');
 const { getDb } = require('./database');
 const { listDespatchAdvices, createDespatchAdvice } = require('./despatch/despatch-service');
 const { DespatchValidationError } = require('./validators/despatch-validator-service');
+const { RequestValidationError, buildRequestMetadata } = require('./despatch/despatch-request-helper');
 
 const router = express.Router();
 const rawXmlParser = express.text({
@@ -63,45 +64,21 @@ router.post('/despatch/create', rawXmlParser, async (req, res) => {
   const apiKey = req.apiKey;
   const rawXml = req.body;
 
-  const requestMetadata = {
-    contentType: req.headers['content-type'] || null,
-    requestIp: req.ip,
-    userAgent: req.headers['user-agent'] || null,
-    receivedAt: new Date()
-  };
-
-  // Basic validation to ensure we have XML content and content type is correct
-  if (!rawXml || typeof rawXml !== 'string' || rawXml.trim() === '') {
-    return res.status(400).send({ 
-      success: false, 
-      error: 'Request body must contain raw XML data' 
-    });
-  }
-  if (!requestMetadata.contentType || !requestMetadata.contentType.includes('xml')) {
-    return res.status(400).send({ 
-      success: false, 
-      error: 'Content-Type must be application/xml or text/xml' 
-    });
-  }
-
   try {
+    const requestMetadata = buildRequestMetadata(req);
     const newAdviceId = await createDespatchAdvice(apiKey, rawXml, requestMetadata);
+
     res.send({
       "advice-id": newAdviceId,
       "executed-at": Math.floor(Date.now() / 1000)
     });
+
   } catch (error) {
-    if (error instanceof DespatchValidationError) {
-      return res.status(400).send({
-        success: false,
-        error: error.errors.join(', ')
-      });
+      if (error instanceof RequestValidationError || error instanceof DespatchValidationError) {
+      return res.status(400).send({ success: false, error: error.message });
     }
     console.error('Error creating despatch advice:', error);
-    res.status(500).send({ 
-      success: false, 
-      error: error.message
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 });
 

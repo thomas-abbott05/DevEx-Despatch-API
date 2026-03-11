@@ -11,6 +11,49 @@
       "description": "DevEx Despatch API Server"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "api-key",
+        "description": "API key required to authenticate all requests. Contact a team member to obtain one."
+      }
+    },
+    "schemas": {
+      "CreateDespatchAdviceResponse": {
+        "type": "object",
+        "properties": {
+          "advice-id": {
+            "type": "string",
+            "description": "The unique identifier of the newly created despatch advice.",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "executed-at": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of when the request was executed.",
+            "example": 1734567890
+          }
+        },
+        "required": ["advice-id", "executed-at"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "description": "A message describing what went wrong.",
+            "example": "Request body must contain raw XML data"
+          }
+        },
+        "required": ["success", "error"]
+      }
+    }
+  },
   "paths": {
     "/api/v1/health": {
       "get": {
@@ -61,6 +104,113 @@
                       "example": "An unexpected error occurred while processing the request."
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/despatch/create": {
+      "post": {
+        "summary": "Create a new despatch advice",
+        "description": "Accepts a UBL 2.1 DespatchAdvice XML document, validates it, and persists it. Returns the unique identifier assigned to the new record.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "api-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "API key used to authenticate the request."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "A valid UBL 2.1 DespatchAdvice XML document. Maximum size is 5 MB.",
+          "content": {
+            "application/xml": {
+              "schema": {
+                "type": "string",
+                "description": "Raw UBL 2.1 DespatchAdvice XML document.",
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<DespatchAdvice xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:DespatchAdvice-2\">\n  <ID>DA-001</ID>\n  <IssueDate>2026-03-11</IssueDate>\n  <DespatchSupplierParty>\n    <Party>\n      <PartyName><Name>Supplier Co.</Name></PartyName>\n    </Party>\n  </DespatchSupplierParty>\n  <DeliveryCustomerParty>\n    <Party>\n      <PartyName><Name>Buyer Co.</Name></PartyName>\n    </Party>\n  </DeliveryCustomerParty>\n  <Shipment>\n    <ID>SHIP-001</ID>\n  </Shipment>\n</DespatchAdvice>"
+              }
+            },
+            "text/xml": {
+              "schema": {
+                "type": "string",
+                "description": "Raw UBL 2.1 DespatchAdvice XML document."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Despatch advice successfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDespatchAdviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Returned when the API key header is missing, the request body is empty or not XML, the Content-Type is invalid, or the XML content fails despatch advice validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingApiKey": {
+                    "summary": "Missing API key header",
+                    "value": {
+                      "success": false,
+                      "error": "Missing required header: api-key"
+                    }
+                  },
+                  "missingBody": {
+                    "summary": "Missing or empty request body",
+                    "value": {
+                      "success": false,
+                      "error": "Request body must contain raw XML data"
+                    }
+                  },
+                  "invalidContentType": {
+                    "summary": "Invalid Content-Type header",
+                    "value": {
+                      "success": false,
+                      "error": "Content-Type must be application/xml or text/xml"
+                    }
+                  },
+                  "validationFailure": {
+                    "summary": "Despatch advice XML validation failed",
+                    "value": {
+                      "success": false,
+                      "error": "Despatch advice validation failed: Invalid XML content"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "An unexpected error occurred while processing the request."
                 }
               }
             }

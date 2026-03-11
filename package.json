@@ -16,7 +16,8 @@
   "main": "main.js",
   "scripts": {
     "build": "esbuild src/client/Index.jsx --bundle --outfile=public/compiled-js/bundle.js",
-    "start": "npm run build && node main.js"
+    "start": "npm run build && node main.js",
+    "test": "jest"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
@@ -27,6 +28,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "esbuild": "^0.27.3"
+    "esbuild": "^0.27.3",
+    "jest": "^30.0.0"
   }
 }
