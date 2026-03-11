@@ -1,17 +1,17 @@
 const { createDespatchAdvice } = require('../despatch-service');
-const { validateOrderXml } = require('../../validators/despatch-validator-service');
+const { validateOrderXml } = require('../../validators/order-xml-validator-service');
 const { getDb } = require('../../database');
 
 jest.mock('../../database', () => ({
   getDb: jest.fn()
 }));
 
-jest.mock('../../validators/despatch-validator-service', () => ({
+jest.mock('../../validators/order-xml-validator-service', () => ({
   validateOrderXml: jest.fn()
 }));
 
 describe('createDespatchAdvice', () => {
-  const validationSuccessResult = {
+  const validatedOrderResult = {
     success: true,
     id: '6e09886b-dc6e-439f-82d1-7ccac7f4e3b1',
     orderId: 'AEG012345',
@@ -32,7 +32,7 @@ describe('createDespatchAdvice', () => {
   });
 
   test('Validation passes + insert succeeds -> returns adviceId and despatchXml', async () => {
-    validateOrderXml.mockResolvedValue(validationSuccessResult);
+    validateOrderXml.mockResolvedValue(validatedOrderResult);
     fakeCollection.insertOne.mockResolvedValue({ insertedId: 'fake-id' });
 
     const result = await createDespatchAdvice('test-api-key', '<xml>valid</xml>', { userAgent: 'TestAgent' });
@@ -43,7 +43,7 @@ describe('createDespatchAdvice', () => {
   });
 
   test('Correct document is passed to insertOne (apiKey, despatchXml, metadata)', async () => {
-    validateOrderXml.mockResolvedValue(validationSuccessResult);
+    validateOrderXml.mockResolvedValue(validatedOrderResult);
     fakeCollection.insertOne.mockResolvedValue({ insertedId: 'fake-id' });
 
     const requestMetadata = { userAgent: 'TestAgent' };
@@ -73,7 +73,7 @@ describe('createDespatchAdvice', () => {
   });
 
   test('insertOne throws → error propagates out of createDespatchAdvice', async () => {
-    validateOrderXml.mockResolvedValue(validationSuccessResult);
+    validateOrderXml.mockResolvedValue(validatedOrderResult);
     fakeCollection.insertOne.mockRejectedValue(new Error('Database error'));
 
     await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Database error');

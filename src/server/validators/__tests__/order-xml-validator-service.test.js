@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { validateOrderXml } = require('../despatch-validator-service');
+const { validateOrderXml } = require('../order-xml-validator-service');
 
 describe('validateOrderXml', () => {
   const orderMockPath = path.join(__dirname, '../../despatch/mocks/order-mock.xml');

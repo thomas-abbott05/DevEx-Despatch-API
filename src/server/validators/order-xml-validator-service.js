@@ -20,29 +20,21 @@ async function getXmlDocumentClass() {
   return XmlDocument;
 }
 
-function getNodeContent(xmlDoc, xpath, namespaces, fallbackXpath) {
-  const node = xmlDoc.get(xpath, namespaces) || xmlDoc.get(fallbackXpath);
+function getNodeContent(xmlDoc, xpath, namespaces) {
+  const node = xmlDoc.get(xpath, namespaces);
   return node ? node.content.trim() : null;
 }
 
 // Implement basic exception for invalid XML with one error message for simplicity
-class DespatchValidationError extends Error {
+class BasicXmlValidationError extends Error {
   constructor(errors) {
-    super('Despatch advice validation failed');
-    this.name = 'DespatchValidationError';
+    super('XML validation failed');
+    this.name = 'BasicXmlValidationError';
     this.errors = errors;
   }
 }
 
-async function validateOrderXml(rawXml, metadata) {
-  // Simulate validation logic
-  if (!rawXml || typeof rawXml !== 'string' || rawXml.trim() === '') {
-    return {
-      success: false,
-      errors: ['Invalid XML content']
-    };
-  }
-
+async function validateOrderXml(rawXml) {
   let XmlDocument;
   try {
     XmlDocument = await getXmlDocumentClass();
@@ -64,7 +56,7 @@ async function validateOrderXml(rawXml, metadata) {
   }
 
   try {
-    const orderRoot = xmlDoc.get('/order:Order', UBL_ORDER_NS) || xmlDoc.get('/*[local-name()="Order"]');
+    const orderRoot = xmlDoc.get('/order:Order', UBL_ORDER_NS);
     if (!orderRoot) {
       return {
         success: false,
@@ -75,8 +67,7 @@ async function validateOrderXml(rawXml, metadata) {
     const uuidValue = getNodeContent(
       xmlDoc,
       '/order:Order/cbc:UUID',
-      UBL_ORDER_NS,
-      '/*[local-name()="Order"]/*[local-name()="UUID"]'
+      UBL_ORDER_NS
     );
 
     if (!uuidValue) {
@@ -96,20 +87,17 @@ async function validateOrderXml(rawXml, metadata) {
     const orderId = getNodeContent(
       xmlDoc,
       '/order:Order/cbc:ID',
-      UBL_ORDER_NS,
-      '/*[local-name()="Order"]/*[local-name()="ID"]'
+      UBL_ORDER_NS
     );
     const salesOrderId = getNodeContent(
       xmlDoc,
       '/order:Order/cbc:SalesOrderID',
-      UBL_ORDER_NS,
-      '/*[local-name()="Order"]/*[local-name()="SalesOrderID"]'
+      UBL_ORDER_NS
     );
     const issueDate = getNodeContent(
       xmlDoc,
       '/order:Order/cbc:IssueDate',
-      UBL_ORDER_NS,
-      '/*[local-name()="Order"]/*[local-name()="IssueDate"]'
+      UBL_ORDER_NS
     );
 
     return {
@@ -131,5 +119,5 @@ async function validateOrderXml(rawXml, metadata) {
 
 module.exports = {
   validateOrderXml,
-  DespatchValidationError
+  BasicXmlValidationError
 };

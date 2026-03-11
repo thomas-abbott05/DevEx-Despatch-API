@@ -2,7 +2,7 @@ const express = require('express');
 const { getServerConstants } = require('./config/server-config');
 const { getDb } = require('./database');
 const { listDespatchAdvices, createDespatchAdvice } = require('./despatch/despatch-service');
-const { DespatchValidationError } = require('./validators/despatch-validator-service');
+const { BasicXmlValidationError } = require('./validators/order-xml-validator-service');
 const { RequestValidationError, buildRequestMetadata } = require('./despatch/despatch-request-helper');
 
 const router = express.Router();
@@ -62,11 +62,11 @@ router.get('/dbtest', async (req, res) => {
 
 router.post('/despatch/create', rawXmlParser, async (req, res) => {
   const apiKey = req.apiKey;
-  const orderXml = req.body;
+  const incomingOrderXml = req.body;
 
   try {
     const requestMetadata = buildRequestMetadata(req);
-    const { adviceId, despatchXml } = await createDespatchAdvice(apiKey, orderXml, requestMetadata);
+    const { adviceId, despatchXml: generatedDespatchAdviceXml } = await createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata);
     const executedAt = Math.floor(Date.now() / 1000);
 
     res
@@ -75,10 +75,10 @@ router.post('/despatch/create', rawXmlParser, async (req, res) => {
         'advice-id': adviceId,
         'executed-at': String(executedAt)
       })
-      .send(despatchXml);
+      .send(generatedDespatchAdviceXml);
 
   } catch (error) {
-      if (error instanceof RequestValidationError || error instanceof DespatchValidationError) {
+      if (error instanceof RequestValidationError || error instanceof BasicXmlValidationError) {
       return res.status(400).send({ success: false, error: error.message });
     }
     console.error('Error creating despatch advice:', error);

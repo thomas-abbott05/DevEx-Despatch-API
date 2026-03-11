@@ -1,7 +1,7 @@
 // despatch-service.js
 const { getDb } = require('../database');
-const { validateOrderXml } = require('../validators/despatch-validator-service');
-const { buildMockDespatchAdviceXml } = require('./despatch-service-helper');
+const { validateOrderXml } = require('../validators/order-xml-validator-service');
+const { buildTemplatedDespatchAdviceXml } = require('./despatch-advice-builder');
 
 async function listDespatchAdvices(apiKey) {
   try {
@@ -19,31 +19,31 @@ async function listDespatchAdvices(apiKey) {
   }
 }
 
-async function createDespatchAdvice(apiKey, orderXml, requestMetadata = {}) {
+async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = {}) {
   try {
     const db = getDb();
     const collection = db.collection('despatch-advice');
     const now = new Date();
 
     // Validate the raw XML using the despatch validator service
-    const validationResult = await validateOrderXml(orderXml, requestMetadata);
-    if (!validationResult.success) {
-      throw new Error(`Despatch advice validation failed: ${validationResult.errors.join(', ')}`);
+    const validatedOrder = await validateOrderXml(incomingOrderXml, requestMetadata);
+    if (!validatedOrder.success) {
+      throw new Error(`Despatch advice validation failed: ${validatedOrder.errors.join(', ')}`);
     }
-    if (!validationResult.id) {
+    if (!validatedOrder.id) {
       throw new Error('Despatch advice validation failed: Missing Order UUID');
     }
 
-    // Temporary mock transformation: build despatch advice from template and validated order fields.
-    const despatchXml = buildMockDespatchAdviceXml(validationResult);
+    // Build a DespatchAdvice document from template and validated Order fields.
+    const generatedDespatchAdviceXml = buildTemplatedDespatchAdviceXml(validatedOrder);
 
     // Reuse the validated Order UUID for deterministic despatch advice identifiers.
-    const despatchAdviceId = validationResult.id;
+    const despatchAdviceId = validatedOrder.id;
 
     const result = await collection.insertOne({
       _id: despatchAdviceId,
       apiKey,
-      despatchXml,
+      despatchXml: generatedDespatchAdviceXml,
       metadata: {
         ...requestMetadata,
         receivedAt: now
@@ -53,7 +53,7 @@ async function createDespatchAdvice(apiKey, orderXml, requestMetadata = {}) {
 
     return {
       adviceId: result.insertedId,
-      despatchXml
+      despatchXml: generatedDespatchAdviceXml
     };
   } catch (error) {
     console.error('Error creating despatch advice:', error);
