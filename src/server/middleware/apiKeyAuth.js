@@ -1,8 +1,8 @@
-const { getDb } = require('../dataBase');
+const { getDb } = require('../database');
 
 async function apiKeyAuth(req, res, next) {
     try {
-        const apiKey = req.headers['API-Key'];
+        const apiKey = req.header("Api-Key");
 
         // If API key is missing
         if (!apiKey) {
@@ -14,13 +14,13 @@ async function apiKeyAuth(req, res, next) {
 
         const db = getDb();
 
-        const keyRecord = await db.collection("api-keys:").findOne({
+        const keyRecord = await db.collection("api-keys").findOne({
             key: apiKey
         });
 
         // Invalid API key 
         if (!keyRecord) {
-            return res.status(403).json({
+            return res.status(401).json({
                 errors: ["Invalid API key"],
                 "executed-at": Math.floor(Date.now() / 1000),
             });
