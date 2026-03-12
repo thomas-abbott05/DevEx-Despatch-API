@@ -4,6 +4,7 @@ const { getDb } = require('./database');
 const { listDespatchAdvices, createDespatchAdvice } = require('./despatch/despatch-service');
 const { BasicXmlValidationError } = require('./validators/order-xml-validator-service');
 const { RequestValidationError, buildRequestMetadata } = require('./despatch/despatch-request-helper');
+const apiKeyAuth = require('./middleware/apiKeyAuth');
 
 const router = express.Router();
 const rawXmlParser = express.text({
@@ -11,6 +12,7 @@ const rawXmlParser = express.text({
   limit: '5mb'
 });
 
+/*
 const validateApiKey = async (req, res, next) => {
   const apiKey = req.headers['api-key'];
   if (!apiKey) {
@@ -22,8 +24,7 @@ const validateApiKey = async (req, res, next) => {
   req.apiKey = apiKey; // Store the API key in the request object for later use
   next();
 };
-
-router.use(validateApiKey);
+*/
 
 // Health check endpoint
 // Move this above router.use(validateApiKey) to allow unauthenticated access
@@ -36,6 +37,8 @@ router.get('/health', (req, res) => {
     "executed-at": Math.floor(Date.now() / 1000)
   });
 });
+
+router.use(apiKeyAuth);
 
 // Database test endpoint
 router.get('/dbtest', async (req, res) => {
