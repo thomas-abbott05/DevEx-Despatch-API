@@ -3,3 +3,8 @@ node_modules
 
 # environment variables
 .env
+coverage/
+
+public/bundle.js
+
+.DS_Store
