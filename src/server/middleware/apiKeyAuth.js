@@ -2,32 +2,40 @@ const { getDb } = require('../dataBase');
 
 async function apiKeyAuth(req, res, next) {
     try {
-        const apiKey = req.headers['x-api-key'];
+        const apiKey = req.headers['API-Key'];
 
+        // If API key is missing
         if (!apiKey) {
             return res.status(401).json({
-                error: 'API key missing'
+                errors: ["Missing API key header. A valid key is required for this endpoint."],
+                "executed-at": Math.floor(Date.now() / 1000),
             });
         }
 
         const db = getDb();
 
-        const key = await db.collection('api_keys').findOne({
-            active: true
+        const keyRecord = await db.collection("api-keys:").findOne({
+            key: apiKey
         });
-        if (!key) {
+
+        // Invalid API key 
+        if (!keyRecord) {
             return res.status(403).json({
-                error: 'Invalid API key'
+                errors: ["Invalid API key"],
+                "executed-at": Math.floor(Date.now() / 1000),
             });
         }
 
-        req.team = key.teamName;
+        req.apiKeyOwner = keyRecord.owner;
 
         next();
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            error: 'Authetication error'
+        console.error("API key Auth Error:", err);
+        
+        return res.status(500).json({
+            errors: ["Internal server error"],
+            "executed-at": Math.floor(Date.now() / 1000),
         });
     }
 }
