@@ -73,6 +73,54 @@ router.post('/keys', async (req, res) => {
   }
 });
 
+router.get('/keys', async (req, res) => {
+  try {
+    const db = getDb();
+
+    const keys = await db.collection("api-keys").find({}).toArray();
+
+    res.send({
+      results: keys,
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  } catch (error) {
+    console.error("Error fetching API keys:", error);
+
+    res.status(500).send({
+      error: ["Internal server error"],
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  }
+});
+
+router.delete('/keys/:key', async (req, res) => {
+  try {
+    const db = getDb();
+    const key = req.params.key;
+
+    const result = await db.collection("api-keys").deleteOne({
+      key: key
+    });
+    if (reuslt.deletedCount === 0) {
+      return res.status(404).send({
+        error: ["API key not found"],
+        "executed-at": Math.floor(Date.now() / 1000)
+      });
+    }
+    res.send({
+      success: true,
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  } catch (error) {
+    console.error("Error deleting API key:", error);
+
+    res.status(500).send({
+      errors: ["Internal server error"],
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  }
+});
+
 router.use(apiKeyAuth);
 
 // Database test endpoint
