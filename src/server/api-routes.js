@@ -1,10 +1,18 @@
 const express = require('express');
+const crypto = require('crypto');
+
 const { getServerConstants } = require('./config/server-config');
 const { getDb } = require('./database');
 const { listDespatchAdvices, createDespatchAdvice } = require('./despatch/despatch-service');
 const { BasicXmlValidationError } = require('./validators/order-xml-validator-service');
 const { RequestValidationError, buildRequestMetadata } = require('./despatch/despatch-request-helper');
 const apiKeyAuth = require('./middleware/apiKeyAuth');
+
+//
+function generateApiKey() {
+  return crypto.randomBytes(32).toString('hex');
+}
+//
 
 const router = express.Router();
 const rawXmlParser = express.text({
@@ -36,6 +44,33 @@ router.get('/health', (req, res) => {
     version: API_VERSION,
     "executed-at": Math.floor(Date.now() / 1000)
   });
+});
+
+router.post('/keys', async (req, res) => {
+  try {
+    const db = getDb();
+    const apiKey = generateApiKey();
+
+    const newKey = {
+      key: apiKey,
+      owner: "devex-team", 
+      createdAt: new Date()
+    };
+
+    await db.collection("api-keys").insertOne(newKey);
+
+    res.send({
+      apiKey: apiKey,
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  } catch (error) {
+    console.error("Error creating API key:", error);
+
+    res.status(500).send({
+      errors: ["Internal server error"],
+      "executed-at": Math.floor(Date.now() / 1000)
+    });
+  }
 });
 
 router.use(apiKeyAuth);
