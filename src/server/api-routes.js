@@ -87,7 +87,7 @@ router.get('/keys', async (req, res) => {
     console.error("Error fetching API keys:", error);
 
     res.status(500).send({
-      error: ["Internal server error"],
+      errors: ["Internal server error"],
       "executed-at": Math.floor(Date.now() / 1000)
     });
   }
@@ -101,9 +101,9 @@ router.delete('/keys/:key', async (req, res) => {
     const result = await db.collection("api-keys").deleteOne({
       key: key
     });
-    if (reuslt.deletedCount === 0) {
+    if (result.deletedCount === 0) {
       return res.status(404).send({
-        error: ["API key not found"],
+        errors: ["API key not found"],
         "executed-at": Math.floor(Date.now() / 1000)
       });
     }
