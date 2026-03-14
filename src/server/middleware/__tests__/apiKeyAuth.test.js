@@ -1,6 +1,7 @@
 const apiKeyAuth = require('../apiKeyAuth');
 const { getDb } = require('../../database');
 const { cloneElement } = require('react');
+const { json } = require('express');
 
 jest.mock('../../database');
 
@@ -72,5 +73,30 @@ describe('apiKeyAuth middleware', () => {
         await apiKeyAuth(req, res, next);
 
         expect(next).toHaveBeenCalled();
+    });
+
+    test("Database error: returns 500", async () => {
+        const req = {
+            header: jest.fn().mockReturnValue("vaid-key")
+        };
+        
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+
+        const next = jest.fn();
+
+        const mockDb = {
+            collection: () => ({
+                findOne: jest.fn().mockRejectedValue(new Error("DB crash"))
+            })
+        };
+
+        getDb.mockReturnValue(mockDb);
+
+        await apiKeyAuth(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(500);
     });
 });

@@ -27,7 +27,7 @@ async function apiKeyAuth(req, res, next) {
         }
 
         // Store the key itself so the routes can later access it easily.
-        // req.apiKey = apiKey;
+        req.apiKey = apiKey;
         req.apiKeyOwner = keyRecord.owner;
 
 
