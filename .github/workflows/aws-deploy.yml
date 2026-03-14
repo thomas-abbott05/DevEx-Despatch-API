@@ -3,6 +3,12 @@ name: Deploy to EC2
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual run'
+        required: true
+        default: 'Manual deployment trigger'
 
 jobs:
   deploy:
