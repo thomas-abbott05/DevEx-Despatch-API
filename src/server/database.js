@@ -1,4 +1,3 @@
-
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']); // MongoDB SRV record lookup can fail on some DNS servers. Force Google DNS.

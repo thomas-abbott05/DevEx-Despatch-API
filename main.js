@@ -1,6 +1,5 @@
 // Entry point for the API server - run: npm run start
 // DevEx Team, SENG2021 2026T1
-
 const DevExServer = require('./src/server/server');
 
 async function main() {

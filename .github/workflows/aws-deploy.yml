@@ -10,7 +10,7 @@ jobs:
     steps:
     - name: Deploy to EC2
       run: |
-        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": ":hourglass: Automatic deployment started for main branch with commit comment: `${{ github.event.head_commit.message }}` - building Docker image and starting container, one moment..."}'
+        curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": ":hourglass: Automatic deployment started for main branch - building Docker image and starting container, one moment..."}'
         echo "${{ secrets.EC2_SSH_KEY }}" > private_key
         chmod 600 private_key
         ssh -o StrictHostKeyChecking=no -i private_key ubuntu@${{ secrets.EC2_HOST }} '
