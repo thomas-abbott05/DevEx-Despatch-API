@@ -26,7 +26,7 @@ jobs:
           cd DevEx-Despatch-API
           echo ${{ secrets.ENV_FILE }} > .env
           docker image prune -f
-          docker build -t devex-despatch-api .
+          docker build --no-cache -t devex-despatch-api .
           docker stop devex-despatch-api || true
           docker rm devex-despatch-api || true
           docker run -d -p 80:80 -p 443:443 --restart unless-stopped \
