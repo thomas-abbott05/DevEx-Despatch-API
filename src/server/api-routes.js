@@ -4,6 +4,8 @@ const { getDb } = require('./database');
 const { listDespatchAdvices, createDespatchAdvice } = require('./despatch/despatch-service');
 const { BasicXmlValidationError } = require('./validators/order-xml-validator-service');
 const { RequestValidationError, buildRequestMetadata } = require('./despatch/despatch-request-helper');
+const { cancelDespatchAdvice, getCancellation, CancellationNotFoundError, CancellationForbiddenError } = require('./despatch/despatch-cancel-order');
+const { buildCancelRequestMetadata, buildCancelRetrievalMetadata } = require('./despatch/despatch-cancel-order-request-helper');
 
 const router = express.Router();
 const rawXmlParser = express.text({
@@ -109,6 +111,84 @@ router.get('/despatch/list', async (req, res) => {
     res.status(500).send({ 
       success: false, 
       error: error.message
+    });
+  }
+});
+
+// POST /api/v1/despatch/cancel/order
+router.post('/despatch/cancel/order', async (req, res) => {
+  const apiKey = req.apiKey;
+ 
+  try {
+    const metadata = buildCancelRequestMetadata(req);
+    const result = await cancelDespatchAdvice(apiKey, metadata);
+    res.status(200).send(result);
+  } catch (error) {
+    if (error instanceof RequestValidationError || error instanceof BasicXmlValidationError) {
+      return res.status(400).send({
+        error: 'Bad Request',
+        message: error.message,
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    if (error instanceof CancellationNotFoundError) {
+      return res.status(404).send({
+        error: 'Not Found',
+        message: error.message,
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    if (error instanceof CancellationForbiddenError) {
+      return res.status(403).send({
+        error: 'Forbidden',
+        message: error.message,
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    console.error('Error cancelling despatch advice:', error);
+    res.status(500).send({
+      error: 'Internal Server Error',
+      message: 'An unexpected error occurred while processing the request.',
+      'executed-at': Math.floor(Date.now() / 1000)
+    });
+  }
+});
+
+// GET /api/v1/despatch/cancel/order
+router.get('/despatch/cancel/order', async (req, res) => {
+  const apiKey = req.apiKey;
+ 
+  try {
+    const metadata = buildCancelRetrievalMetadata(req);
+    const result = await getCancellation(apiKey, metadata);
+    res.status(200).send(result);
+  } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return res.status(400).send({
+        error: 'Bad Request',
+        message: error.message,
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    if (error instanceof CancellationNotFoundError) {
+      return res.status(404).send({
+        error: 'Not Found',
+        message: error.message,
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    if (error instanceof CancellationForbiddenError) {
+      return res.status(403).send({
+        error: 'Forbidden',
+        message: error.message,
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    console.error('Error retrieving cancellation:', error);
+    res.status(500).send({
+      error: 'Internal Server Error',
+      message: 'An unexpected error occurred while processing the request.',
+      'executed-at': Math.floor(Date.now() / 1000)
     });
   }
 });

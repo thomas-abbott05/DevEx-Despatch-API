@@ -33,6 +33,31 @@ function buildCancelRequestMetadata(req) {
   };
 }
 
+/**
+ * Validates and extracts query params from the GET api/v1/despatch/cancel/order request.
+ * Expects either ?id=<advice-id> or ?cancellation-id=<cancellation-id>.
+ */
+function buildCancelRetrievalMetadata(req) {
+  const query = req.query;
+ 
+  if (query['id']) {
+    if (!isValidUuidV4(query['id'])) {
+      throw new RequestValidationError('Invalid advice-id: must be a valid v4 UUID');
+    }
+    return { adviceId: query['id'] };
+  }
+ 
+  if (query['cancellation-id']) {
+    if (!isValidUuidV4(query['cancellation-id'])) {
+      throw new RequestValidationError('Invalid cancellation-id: must be a valid v4 UUID');
+    }
+    return { cancellationId: query['cancellation-id'] };
+  }
+  
+  throw new RequestValidationError('Missing required query parameter: id or cancellation-id');
+}
+
 module.exports = {
-  buildCancelRequestMetadata
+  buildCancelRequestMetadata,
+  buildCancelRetrievalMetadata
 };
