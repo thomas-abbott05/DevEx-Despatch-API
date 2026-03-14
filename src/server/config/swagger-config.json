@@ -217,6 +217,180 @@
           }
         }
       }
+    },
+
+    "/api/v1/despatch/cancel/order": {
+      "post": {
+        "summary": "Cancel existing despatch advice",
+        "description": "Given a despatch advice ID and order cancellation document, mark the order as cancelled and update related database fields",
+        "requestBody": {
+          "required": true,
+          "description": "A json body contain the despatch advice ID and order cancellation XML document",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "advice-id",
+                  "order-cancellation-document"
+                ],
+                "properties": {
+                  "advice-id": {
+                    "type": "string",
+                    "example": "e553cc8e-8b37-4a9b-a0cf-87c34ea70a35"
+                  },
+                  "order-cancellation-document": {
+                    "type": "string",
+                    "example": "<OrderCancellation>...</OrderCancellation>"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "order-cancellation": {
+                      "type": "string",
+                      "example": "<OrderCancellation>...</OrderCancellation>"
+                    },
+                    "order-cancellation-reason": {
+                      "type": "string",
+                      "example": "Refund requested"
+                    },
+                    "order-cancellation-id": {
+                      "type": "string",
+                      "example": "cfa1d364-b5a8-40e3-aad4-98e2be71263b"
+                    },
+                    "advice-id": {
+                      "type": "string",
+                      "example": "e553cc8e-8b37-4a9b-a0cf-87c34ea70a35"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "example": 1772246484
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Despatch advice or order cancellation not found for advice-id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Not Found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Failed to find Despatch Advice with id {advice-id}."
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "example": 1772246484
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, missing advice-id parameter, or order-cancellation-document failed validation for a proper order cancellation request by the buyer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Bad Request"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Order Cancellation document failed validation."
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "example": 1772246484
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorised, missing API key header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorised"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Missing API key header."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Provided API key doesnt match the owner of the resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Forbidden"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Unauthorised access."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal Server Error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "An unexpected error occurred while processing the request."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
