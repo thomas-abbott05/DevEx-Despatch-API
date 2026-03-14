@@ -21,7 +21,7 @@ async function apiKeyAuth(req, res, next) {
         // Invalid API key 
         if (!keyRecord) {
             return res.status(401).json({
-                errors: ["Invalid API key"],
+                errors: ["Invalid API key. Check it matches the one we issued you."],
                 "executed-at": Math.floor(Date.now() / 1000),
             });
         }
@@ -30,25 +30,16 @@ async function apiKeyAuth(req, res, next) {
         req.apiKey = apiKey;
         req.apiKeyOwner = keyRecord.owner;
 
-
         next();
 
     } catch (err) {
         console.error("API key Auth Error:", err);
         
         return res.status(500).json({
-            errors: ["Internal server error"],
+            errors: ["Internal server error - try again later."],
             "executed-at": Math.floor(Date.now() / 1000),
         });
     }
 }
 
 module.exports = apiKeyAuth;
-
-
-// This comments are for me 
-// I will delete them later
-
-// reads x-api-key
-// checks MongoDB
-// blocks request if invalid 

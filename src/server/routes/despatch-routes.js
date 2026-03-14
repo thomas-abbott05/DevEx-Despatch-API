@@ -1,0 +1,69 @@
+const express = require('express');
+const { listDespatchAdvices, createDespatchAdvice } = require('../despatch/despatch-service');
+const { BasicXmlValidationError } = require('../validators/order-xml-validator-service');
+const { RequestValidationError, buildRequestMetadata } = require('../despatch/despatch-request-helper');
+const apiKeyValidation = require('../middleware/api-key-validation');
+
+const router = express.Router();
+
+const rawXmlParser = express.text({
+  type: ['application/xml', 'text/xml', 'application/*+xml'],
+  limit: '5mb'
+});
+
+// All despatch routes require a normal issued API key.
+router.use(apiKeyValidation);
+
+router.post('/create', rawXmlParser, async (req, res) => {
+  const apiKey = req.apiKey;
+  const incomingOrderXml = req.body;
+
+  try {
+    const requestMetadata = buildRequestMetadata(req);
+    const { adviceId, despatchXml: generatedDespatchAdviceXml } = await createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata);
+    const executedAt = Math.floor(Date.now() / 1000);
+
+    res
+      .set({
+        'Content-Type': 'application/xml',
+        'advice-id': adviceId,
+        'executed-at': String(executedAt)
+      })
+      .send(generatedDespatchAdviceXml);
+  } catch (error) {
+    if (error instanceof RequestValidationError || error instanceof BasicXmlValidationError) {
+      return res.status(400).send({ success: false, error: error.message });
+    }
+
+    console.error('Error creating despatch advice:', error);
+    res.status(500).send({ success: false, error: error.message });
+  }
+});
+
+router.get('/retrieve', async (req, res) => {
+  res.status(501).send({
+    success: false,
+    error: 'Not implemented yet',
+    'executed-at': Math.floor(Date.now() / 1000)
+  });
+});
+
+router.get('/list', async (req, res) => {
+  const apiKey = req.apiKey;
+
+  try {
+    const results = await listDespatchAdvices(apiKey);
+    res.send({
+      results,
+      'executed-at': Math.floor(Date.now() / 1000)
+    });
+  } catch (error) {
+    console.error('Error fetching despatches:', error);
+    res.status(500).send({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;
