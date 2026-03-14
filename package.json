@@ -17,11 +17,12 @@
   "scripts": {
     "build": "esbuild src/client/Index.jsx --bundle --outfile=public/compiled-js/bundle.js",
     "start": "npm run build && node main.js",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "fast-xml-parser": "^5.5.5",
     "libxml2-wasm": "^0.7.0",
     "mongodb": "^7.1.0",
     "react": "^19.2.4",
@@ -31,6 +32,6 @@
   },
   "devDependencies": {
     "esbuild": "^0.27.3",
-    "jest": "^30.3.0"
+    "jest": "^30.0.0"
   }
 }

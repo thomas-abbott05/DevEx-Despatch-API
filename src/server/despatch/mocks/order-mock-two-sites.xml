@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  order-mock-two-sites.xml
+  ========================
+  Demo order containing two lines destined for two different delivery sites.
+
+  Split trigger: line-level cac:LineItem/cac:Delivery/cac:DeliveryAddress
+    - Line 1 (beeswax) has NO line-level address → falls back to the order-level
+      cac:Delivery/cac:DeliveryAddress (Bridgtow, Site A).
+    - Line 2 (candles) has its OWN line-level address (Manchester, Site B).
+
+  buildDespatchGroups will see two distinct address keys and return two groups,
+  causing despatch-service.js to emit two separate DespatchAdvice documents:
+    DA #1 → beeswax to Bridgtow (Site A)
+    DA #2 → candles to Manchester (Site B)
+-->
+<Order xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+       xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+       xmlns="urn:oasis:names:specification:ubl:schema:xsd:Order-2">
+	<cbc:UBLVersionID>2.0</cbc:UBLVersionID>
+	<cbc:CustomizationID>urn:oasis:names:specification:ubl:xpath:Order-2.0:sbs-1.0-draft</cbc:CustomizationID>
+	<cbc:ProfileID>bpid:urn:oasis:names:draft:bpss:ubl-2-sbs-order-with-simple-response-draft</cbc:ProfileID>
+	<cbc:ID>AEG099001</cbc:ID>
+	<cbc:SalesOrderID>CON0099001</cbc:SalesOrderID>
+	<cbc:CopyIndicator>false</cbc:CopyIndicator>
+	<cbc:UUID>A1B2C3D4-E5F6-7890-ABCD-EF1234567890</cbc:UUID>
+	<cbc:IssueDate>2005-06-20</cbc:IssueDate>
+	<cbc:Note>Two-site order: beeswax to Bridgtow (Site A), candles to Manchester (Site B)</cbc:Note>
+
+	<cac:BuyerCustomerParty>
+		<cbc:CustomerAssignedAccountID>XFB01</cbc:CustomerAssignedAccountID>
+		<cbc:SupplierAssignedAccountID>GT00978567</cbc:SupplierAssignedAccountID>
+		<cac:Party>
+			<cac:PartyName>
+				<cbc:Name>IYT Corporation</cbc:Name>
+			</cac:PartyName>
+			<cac:PostalAddress>
+				<cbc:StreetName>Avon Way</cbc:StreetName>
+				<cbc:BuildingName>Thereabouts</cbc:BuildingName>
+				<cbc:BuildingNumber>56A</cbc:BuildingNumber>
+				<cbc:CityName>Bridgtow</cbc:CityName>
+				<cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
+				<cbc:CountrySubentity>Avon</cbc:CountrySubentity>
+				<cac:AddressLine>
+					<cbc:Line>3rd Floor, Room 5</cbc:Line>
+				</cac:AddressLine>
+				<cac:Country>
+					<cbc:IdentificationCode>GB</cbc:IdentificationCode>
+				</cac:Country>
+			</cac:PostalAddress>
+			<cac:Contact>
+				<cbc:Name>Mr Fred Churchill</cbc:Name>
+				<cbc:Telephone>0127 2653214</cbc:Telephone>
+				<cbc:ElectronicMail>fred@iytcorporation.gov.uk</cbc:ElectronicMail>
+			</cac:Contact>
+		</cac:Party>
+	</cac:BuyerCustomerParty>
+
+	<cac:SellerSupplierParty>
+		<cbc:CustomerAssignedAccountID>CO001</cbc:CustomerAssignedAccountID>
+		<cac:Party>
+			<cac:PartyName>
+				<cbc:Name>Consortial</cbc:Name>
+			</cac:PartyName>
+			<cac:PostalAddress>
+				<cbc:StreetName>Busy Street</cbc:StreetName>
+				<cbc:BuildingName>Thereabouts</cbc:BuildingName>
+				<cbc:BuildingNumber>56A</cbc:BuildingNumber>
+				<cbc:CityName>Farthing</cbc:CityName>
+				<cbc:PostalZone>AA99 1BB</cbc:PostalZone>
+				<cbc:CountrySubentity>Heremouthshire</cbc:CountrySubentity>
+				<cac:AddressLine>
+					<cbc:Line>The Roundabout</cbc:Line>
+				</cac:AddressLine>
+				<cac:Country>
+					<cbc:IdentificationCode>GB</cbc:IdentificationCode>
+				</cac:Country>
+			</cac:PostalAddress>
+			<cac:Contact>
+				<cbc:Name>Mrs Bouquet</cbc:Name>
+				<cbc:Telephone>0158 1233714</cbc:Telephone>
+				<cbc:ElectronicMail>bouquet@fpconsortial.co.uk</cbc:ElectronicMail>
+			</cac:Contact>
+		</cac:Party>
+	</cac:SellerSupplierParty>
+
+	<!-- Order-level delivery defaults to Site A (Bridgtow).
+	     Any line without its own cac:Delivery will be grouped here. -->
+	<cac:Delivery>
+		<cac:DeliveryAddress>
+			<cbc:StreetName>Avon Way</cbc:StreetName>
+			<cbc:BuildingName>Thereabouts</cbc:BuildingName>
+			<cbc:BuildingNumber>56A</cbc:BuildingNumber>
+			<cbc:CityName>Bridgtow</cbc:CityName>
+			<cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
+			<cbc:CountrySubentity>Avon</cbc:CountrySubentity>
+			<cac:AddressLine>
+				<cbc:Line>Site A Goods Inward</cbc:Line>
+			</cac:AddressLine>
+			<cac:Country>
+				<cbc:IdentificationCode>GB</cbc:IdentificationCode>
+			</cac:Country>
+		</cac:DeliveryAddress>
+		<cac:RequestedDeliveryPeriod>
+			<cbc:StartDate>2005-06-29</cbc:StartDate>
+			<cbc:StartTime>09:00:00.0Z</cbc:StartTime>
+			<cbc:EndDate>2005-06-29</cbc:EndDate>
+			<cbc:EndTime>17:00:00.0Z</cbc:EndTime>
+		</cac:RequestedDeliveryPeriod>
+	</cac:Delivery>
+
+	<cac:AnticipatedMonetaryTotal>
+		<cbc:LineExtensionAmount currencyID="GBP">200.00</cbc:LineExtensionAmount>
+		<cbc:PayableAmount currencyID="GBP">200.00</cbc:PayableAmount>
+	</cac:AnticipatedMonetaryTotal>
+
+	<!-- LINE 1: Beeswax → Site A (Bridgtow).
+	     No line-level cac:Delivery; getEffectiveDeliveryAddress falls back to
+	     the order-level address above.
+	     DA #1 will contain this line only. -->
+	<cac:OrderLine>
+		<cbc:Note>Deliver to Site A, Bridgtow</cbc:Note>
+		<cac:LineItem>
+			<cbc:ID>1</cbc:ID>
+			<cbc:SalesOrderID>A</cbc:SalesOrderID>
+			<cbc:LineStatusCode>NoStatus</cbc:LineStatusCode>
+			<cbc:Quantity unitCode="KGM">100</cbc:Quantity>
+			<cbc:LineExtensionAmount currencyID="GBP">100.00</cbc:LineExtensionAmount>
+			<cac:Price>
+				<cbc:PriceAmount currencyID="GBP">1.00</cbc:PriceAmount>
+				<cbc:BaseQuantity unitCode="KGM">1</cbc:BaseQuantity>
+			</cac:Price>
+			<cac:Item>
+				<cbc:Description>Acme beeswax</cbc:Description>
+				<cbc:Name>beeswax</cbc:Name>
+				<cac:BuyersItemIdentification>
+					<cbc:ID>6578489</cbc:ID>
+				</cac:BuyersItemIdentification>
+				<cac:SellersItemIdentification>
+					<cbc:ID>17589683</cbc:ID>
+				</cac:SellersItemIdentification>
+			</cac:Item>
+		</cac:LineItem>
+	</cac:OrderLine>
+
+	<!-- LINE 2: Candles → Site B (Manchester).
+	     Overrides the order-level address with a line-level cac:Delivery.
+	     getEffectiveDeliveryAddress will return this line-level address,
+	     producing a different addressKey → a second despatch group.
+	     DA #2 will contain this line only. -->
+	<cac:OrderLine>
+		<cbc:Note>Deliver to Site B, Manchester</cbc:Note>
+		<cac:LineItem>
+			<cbc:ID>2</cbc:ID>
+			<cbc:SalesOrderID>B</cbc:SalesOrderID>
+			<cbc:LineStatusCode>NoStatus</cbc:LineStatusCode>
+			<cbc:Quantity unitCode="EA">200</cbc:Quantity>
+			<cbc:LineExtensionAmount currencyID="GBP">100.00</cbc:LineExtensionAmount>
+			<cac:Price>
+				<cbc:PriceAmount currencyID="GBP">0.50</cbc:PriceAmount>
+				<cbc:BaseQuantity unitCode="EA">1</cbc:BaseQuantity>
+			</cac:Price>
+			<!-- Line-level delivery address — this is the split trigger.
+			     buildDespatchGroups stableStringifies this into a different
+			     addressKey from the order-level address above. -->
+			<cac:Delivery>
+				<cac:DeliveryAddress>
+					<cbc:StreetName>Deansgate</cbc:StreetName>
+					<cbc:BuildingNumber>1</cbc:BuildingNumber>
+					<cbc:CityName>Manchester</cbc:CityName>
+					<cbc:PostalZone>M3 4LQ</cbc:PostalZone>
+					<cbc:CountrySubentity>Greater Manchester</cbc:CountrySubentity>
+					<cac:AddressLine>
+						<cbc:Line>Site B Goods Inward</cbc:Line>
+					</cac:AddressLine>
+					<cac:Country>
+						<cbc:IdentificationCode>GB</cbc:IdentificationCode>
+					</cac:Country>
+				</cac:DeliveryAddress>
+			</cac:Delivery>
+			<cac:Item>
+				<cbc:Description>Acme beeswax candles</cbc:Description>
+				<cbc:Name>candles</cbc:Name>
+				<cac:BuyersItemIdentification>
+					<cbc:ID>6578490</cbc:ID>
+				</cac:BuyersItemIdentification>
+				<cac:SellersItemIdentification>
+					<cbc:ID>17589684</cbc:ID>
+				</cac:SellersItemIdentification>
+			</cac:Item>
+		</cac:LineItem>
+	</cac:OrderLine>
+
+</Order>

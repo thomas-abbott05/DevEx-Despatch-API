@@ -1,8 +1,10 @@
 const express = require('express');
-const { listDespatchAdvices, createDespatchAdvice } = require('../despatch/despatch-service');
-const { BasicXmlValidationError } = require('../validators/order-xml-validator-service');
-const { RequestValidationError, buildRequestMetadata } = require('../despatch/despatch-request-helper');
 const apiKeyValidation = require('../middleware/api-key-validation');
+
+const { createDespatchAdvice } = require('../despatch/despatch-service');
+const { BasicXmlValidationError } = require('../validators/order-xml-validator-service');
+const { RequestValidationError, buildRequestMetadata, validateXmlRequest } = require('../despatch/despatch-request-helper');
+
 
 const router = express.Router();
 
@@ -19,22 +21,22 @@ router.post('/create', rawXmlParser, async (req, res) => {
   const incomingOrderXml = req.body;
 
   try {
+    validateXmlRequest(req);
     const requestMetadata = buildRequestMetadata(req);
-    const { adviceId, despatchXml: generatedDespatchAdviceXml } = await createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata);
+    
+    const { adviceIds } = await createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata);
     const executedAt = Math.floor(Date.now() / 1000);
 
-    res
-      .set({
-        'Content-Type': 'application/xml',
-        'advice-id': adviceId,
-        'executed-at': String(executedAt)
-      })
-      .send(generatedDespatchAdviceXml);
+    res.status(200).send({
+        success: true,
+        adviceIds,
+        "executed-at": executedAt
+      });
+
   } catch (error) {
     if (error instanceof RequestValidationError || error instanceof BasicXmlValidationError) {
       return res.status(400).send({ success: false, error: error.message });
     }
-
     console.error('Error creating despatch advice:', error);
     res.status(500).send({ success: false, error: error.message });
   }
