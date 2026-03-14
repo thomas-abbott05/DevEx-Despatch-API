@@ -119,5 +119,8 @@ async function validateOrderXml(rawXml) {
 
 module.exports = {
   validateOrderXml,
-  BasicXmlValidationError
+  BasicXmlValidationError,
+  isValidUuidV4,
+  getXmlDocumentClass,
+  getNodeContent
 };

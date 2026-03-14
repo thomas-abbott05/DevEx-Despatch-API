@@ -19,6 +19,9 @@ function createExpressApp() {
 
     app.use(requestLogger);
 
+    // parse JSON bodies
+    app.use(express.json());
+
     // Serve static files from public directory e.g. images
     app.use(express.static(path.join(__dirname, '../../../public')));
 

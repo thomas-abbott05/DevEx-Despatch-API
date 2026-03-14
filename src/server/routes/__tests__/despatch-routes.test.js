@@ -52,7 +52,7 @@ describe('despatch routes', () => {
   let router;
 
   beforeAll(async () => {
-    router = require('../despatch-routes');
+    router = require('../despatch-advice-routes');
     const started = await startServerWithRouter(router);
     server = started.server;
     baseUrl = started.baseUrl;

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OrderCancellation xmlns="urn:oasis:names:specification:ubl:schema:xsd:OrderCancellation-2" 
+  xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" 
+  xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+  <cbc:ID>f47ac10b-58cc-4372-a567-0e02b2c3d479</cbc:ID>
+  <cbc:IssueDate>2010-01-21</cbc:IssueDate>
+  <cbc:IssueTime>12:30:00</cbc:IssueTime>
+  <cbc:CancellationNote>Change of mind</cbc:CancellationNote>
+  <cac:OrderReference>
+    <cbc:ID>34</cbc:ID>
+  </cac:OrderReference>
+  <cac:BuyerCustomerParty>
+    <cac:Party>
+      <cbc:EndpointID schemeAgencyID="9" schemeID="GLN">7300072311115</cbc:EndpointID>
+      <cac:PartyName>
+        <cbc:Name>Johnssons byggvaror</cbc:Name>
+      </cac:PartyName>
+    </cac:Party>
+  </cac:BuyerCustomerParty>
+  <cac:SellerSupplierParty>
+    <cac:Party>
+      <cbc:EndpointID schemeAgencyID="9" schemeID="GLN">7302347231111</cbc:EndpointID>
+      <cac:PartyName>
+        <cbc:Name>Moderna Produkter AB</cbc:Name>
+      </cac:PartyName>
+    </cac:Party>
+  </cac:SellerSupplierParty>
+</OrderCancellation>

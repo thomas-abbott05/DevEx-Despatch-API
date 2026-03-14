@@ -1,8 +1,9 @@
 // This is the entry point that loads all of our API routes.
 const express = require('express');
 const { getServerConstants } = require('../config/server-config');
-const despatchRoutes = require('./despatch-routes');
 const apiKeyManagementRoutes = require('./api-key-management-routes');
+const despatchRoutes = require('./despatch-advice-routes');
+const despatchCancellationRoutes = require('./despatch-cancellation-routes');
 
 const router = express.Router();
 
@@ -22,5 +23,8 @@ router.use('/api-key', apiKeyManagementRoutes);
 
 // External despatch routes - protected with normal issued API keys.
 router.use('/despatch', despatchRoutes);
+
+// Despatch cancellation routes - protected with normal issued API keys.
+router.use('/despatch/cancel', despatchCancellationRoutes);
 
 module.exports = router;

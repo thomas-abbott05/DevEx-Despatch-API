@@ -1,8 +1,8 @@
 class RequestValidationError extends Error {
-  constructor(message) {
+  constructor(message, statusCode) {
     super(message || 'Request validation failed');
     this.name = 'RequestValidationError';
-    this.statusCode = 400;
+    this.statusCode = statusCode || 400;
   }
 }
 function buildRequestMetadata(req) {
