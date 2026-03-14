@@ -1,7 +1,5 @@
-const apiKeyAuth = require('../apiKeyAuth');
+const apiKeyAuth = require('../api-key-validation');
 const { getDb } = require('../../database');
-const { cloneElement } = require('react');
-const { json } = require('express');
 
 jest.mock('../../database');
 
@@ -77,7 +75,7 @@ describe('apiKeyAuth middleware', () => {
 
     test("Database error: returns 500", async () => {
         const req = {
-            header: jest.fn().mockReturnValue("vaid-key")
+            header: jest.fn().mockReturnValue("valid-key")
         };
         
         const res = {
@@ -98,5 +96,10 @@ describe('apiKeyAuth middleware', () => {
         await apiKeyAuth(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            errors: ["Internal server error - try again later."],
+            "executed-at": expect.any(Number)
+        }));
+        expect(next).not.toHaveBeenCalled();
     });
 });
