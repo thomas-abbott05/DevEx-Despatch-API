@@ -1,13 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { validateOrderXml } = require('../order-xml-validator-service');
+const { validateOrder } = require('../order-xml-validator-service');
+const { parseOrderXml } = require('../../despatch/order-parser-service');
 
-describe('validateOrderXml', () => {
+describe('validateOrder', () => {
   const orderMockPath = path.join(__dirname, '../../despatch/mocks/order-mock.xml');
   const validOrderXml = fs.readFileSync(orderMockPath, 'utf8');
 
-  test('valid Order XML returns success with extracted IDs', async () => {
-    const result = await validateOrderXml(validOrderXml, {});
+  test('valid parsed Order returns success with extracted IDs', async () => {
+    const parsedOrderTree = parseOrderXml(validOrderXml);
+    const result = await validateOrder(parsedOrderTree);
 
     expect(result).toMatchObject({
       success: true,
@@ -18,27 +20,14 @@ describe('validateOrderXml', () => {
     });
   });
 
-  test('missing Order UUID returns validation error', async () => {
-    const orderWithoutUuid = validOrderXml.replace(
-      /<cbc:UUID>[\s\S]*?<\/cbc:UUID>/,
-      ''
-    );
-
-    const result = await validateOrderXml(orderWithoutUuid, {});
-
-    expect(result).toEqual({
-      success: false,
-      errors: ['Missing Order/cbc:UUID element']
-    });
-  });
-
   test('invalid UUID format returns validation error', async () => {
     const orderWithInvalidUuid = validOrderXml.replace(
       /<cbc:UUID>[\s\S]*?<\/cbc:UUID>/,
       '<cbc:UUID>not-a-uuid</cbc:UUID>'
     );
+    const parsedOrderTree = parseOrderXml(orderWithInvalidUuid);
 
-    const result = await validateOrderXml(orderWithInvalidUuid, {});
+    const result = await validateOrder(parsedOrderTree);
 
     expect(result).toEqual({
       success: false,
@@ -46,12 +35,35 @@ describe('validateOrderXml', () => {
     });
   });
 
-  test('empty XML returns invalid content error', async () => {
-    const result = await validateOrderXml('   ', {});
+  test('missing UUID field returns missing required field error', async () => {
+    const parsedOrderTree = parseOrderXml(validOrderXml);
+    delete parsedOrderTree.Order['cbc:UUID'];
+
+    const result = await validateOrder(parsedOrderTree);
 
     expect(result).toEqual({
       success: false,
-      errors: ['Invalid XML content']
+      errors: ['Invalid Order XML: Missing required field cbc:UUID']
+    });
+  });
+
+  test('null parsedOrderTree returns missing root error', async () => {
+    const result = await validateOrder(null);
+
+    expect(result).toEqual({
+      success: false,
+      errors: ['Invalid Order XML: Missing Order root element']
+    });
+  });
+
+  test('parsedOrderTree without Order key returns missing root error', async () => {
+    const result = await validateOrder({});
+
+    expect(result).toEqual({
+      success: false,
+      errors: ['Invalid Order XML: Missing Order root element']
     });
   });
 });
+
+

@@ -1,8 +1,8 @@
 const express = require('express');
 const apiKeyValidation = require('../middleware/api-key-validation');
 
-const { createDespatchAdvice } = require('../despatch/despatch-service');
-const { BasicXmlValidationError } = require('../validators/order-xml-validator-service');
+const { createDespatchAdvice, listDespatchAdvices } = require('../despatch/despatch-service');
+const { BasicXmlValidationError } = require('../validators/basic-xml-validator-service');
 const { RequestValidationError, buildRequestMetadata, validateXmlRequest } = require('../despatch/despatch-request-helper');
 
 

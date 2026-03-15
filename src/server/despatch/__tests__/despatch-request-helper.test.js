@@ -1,4 +1,4 @@
-const { RequestValidationError, buildRequestMetadata } = require('../despatch-request-helper');
+const { RequestValidationError, buildRequestMetadata, validateXmlRequest } = require('../despatch-request-helper');
 
 describe('buildRequestMetadata', () => {
   const baseReq = {
@@ -34,38 +34,50 @@ describe('buildRequestMetadata', () => {
     expect(metadata).toHaveProperty('userAgent', null);
   });
 
+});
+
+describe('validateXmlRequest', () => {
+  const baseReq = {
+    headers: {
+      'content-type': 'application/xml',
+      'user-agent': 'TestAgent/1.0'
+    },
+    ip: '123.456.789.000',
+    body: '<test>Valid XML</test>'
+  };
+
+  test('Valid request → does not throw', () => {
+    expect(() => validateXmlRequest(baseReq)).not.toThrow();
+  });
+
   test('Missing body → throws RequestValidationError', () => {
-    const req = {
-      ...baseReq,
-      body: undefined
-    };
-    expect(() => buildRequestMetadata(req)).toThrow(RequestValidationError);
+    const req = { ...baseReq, body: undefined };
+    expect(() => validateXmlRequest(req)).toThrow(RequestValidationError);
   });
 
   test('Empty-string body → throws RequestValidationError', () => {
-    const req = {
-      ...baseReq,
-      body: '   '
-    };
-    expect(() => buildRequestMetadata(req)).toThrow(RequestValidationError);
+    const req = { ...baseReq, body: '   ' };
+    expect(() => validateXmlRequest(req)).toThrow(RequestValidationError);
   });
 
   test('Body is not a string (null) → throws RequestValidationError', () => {
-    const req = {
-      ...baseReq,
-      body: null
-    };
-    expect(() => buildRequestMetadata(req)).toThrow(RequestValidationError);
+    const req = { ...baseReq, body: null };
+    expect(() => validateXmlRequest(req)).toThrow(RequestValidationError);
   });
 
-  test('Content-type does not include xml → throws RequestValidationError', () => {
+  test('Content-Type does not include xml → throws RequestValidationError', () => {
     const req = {
       ...baseReq,
-      headers: {
-        'content-type': 'application/json',
-        'user-agent': 'TestAgent/1.0'
-      }
+      headers: { 'content-type': 'application/json', 'user-agent': 'TestAgent/1.0' }
     };
-    expect(() => buildRequestMetadata(req)).toThrow(RequestValidationError);
+    expect(() => validateXmlRequest(req)).toThrow(RequestValidationError);
+  });
+
+  test('Missing Content-Type header → throws RequestValidationError', () => {
+    const req = {
+      ...baseReq,
+      headers: { 'user-agent': 'TestAgent/1.0' }
+    };
+    expect(() => validateXmlRequest(req)).toThrow(RequestValidationError);
   });
 });

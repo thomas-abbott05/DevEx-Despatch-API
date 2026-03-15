@@ -1,126 +1,44 @@
-const { validate, version } = require('uuid');
+const { isValidUuidV4 } = require('./basic-xml-validator-service');
 
-const UBL_ORDER_NS = {
-  order: 'urn:oasis:names:specification:ubl:schema:xsd:Order-2',
-  cbc: 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
-};
+// Commented out ones will be validated in XSD
+const REQUIRED_ORDER_FIELDS = [
+  'cbc:UUID',
+  'cbc:ID',
+  // 'cac:BuyerCustomerParty',
+  // 'cac:SellerSupplierParty',
+  'cac:Delivery',
+  'cac:OrderLine'
+];
 
-let libxml2ModulePromise;
+async function validateOrder(parsedOrderTree) {
+  const order = parsedOrderTree?.Order;
 
-function isValidUuidV4(value) {
-  return typeof value === 'string' && validate(value) && version(value) === 4;
-}
-
-async function getXmlDocumentClass() {
-  if (!libxml2ModulePromise) {
-    libxml2ModulePromise = import('libxml2-wasm');
+  if (!order || typeof order !== 'object') {
+    return { success: false, errors: ['Invalid Order XML: Missing Order root element'] };
   }
 
-  const { XmlDocument } = await libxml2ModulePromise;
-  return XmlDocument;
-}
-
-function getNodeContent(xmlDoc, xpath, namespaces) {
-  const node = xmlDoc.get(xpath, namespaces);
-  return node ? node.content.trim() : null;
-}
-
-// Implement basic exception for invalid XML with one error message for simplicity
-class BasicXmlValidationError extends Error {
-  constructor(errors) {
-    super('XML validation failed');
-    this.name = 'BasicXmlValidationError';
-    this.errors = errors;
-  }
-}
-
-async function validateOrderXml(rawXml) {
-  let XmlDocument;
-  try {
-    XmlDocument = await getXmlDocumentClass();
-  } catch (error) {
-    return {
-      success: false,
-      errors: ['Error initializing XML parser: ' + error.message]
-    };
-  }
-
-  let xmlDoc;
-  try {
-    xmlDoc = XmlDocument.fromString(rawXml);
-  } catch (error) {
-    return {
-      success: false,
-      errors: ['Invalid XML content']
-    };
-  }
-
-  try {
-    const orderRoot = xmlDoc.get('/order:Order', UBL_ORDER_NS);
-    if (!orderRoot) {
-      return {
-        success: false,
-        errors: ['Missing Order root element']
-      };
+  for (const field of REQUIRED_ORDER_FIELDS) {
+    const value = order[field];
+    const missing = value === undefined || value === null || value === '' ||
+      (Array.isArray(value) && value.length === 0);
+    if (missing) {
+      return { success: false, errors: [`Invalid Order XML: Missing required field ${field}`] };
     }
-
-    const uuidValue = getNodeContent(
-      xmlDoc,
-      '/order:Order/cbc:UUID',
-      UBL_ORDER_NS
-    );
-
-    if (!uuidValue) {
-      return {
-        success: false,
-        errors: ['Missing Order/cbc:UUID element']
-      };
-    }
-
-    if (!isValidUuidV4(uuidValue)) {
-      return {
-        success: false,
-        errors: ['Invalid UUID format in Order/cbc:UUID']
-      };
-    }
-
-    const orderId = getNodeContent(
-      xmlDoc,
-      '/order:Order/cbc:ID',
-      UBL_ORDER_NS
-    );
-    const salesOrderId = getNodeContent(
-      xmlDoc,
-      '/order:Order/cbc:SalesOrderID',
-      UBL_ORDER_NS
-    );
-    const issueDate = getNodeContent(
-      xmlDoc,
-      '/order:Order/cbc:IssueDate',
-      UBL_ORDER_NS
-    );
-
-    return {
-      success: true,
-      id: uuidValue,
-      orderId,
-      salesOrderId,
-      issueDate
-    };
-  } catch (error) {
-    return {
-      success: false,
-      errors: ['Error parsing XML: ' + error.message]
-    };
-  } finally {
-    xmlDoc.dispose();
   }
+
+  if (!isValidUuidV4(order['cbc:UUID'])) {
+    return { success: false, errors: ['Invalid UUID format in Order/cbc:UUID'] };
+  }
+
+  return {
+    success: true,
+    id: order['cbc:UUID'],
+    orderId: order['cbc:ID'],
+    salesOrderId: order['cbc:SalesOrderID'],
+    issueDate: order['cbc:IssueDate']
+  };
 }
 
 module.exports = {
-  validateOrderXml,
-  BasicXmlValidationError,
-  isValidUuidV4,
-  getXmlDocumentClass,
-  getNodeContent
+  validateOrder
 };

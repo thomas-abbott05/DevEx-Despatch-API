@@ -1,4 +1,4 @@
-const { isValidUuidV4, getXmlDocumentClass, getNodeContent } = require('./order-xml-validator-service');
+const { isValidUuidV4, getXmlDocumentClass, getNodeContent } = require('./basic-xml-validator-service');
 
 const UBL_ORDER_CANCELLATION_NS = {
   oc: 'urn:oasis:names:specification:ubl:schema:xsd:OrderCancellation-2',
