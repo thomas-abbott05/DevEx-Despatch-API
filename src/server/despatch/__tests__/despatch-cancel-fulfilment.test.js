@@ -1,4 +1,4 @@
-const { cancelDespatchWithFulfilment,
+const { createFulfilmentCancellation,
   getFulfilmentCancellation,
   FulfilmentCancellationNotFoundError,
   FulfilmentCancellationForbiddenError
@@ -11,7 +11,7 @@ jest.mock('../../database', () => ({
 
 const VALID_ADVICE_ID = 'e553cc8e-8b37-4a9b-a0cf-87c34ea70a35';
 const VALID_API_KEY = 'test-api-key';
-const VALID_REASON = 'Delivery could not be completed';
+const VALID_REASON = 'No stock';
 const VALID_FULFILMENT_ID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
 const makeActiveDespatchDoc = (overrides = {}) => ({
@@ -34,7 +34,7 @@ const makeCancelledDespatchDoc = (overrides = {}) => ({
   ...overrides
 });
 
-describe('cancelDespatchWithFulfilment', () => {
+describe('createFulfilmentCancellation', () => {
   const VALID_METADATA = {
     adviceId: VALID_ADVICE_ID,
     cancellationReason: VALID_REASON
@@ -55,7 +55,7 @@ describe('cancelDespatchWithFulfilment', () => {
   test('valid metadata + existing doc + matching apiKey returns correct response shape', async () => {
     fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc());
 
-    const result = await cancelDespatchWithFulfilment(VALID_API_KEY, VALID_METADATA);
+    const result = await createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA);
 
     expect(result).toMatchObject({
       'fulfilment-cancellation': expect.any(String),
@@ -69,7 +69,7 @@ describe('cancelDespatchWithFulfilment', () => {
   test('generated XML contains FulfilmentCancellation root and cancellation note', async () => {
     fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc());
 
-    const result = await cancelDespatchWithFulfilment(VALID_API_KEY, VALID_METADATA);
+    const result = await createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA);
 
     expect(result['fulfilment-cancellation']).toContain('FulfilmentCancellation');
     expect(result['fulfilment-cancellation']).toContain(VALID_REASON);
@@ -79,7 +79,7 @@ describe('cancelDespatchWithFulfilment', () => {
   test('correct fields passed to updateOne', async () => {
     fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc());
 
-    await cancelDespatchWithFulfilment(VALID_API_KEY, VALID_METADATA);
+    await createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA);
 
     expect(fakeCollection.updateOne).toHaveBeenCalledWith(
       { _id: VALID_ADVICE_ID },
@@ -100,7 +100,7 @@ describe('cancelDespatchWithFulfilment', () => {
     fakeCollection.findOne.mockResolvedValue(null);
 
     await expect(
-      cancelDespatchWithFulfilment(VALID_API_KEY, VALID_METADATA)
+      createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA)
     ).rejects.toThrow(FulfilmentCancellationNotFoundError);
   });
 
@@ -108,7 +108,7 @@ describe('cancelDespatchWithFulfilment', () => {
     fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc({ apiKey: 'different-key' }));
 
     await expect(
-      cancelDespatchWithFulfilment(VALID_API_KEY, VALID_METADATA)
+      createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA)
     ).rejects.toThrow(FulfilmentCancellationForbiddenError);
   });
 });

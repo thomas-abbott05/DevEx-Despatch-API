@@ -53,7 +53,7 @@ function buildFulfilmentCancellationXml(despatchDoc, cancellationReason) {
   return { xml, fulfilmentCancellationId };
 }
 
-async function cancelDespatchWithFulfilment(apiKey, metadata) {
+async function createFulfilmentCancellation(apiKey, metadata) {
   const { adviceId, cancellationReason } = metadata;
   const collection = getDb().collection('despatch-advice');
 
@@ -123,7 +123,7 @@ async function getFulfilmentCancellation(apiKey, metadata) {
 }
 
 module.exports = {
-  cancelDespatchWithFulfilment,
+  createFulfilmentCancellation,
   getFulfilmentCancellation,
   FulfilmentCancellationNotFoundError,
   FulfilmentCancellationForbiddenError

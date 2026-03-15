@@ -3,7 +3,7 @@ const { RequestValidationError } = require('../despatch-request-helper');
 
 const VALID_ADVICE_UUID = 'e553cc8e-8b37-4a9b-a0cf-87c34ea70a35';
 const VALID_FULFILMENT_UUID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
-const VALID_REASON = 'Delivery could not be completed';
+const VALID_REASON = 'No stock';
 
 describe('buildFulfilmentCancelRequestMetadata', () => {
   const makeReq = (body) => ({ body });
