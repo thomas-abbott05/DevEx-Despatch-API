@@ -5,7 +5,7 @@ const {
   CancellationForbiddenError
 } = require('../despatch-cancel-order');
 const { getDb } = require('../../database');
-const { BasicXmlValidationError } = require('../../validators/order-xml-validator-service');
+const { BasicXmlValidationError } = require('../../validators/basic-xml-validator-service');
 const { validateOrderCancellationXml } = require('../../validators/order-cancellation-xml-validator-service');
 
 jest.mock('../../database', () => ({

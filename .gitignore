@@ -12,4 +12,4 @@ public/bundle.js
 
 # IDE files
 .DS_Store
-.vscode/
+.vscode

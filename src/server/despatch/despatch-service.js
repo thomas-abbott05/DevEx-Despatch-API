@@ -1,12 +1,16 @@
 // despatch-service.js
 const { getDb } = require('../database');
-const { validateOrderXml } = require('../validators/order-xml-validator-service');
-const { buildTemplatedDespatchAdviceXml } = require('./despatch-advice-builder');
+const { validateOrder } = require('../validators/order-xml-validator-service');
+const { parseOrderXml } = require('./order-parser-service');
+const { buildDespatchGroups } = require('./despatch-planner-service');
+const { buildDespatchAdviceDocument } = require('./despatch-advice-document-builder');
+const { serializeDespatchAdvice } = require('./despatch-advice-xml-serializer');
+
 
 async function listDespatchAdvices(apiKey) {
   try {
     const db = getDb();
-    const collection = db.collection('despatch-advices');
+    const collection = db.collection('despatch-advice');
     const despatchAdvices = await collection.find({ apiKey: apiKey }).toArray();
     const mappedDespatchAdvices = despatchAdvices.map(da => ({
       "advice-id": da._id,
@@ -23,10 +27,9 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
   try {
     const db = getDb();
     const collection = db.collection('despatch-advice');
-    const now = new Date();
 
-    // Validate the raw XML using the despatch validator service
-    const validatedOrder = await validateOrderXml(incomingOrderXml, requestMetadata);
+    const parsedOrderTree = parseOrderXml(incomingOrderXml);
+    const validatedOrder = await validateOrder(parsedOrderTree);
     if (!validatedOrder.success) {
       throw new Error(`Despatch advice validation failed: ${validatedOrder.errors.join(', ')}`);
     }
@@ -34,64 +37,39 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
       throw new Error('Despatch advice validation failed: Missing Order UUID');
     }
 
-    // Build a DespatchAdvice document from template and validated Order fields.
-    const generatedDespatchAdviceXml = buildTemplatedDespatchAdviceXml(validatedOrder);
+    const despatchGroups = buildDespatchGroups(parsedOrderTree);
 
-    // Reuse the validated Order UUID for deterministic despatch advice identifiers.
-    const despatchAdviceId = validatedOrder.id;
+    const adviceIds = [];
+    for (const despatchGroup of despatchGroups) {
+      const despatchAdviceDocument = buildDespatchAdviceDocument(parsedOrderTree, despatchGroup);
+      const despatchAdviceXml = serializeDespatchAdvice(despatchAdviceDocument);
+      const despatchAdviceId = despatchAdviceDocument?.DespatchAdvice?.['cbc:UUID'];
 
-    const result = await collection.insertOne({
-      _id: despatchAdviceId,
-      apiKey,
-      despatchXml: generatedDespatchAdviceXml,
-      metadata: {
-        ...requestMetadata,
-        receivedAt: now
-      },
-      createdAt: now
-    });
+      if (!despatchAdviceId) {
+        throw new Error('Despatch advice generation failed: Missing generated advice UUID');
+      }
 
-    return {
-      adviceId: result.insertedId,
-      despatchXml: generatedDespatchAdviceXml
-    };
+      const result = await collection.insertOne({
+        _id: despatchAdviceId,
+        apiKey,
+        despatchXml: despatchAdviceXml,
+        metadata: {
+          ...requestMetadata
+        },
+        createdAt: new Date()
+      });
+
+      adviceIds.push(result.insertedId);
+    }
+
+    return { adviceIds };
   } catch (error) {
     console.error('Error creating despatch advice:', error);
     throw error;
   }
 }
 
-async function retrieveDespatchAdvice(apiKey, requestMetadata = {}) {
-  try {
-    const db = getDb();
-    const collection = db.collection('despatch-advices');
-    // Build the query object based on the provided request metadata
-    const dbQuery = { apiKey };
-
-    if (requestMetadata.id) {
-      dbQuery._id = requestMetadata.id;
-    } else if (requestMetadata.orderId) {
-      dbQuery['metadata.orderId'] = requestMetadata.orderId;
-    } else if (requestMetadata.receiptAdviceId) {
-      dbQuery['metadata.receiptAdviceId'] = requestMetadata.receiptAdviceId;
-    } else if (requestMetadata.orderLine) {
-      dbQuery['metadata.orderLines'] = requestMetadata.orderLine;
-    } else if (requestMetadata.despatchLine) {
-      dbQuery['metadata.despatchLines'] = requestMetadata.despatchLine;
-    } else {
-      throw new Error('At least one query parameter must be provided');
-    }
-
-    const despatchAdvice = await collection.findOne(dbQuery);
-    return despatchAdvice;
-  } catch (error) {
-    console.error('Error retrieving despatch advice:', error);
-    throw error;
-  }
-}
-
 module.exports = {
-  listDespatchAdvices,
   createDespatchAdvice,
-  retrieveDespatchAdvice
+  listDespatchAdvices
 };

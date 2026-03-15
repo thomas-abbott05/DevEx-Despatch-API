@@ -1,13 +1,33 @@
 const { createDespatchAdvice } = require('../despatch-service');
-const { validateOrderXml } = require('../../validators/order-xml-validator-service');
+const { validateOrder } = require('../../validators/order-xml-validator-service');
 const { getDb } = require('../../database');
+const { parseOrderXml } = require('../order-parser-service');
+const { buildDespatchGroups } = require('../despatch-planner-service');
+const { buildDespatchAdviceDocument } = require('../despatch-advice-document-builder');
+const { serializeDespatchAdvice } = require('../despatch-advice-xml-serializer');
 
 jest.mock('../../database', () => ({
   getDb: jest.fn()
 }));
 
 jest.mock('../../validators/order-xml-validator-service', () => ({
-  validateOrderXml: jest.fn()
+  validateOrder: jest.fn()
+}));
+
+jest.mock('../order-parser-service', () => ({
+  parseOrderXml: jest.fn()
+}));
+
+jest.mock('../despatch-planner-service', () => ({
+  buildDespatchGroups: jest.fn()
+}));
+
+jest.mock('../despatch-advice-document-builder', () => ({
+  buildDespatchAdviceDocument: jest.fn()
+}));
+
+jest.mock('../despatch-advice-xml-serializer', () => ({
+  serializeDespatchAdvice: jest.fn()
 }));
 
 describe('createDespatchAdvice', () => {
@@ -19,6 +39,10 @@ describe('createDespatchAdvice', () => {
     issueDate: '2005-06-20'
   };
 
+  const fakeParsedOrder = { order: 'parsed' };
+  const fakeAdviceDoc = { DespatchAdvice: { 'cbc:UUID': 'advice-uuid-123' } };
+  const fakeDespatchXml = '<DespatchAdvice><cbc:UUID>advice-uuid-123</cbc:UUID></DespatchAdvice>';
+
   const fakeCollection = {
     insertOne: jest.fn()
   };
@@ -28,60 +52,86 @@ describe('createDespatchAdvice', () => {
       collection: () => fakeCollection
     });
     fakeCollection.insertOne.mockReset();
-    validateOrderXml.mockReset();
+    validateOrder.mockReset();
+    parseOrderXml.mockReturnValue(fakeParsedOrder);
+    buildDespatchGroups.mockReturnValue([{ group: 1 }]);
+    buildDespatchAdviceDocument.mockReturnValue(fakeAdviceDoc);
+    serializeDespatchAdvice.mockReturnValue(fakeDespatchXml);
   });
 
-  test('Validation passes + insert succeeds -> returns adviceId and despatchXml', async () => {
-    validateOrderXml.mockResolvedValue(validatedOrderResult);
-    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'fake-id' });
+  test('Validation passes + insert succeeds -> returns adviceIds array', async () => {
+    validateOrder.mockResolvedValue(validatedOrderResult);
+    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'advice-uuid-123' });
 
     const result = await createDespatchAdvice('test-api-key', '<xml>valid</xml>', { userAgent: 'TestAgent' });
-    expect(result).toEqual(expect.objectContaining({
-      adviceId: 'fake-id',
-      despatchXml: expect.any(String)
-    }));
+    expect(result).toEqual({ adviceIds: ['advice-uuid-123'] });
+  });
+
+  test('Multiple despatch groups -> returns one adviceId per group', async () => {
+    validateOrder.mockResolvedValue(validatedOrderResult);
+    const fakeAdviceDoc2 = { DespatchAdvice: { 'cbc:UUID': 'advice-uuid-456' } };
+    buildDespatchGroups.mockReturnValue([{ group: 1 }, { group: 2 }]);
+    buildDespatchAdviceDocument
+      .mockReturnValueOnce(fakeAdviceDoc)
+      .mockReturnValueOnce(fakeAdviceDoc2);
+    fakeCollection.insertOne
+      .mockResolvedValueOnce({ insertedId: 'advice-uuid-123' })
+      .mockResolvedValueOnce({ insertedId: 'advice-uuid-456' });
+
+    const result = await createDespatchAdvice('test-api-key', '<xml>valid</xml>', {});
+    expect(result).toEqual({ adviceIds: ['advice-uuid-123', 'advice-uuid-456'] });
+    expect(fakeCollection.insertOne).toHaveBeenCalledTimes(2);
   });
 
   test('Correct document is passed to insertOne (apiKey, despatchXml, metadata)', async () => {
-    validateOrderXml.mockResolvedValue(validatedOrderResult);
-    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'fake-id' });
+    validateOrder.mockResolvedValue(validatedOrderResult);
+    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'advice-uuid-123' });
 
     const requestMetadata = { userAgent: 'TestAgent' };
     await createDespatchAdvice('test-api-key', '<xml>valid</xml>', requestMetadata);
 
     expect(fakeCollection.insertOne).toHaveBeenCalledWith(expect.objectContaining({
-      _id: '6e09886b-dc6e-439f-82d1-7ccac7f4e3b1',
+      _id: 'advice-uuid-123',
       apiKey: 'test-api-key',
-      despatchXml: expect.any(String),
-      metadata: expect.objectContaining({
-        userAgent: 'TestAgent',
-        receivedAt: expect.any(Date)
-      }),
+      despatchXml: fakeDespatchXml,
+      metadata: { userAgent: 'TestAgent' },
       createdAt: expect.any(Date)
     }));
-
-    const insertedDoc = fakeCollection.insertOne.mock.calls[0][0];
-    expect(insertedDoc.despatchXml).toContain('<cbc:UUID>6e09886b-dc6e-439f-82d1-7ccac7f4e3b1</cbc:UUID>');
-    expect(insertedDoc.despatchXml).toContain('<cac:OrderReference>');
-    expect(insertedDoc.despatchXml).toContain('<cbc:ID>AEG012345</cbc:ID>');
   });
 
-  test('validateOrderXml returns { success: false } → throws with validation message', async () => {
-    validateOrderXml.mockResolvedValue({ success: false, errors: ['Invalid XML'] });
+  test('buildDespatchAdviceDocument and serializeDespatchAdvice are called with parsed order and group', async () => {
+    validateOrder.mockResolvedValue(validatedOrderResult);
+    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'advice-uuid-123' });
+
+    await createDespatchAdvice('test-api-key', '<xml>valid</xml>', {});
+
+    expect(buildDespatchAdviceDocument).toHaveBeenCalledWith(fakeParsedOrder, { group: 1 });
+    expect(serializeDespatchAdvice).toHaveBeenCalledWith(fakeAdviceDoc);
+  });
+
+  test('validateOrder returns { success: false } → throws with validation message', async () => {
+    validateOrder.mockResolvedValue({ success: false, errors: ['Invalid XML'] });
 
     await expect(createDespatchAdvice('test-api-key', '<xml>invalid</xml>', {})).rejects.toThrow('Despatch advice validation failed: Invalid XML');
   });
 
   test('insertOne throws → error propagates out of createDespatchAdvice', async () => {
-    validateOrderXml.mockResolvedValue(validatedOrderResult);
+    validateOrder.mockResolvedValue(validatedOrderResult);
     fakeCollection.insertOne.mockRejectedValue(new Error('Database error'));
 
     await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Database error');
   });
 
-  test('Validation passes but UUID is missing -> throws validation error', async () => {
-    validateOrderXml.mockResolvedValue({ success: true, id: null });
+  test('Validation passes but order UUID is missing -> throws validation error', async () => {
+    validateOrder.mockResolvedValue({ success: true, id: null });
 
     await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Despatch advice validation failed: Missing Order UUID');
+  });
+
+  test('Generated advice UUID is missing -> throws generation error', async () => {
+    validateOrder.mockResolvedValue(validatedOrderResult);
+    buildDespatchAdviceDocument.mockReturnValue({ DespatchAdvice: {} }); // no UUID
+
+    await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Despatch advice generation failed: Missing generated advice UUID');
   });
 });

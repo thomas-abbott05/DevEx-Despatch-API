@@ -1,6 +1,6 @@
 const { getDb } = require('../database');
 const { validateOrderCancellationXml } = require('../validators/order-cancellation-xml-validator-service');
-const { BasicXmlValidationError } = require('../validators/order-xml-validator-service');
+const { BasicXmlValidationError } = require('../validators/basic-xml-validator-service');
 
 class CancellationNotFoundError extends Error {
   constructor(message) {

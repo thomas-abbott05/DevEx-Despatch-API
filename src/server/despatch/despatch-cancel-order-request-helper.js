@@ -1,5 +1,5 @@
 const { RequestValidationError } = require('./despatch-request-helper');
-const { isValidUuidV4 } = require('../validators/order-xml-validator-service');
+const { isValidUuidV4 } = require('../validators/basic-xml-validator-service');
 
 /**
  * Validates and extracts fields from the POST api/v1/despatch/cancel/order request body.

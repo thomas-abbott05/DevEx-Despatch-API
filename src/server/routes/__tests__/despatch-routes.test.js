@@ -18,11 +18,12 @@ jest.mock('../../despatch/despatch-request-helper', () => {
 
   return {
     RequestValidationError,
+    validateXmlRequest: jest.fn(),
     buildRequestMetadata: jest.fn(() => ({ userAgent: 'jest-test-agent' }))
   };
 });
 
-jest.mock('../../validators/order-xml-validator-service', () => {
+jest.mock('../../validators/basic-xml-validator-service', () => {
   class BasicXmlValidationError extends Error {}
 
   return { BasicXmlValidationError };
@@ -82,10 +83,9 @@ describe('despatch routes', () => {
     expect(listDespatchAdvices).toHaveBeenCalledWith('issued-test-key');
   });
 
-  test('POST /create returns generated despatch XML and headers', async () => {
+  test('POST /create returns adviceIds and executed-at in JSON body', async () => {
     createDespatchAdvice.mockResolvedValue({
-      adviceId: 'advice-abc',
-      despatchXml: '<DespatchAdvice>ok</DespatchAdvice>'
+      adviceIds: ['advice-abc', 'advice-def']
     });
 
     const response = await fetch(`${baseUrl}/api/v1/despatch/create`, {
@@ -96,12 +96,12 @@ describe('despatch routes', () => {
       },
       body: '<Order>valid</Order>'
     });
-    const bodyText = await response.text();
+    const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('advice-id')).toBe('advice-abc');
-    expect(response.headers.get('executed-at')).toEqual(expect.any(String));
-    expect(bodyText).toBe('<DespatchAdvice>ok</DespatchAdvice>');
+    expect(payload.success).toBe(true);
+    expect(payload.adviceIds).toEqual(['advice-abc', 'advice-def']);
+    expect(payload['executed-at']).toEqual(expect.any(Number));
   });
 
   test('POST /create returns 400 on request validation error', async () => {
