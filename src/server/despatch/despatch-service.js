@@ -50,6 +50,7 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
       const result = await collection.insertOne({
         _id: despatchAdviceId,
         apiKey,
+        originalOrderId: validatedOrder.orderId,
         despatchXml: despatchAdviceXml,
         metadata: {
           ...requestMetadata
