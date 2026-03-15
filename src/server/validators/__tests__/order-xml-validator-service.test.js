@@ -31,19 +31,22 @@ describe('validateOrder', () => {
 
     expect(result).toEqual({
       success: false,
-      errors: ['Invalid UUID format in Order/cbc:UUID']
+      errors: ['Invalid UUID format in Order/cbc:UUID - not-a-uuid']
     });
   });
 
-  test('missing UUID field returns missing required field error', async () => {
+  test('missing UUID field still results in a success', async () => {
     const parsedOrderTree = parseOrderXml(validOrderXml);
     delete parsedOrderTree.Order['cbc:UUID'];
 
     const result = await validateOrder(parsedOrderTree);
 
-    expect(result).toEqual({
-      success: false,
-      errors: ['Invalid Order XML: Missing required field cbc:UUID']
+    expect(result).toMatchObject({
+      success: true,
+      id: undefined,
+      orderId: 'AEG012345',
+      salesOrderId: 'CON0095678',
+      issueDate: '2005-06-20'
     });
   });
 

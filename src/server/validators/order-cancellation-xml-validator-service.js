@@ -1,4 +1,4 @@
-const { isValidUuidV4, getXmlDocumentClass, getNodeContent } = require('./basic-xml-validator-service');
+const { isValidUuid, getXmlDocumentClass, getNodeContent } = require('./basic-xml-validator-service');
 
 const UBL_ORDER_CANCELLATION_NS = {
   oc: 'urn:oasis:names:specification:ubl:schema:xsd:OrderCancellation-2',
@@ -8,7 +8,7 @@ const UBL_ORDER_CANCELLATION_NS = {
 /**
  * Validates a UBL OrderCancellation XML string.
  * Checks that it is valid XML, has the correct root element,
- * and contains a valid v4 UUID in the ID field.
+ * and contains a valid UUID in the ID field.
  *
  * Returns { success: true, id, cancellationNote } on success,
  * or { success: false, errors: [...] } on failure.
@@ -56,7 +56,7 @@ async function validateOrderCancellationXml(rawXml) {
       };
     }
 
-    if (!isValidUuidV4(id)) {
+    if (!isValidUuid(id)) {
       return {
         success: false,
         errors: ['Invalid UUID format in OrderCancellation/cbc:ID']

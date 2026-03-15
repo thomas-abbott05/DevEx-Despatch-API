@@ -122,10 +122,11 @@ describe('createDespatchAdvice', () => {
     await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Database error');
   });
 
-  test('Validation passes but order UUID is missing -> throws validation error', async () => {
+  test('Validation passes but order UUID is missing -> still generates advice but with no UUID in order reference', async () => {
     validateOrder.mockResolvedValue({ success: true, id: null });
+    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'advice-uuid-123' });
 
-    await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Despatch advice validation failed: Missing Order UUID');
+    await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).resolves.toEqual({ adviceIds: ['advice-uuid-123'] });
   });
 
   test('Generated advice UUID is missing -> throws generation error', async () => {

@@ -34,9 +34,6 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
     if (!validatedOrder.success) {
       throw new RequestValidationError(`Despatch advice validation failed: ${validatedOrder.errors.join(', ')}`);
     }
-    if (!validatedOrder.id) {
-      throw new RequestValidationError('Despatch advice validation failed: Missing Order UUID');
-    }
 
     const despatchGroups = buildDespatchGroups(parsedOrderTree);
 
@@ -70,7 +67,20 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
   }
 }
 
+async function getDespatchAdviceById(apiKey, adviceId) {
+  try {
+    const db = getDb();
+    const collection = db.collection('despatch-advice');
+    const despatchAdvice = await collection.findOne({ _id: adviceId, apiKey: apiKey });
+    return despatchAdvice;
+  } catch (error) {
+    console.error(`Error fetching despatch advice with ID ${adviceId}:`, error);
+    throw error;
+  }
+}
+
 module.exports = {
   createDespatchAdvice,
-  listDespatchAdvices
+  listDespatchAdvices,
+  getDespatchAdviceById
 };
