@@ -1,6 +1,6 @@
 const express = require('express');
 const apiKeyValidation = require('../middleware/api-key-validation');
-const { createDespatchAdvice, listDespatchAdvices, getDespatchAdviceById } = require('../despatch/despatch-service');
+const { createDespatchAdvice, listDespatchAdvices, getDespatchAdviceByAdviceId, getDespatchAdviceByOrderId } = require('../despatch/despatch-service');
 const { isValidUuid } = require('../validators/basic-xml-validator-service');
 const { buildRequestMetadata, validateXmlRequest } = require('../despatch/despatch-request-helper');
 const { validateOrder } = require('../validators/order-xml-validator-service');
@@ -67,7 +67,7 @@ router.get('/retrieve', async (req, res) => {
       });
     }
     // search by advice ID
-    result = await getDespatchAdviceById(apiKey, query);
+    result = await getDespatchAdviceByAdviceId(apiKey, query);
     if (!result) {
       return res.status(404).send({
         errors: ['Despatch advice not found for provided advice-id'],
@@ -89,7 +89,26 @@ router.get('/retrieve', async (req, res) => {
           "executed-at": Math.floor(Date.now() / 1000)
         });
       }
-      // search by order XML
+      // search by order XML by extracting Order ID
+      const orderId = result.orderId;
+      if (!orderId) {
+        return res.status(400).send({
+          errors: ['Order XML must contain cbc:ID field to search by order'],
+          "executed-at": Math.floor(Date.now() / 1000)
+        });
+      }
+      result = await getDespatchAdviceByOrderId(apiKey, orderId);
+      if (!result) {
+        return res.status(404).send({
+          errors: [`Despatch advice not found for provided order XML document - no matching order ID found for ${orderId}`],
+          "executed-at": Math.floor(Date.now() / 1000)
+        });
+      }
+      return res.status(200).send({
+        "despatch-advice": result.despatchXml,
+        "advice-id": result._id,
+        "executed-at": Math.floor(Date.now() / 1000)
+      });
 
     } catch (error) {
       return res.status(400).send({

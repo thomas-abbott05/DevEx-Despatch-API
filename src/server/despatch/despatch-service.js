@@ -51,6 +51,7 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
         _id: despatchAdviceId,
         apiKey,
         originalOrderId: validatedOrder.orderId,
+        orderChangeLastSequenceId: 0, // to be incremented if order changes are received in future
         despatchXml: despatchAdviceXml,
         metadata: {
           ...requestMetadata
@@ -68,7 +69,7 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
   }
 }
 
-async function getDespatchAdviceById(apiKey, adviceId) {
+async function getDespatchAdviceByAdviceId(apiKey, adviceId) {
   try {
     const db = getDb();
     const collection = db.collection('despatch-advice');
@@ -80,8 +81,21 @@ async function getDespatchAdviceById(apiKey, adviceId) {
   }
 }
 
+async function getDespatchAdviceByOrderId(apiKey, orderId) {
+  try {
+    const db = getDb();
+    const collection = db.collection('despatch-advice');
+    const despatchAdvice = await collection.findOne({ originalOrderId: orderId, apiKey: apiKey });
+    return despatchAdvice;
+  } catch (error) {
+    console.error(`Error fetching despatch advice with order ID ${orderId}:`, error);
+    throw error;
+  }
+}
+
 module.exports = {
   createDespatchAdvice,
   listDespatchAdvices,
-  getDespatchAdviceById
+  getDespatchAdviceByAdviceId,
+  getDespatchAdviceByOrderId
 };
