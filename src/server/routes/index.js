@@ -4,6 +4,7 @@ const { getServerConstants } = require('../config/server-config');
 const apiKeyManagementRoutes = require('./api-key-management-routes');
 const despatchRoutes = require('./despatch-advice-routes');
 const despatchCancellationRoutes = require('./despatch-cancellation-routes');
+const validateDocRoutes = require('./validate-doc-routes');
 
 const router = express.Router();
 
@@ -26,5 +27,8 @@ router.use('/despatch', despatchRoutes);
 
 // Despatch cancellation routes - protected with normal issued API keys.
 router.use('/despatch/cancel', despatchCancellationRoutes);
+
+// Utility document validation route - protected with normal issued API keys.
+router.use('/validate-doc', validateDocRoutes);
 
 module.exports = router;
