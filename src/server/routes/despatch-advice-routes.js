@@ -34,18 +34,17 @@ router.post('/create', rawXmlParser, async (req, res) => {
       });
 
   } catch (error) {
-    if (error instanceof RequestValidationError || error instanceof BasicXmlValidationError) {
-      return res.status(400).send({ success: false, error: error.message });
-    }
-    console.error('Error creating despatch advice:', error);
-    res.status(500).send({ success: false, error: error.message });
+    return res.status(error.statusCode || 500).send({
+      success: false,
+      errors: [error.message]
+    });
   }
 });
 
 router.get('/retrieve', async (req, res) => {
   res.status(501).send({
     success: false,
-    error: 'Not implemented yet',
+    errors: ['Not implemented yet'],
     'executed-at': Math.floor(Date.now() / 1000)
   });
 });
@@ -63,7 +62,7 @@ router.get('/list', async (req, res) => {
     console.error('Error fetching despatches:', error);
     res.status(500).send({
       success: false,
-      error: error.message
+      errors: [error.message]
     });
   }
 });
