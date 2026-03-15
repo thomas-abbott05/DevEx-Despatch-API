@@ -70,7 +70,15 @@ router.post('/create', jsonParser, async (req, res) => {
         'executed-at': Math.floor(Date.now() / 1000)
       });
     }
-
+    // ensure the email is unique and we have not already issued a key to this contact email
+    const existingKey = await db.collection('api-keys').findOne({ contactEmail: contactEmail });
+    if (existingKey) {
+      return res.status(400).send({
+        errors: ['An API key has already been issued for this contact email'],
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    
     const apiKey = generateApiKey();
     const newKey = {
       _id: apiKey,

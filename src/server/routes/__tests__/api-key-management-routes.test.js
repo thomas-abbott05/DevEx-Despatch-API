@@ -89,6 +89,8 @@ describe('api-key-management routes', () => {
         insertOne: mockInsertOne
       })
     });
+    const mockFindOne = jest.fn().mockResolvedValue(null);
+    getDb().collection().findOne = mockFindOne;
 
     const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
       method: 'POST',
