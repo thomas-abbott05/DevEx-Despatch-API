@@ -5,6 +5,7 @@ const { parseOrderXml } = require('./order-parser-service');
 const { buildDespatchGroups } = require('./despatch-planner-service');
 const { buildDespatchAdviceDocument } = require('./despatch-advice-document-builder');
 const { serializeDespatchAdvice } = require('./despatch-advice-xml-serializer');
+const { RequestValidationError } = require('./despatch-request-helper');
 
 
 async function listDespatchAdvices(apiKey) {
@@ -31,10 +32,10 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
     const parsedOrderTree = parseOrderXml(incomingOrderXml);
     const validatedOrder = await validateOrder(parsedOrderTree);
     if (!validatedOrder.success) {
-      throw new Error(`Despatch advice validation failed: ${validatedOrder.errors.join(', ')}`);
+      throw new RequestValidationError(`Despatch advice validation failed: ${validatedOrder.errors.join(', ')}`);
     }
     if (!validatedOrder.id) {
-      throw new Error('Despatch advice validation failed: Missing Order UUID');
+      throw new RequestValidationError('Despatch advice validation failed: Missing Order UUID');
     }
 
     const despatchGroups = buildDespatchGroups(parsedOrderTree);
@@ -46,7 +47,7 @@ async function createDespatchAdvice(apiKey, incomingOrderXml, requestMetadata = 
       const despatchAdviceId = despatchAdviceDocument?.DespatchAdvice?.['cbc:UUID'];
 
       if (!despatchAdviceId) {
-        throw new Error('Despatch advice generation failed: Missing generated advice UUID');
+        throw new RequestValidationError('Despatch advice generation failed: Missing generated advice UUID');
       }
 
       const result = await collection.insertOne({
