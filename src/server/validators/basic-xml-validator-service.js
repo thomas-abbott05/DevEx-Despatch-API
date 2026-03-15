@@ -24,6 +24,7 @@ class BasicXmlValidationError extends Error {
     super('XML validation failed');
     this.name = 'BasicXmlValidationError';
     this.errors = errors;
+    this.statusCode = 400;
   }
 }
 
