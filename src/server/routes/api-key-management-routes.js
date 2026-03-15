@@ -42,7 +42,7 @@ router.post('/create', jsonParser, async (req, res) => {
 
     if (!req.body) {
       return res.status(400).send({
-        errors: ['Missing request body with teamName field.'],
+        errors: ['Missing request body. Raw JSON object expected.'],
         'executed-at': Math.floor(Date.now() / 1000)
       });
     }
@@ -50,15 +50,42 @@ router.post('/create', jsonParser, async (req, res) => {
     const teamName = req.body.teamName;
     if (!teamName) {
       return res.status(400).send({
-        errors: ['Missing proper teamName in request body'],
+        errors: ['Missing teamName in request body'],
         'executed-at': Math.floor(Date.now() / 1000)
       });
     }
 
+    const contactEmail = req.body.contactEmail;
+    if (!contactEmail) {
+      return res.status(400).send({
+        errors: ['Missing contactEmail in request body'],
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+
+    const contactName = req.body.contactName;
+    if (!contactName) {
+      return res.status(400).send({
+        errors: ['Missing contactName in request body'],
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    // ensure the email is unique and we have not already issued a key to this contact email
+    const existingKey = await db.collection('api-keys').findOne({ contactEmail: contactEmail });
+    if (existingKey) {
+      return res.status(400).send({
+        errors: ['An API key has already been issued for this contact email'],
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+    
     const apiKey = generateApiKey();
     const newKey = {
+      _id: apiKey,
       key: apiKey,
-      owner: teamName,
+      teamName: teamName,
+      contactEmail: contactEmail,
+      contactName: contactName,
       createdAt: Math.floor(Date.now() / 1000)
     };
 
@@ -101,7 +128,7 @@ router.get('/retrieve/:key', async (req, res) => {
   try {
     const db = getDb();
     const key = req.params.key;
-    const keyData = await db.collection('api-keys').findOne({ key });
+    const keyData = await db.collection('api-keys').findOne({ key: key });
 
     if (!keyData) {
       return res.status(404).send({
@@ -126,7 +153,7 @@ router.delete('/delete/:key', jsonParser, async (req, res) => {
     const db = getDb();
     const key = req.params.key;
 
-    const result = await db.collection('api-keys').deleteOne({ key });
+    const result = await db.collection('api-keys').deleteOne({ key: key });
     if (result.deletedCount === 0) {
       return res.status(404).send({
         errors: ['API key not found'],
