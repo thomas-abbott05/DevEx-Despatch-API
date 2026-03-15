@@ -1,4 +1,4 @@
-const { createDespatchAdvice } = require('../despatch-service');
+const { createDespatchAdvice, listDespatchAdvices } = require('../despatch-service');
 const { validateOrder } = require('../../validators/order-xml-validator-service');
 const { getDb } = require('../../database');
 const { parseOrderXml } = require('../order-parser-service');
@@ -133,5 +133,49 @@ describe('createDespatchAdvice', () => {
     buildDespatchAdviceDocument.mockReturnValue({ DespatchAdvice: {} }); // no UUID
 
     await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Despatch advice generation failed: Missing generated advice UUID');
+  });
+});
+
+describe('listDespatchAdvices', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('maps despatch advice records into response shape', async () => {
+    const toArray = jest.fn().mockResolvedValue([
+      { _id: 'da-1', apiKey: 'k1', despatchXml: '<xml>1</xml>' },
+      { _id: 'da-2', apiKey: 'k1', despatchXml: '<xml>2</xml>' }
+    ]);
+
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        find: jest.fn().mockReturnValue({ toArray })
+      })
+    });
+
+    const result = await listDespatchAdvices('k1');
+
+    expect(result).toEqual([
+      {
+        'advice-id': 'da-1',
+        'despatch-advice': { _id: 'da-1', apiKey: 'k1', despatchXml: '<xml>1</xml>' }
+      },
+      {
+        'advice-id': 'da-2',
+        'despatch-advice': { _id: 'da-2', apiKey: 'k1', despatchXml: '<xml>2</xml>' }
+      }
+    ]);
+  });
+
+  test('rethrows database errors from list operation', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        find: jest.fn(() => {
+          throw new Error('list failure');
+        })
+      })
+    });
+
+    await expect(listDespatchAdvices('k1')).rejects.toThrow('list failure');
   });
 });

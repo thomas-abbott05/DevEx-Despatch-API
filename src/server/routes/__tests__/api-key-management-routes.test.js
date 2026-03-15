@@ -1,6 +1,6 @@
 const express = require('express');
 
-process.env.MASTER_API_KEY = process.env.MASTER_API_KEY;
+process.env.MASTER_API_KEY = 'master-test-key';
 
 jest.mock('../../database', () => ({
   getDb: jest.fn()
@@ -115,5 +115,255 @@ describe('api-key-management routes', () => {
       key: expect.any(String),
       createdAt: expect.any(Number)
     }));
+  });
+
+  test('POST /create returns 400 when teamName is missing', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null),
+        insertOne: jest.fn()
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ contactEmail: 'contact@example.com', contactName: 'John Doe' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.errors).toEqual(['Missing teamName in request body']);
+  });
+
+  test('POST /create returns 400 when contactEmail is missing', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null),
+        insertOne: jest.fn()
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ teamName: 'team-a', contactName: 'John Doe' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.errors).toEqual(['Missing contactEmail in request body']);
+  });
+
+  test('POST /create returns 400 when contactName is missing', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null),
+        insertOne: jest.fn()
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.errors).toEqual(['Missing contactName in request body']);
+  });
+
+  test('POST /create returns 400 when contactEmail already has an issued key', async () => {
+    const mockFindOne = jest.fn().mockResolvedValue({ key: 'existing' });
+    const mockInsertOne = jest.fn();
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: mockFindOne,
+        insertOne: mockInsertOne
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com', contactName: 'John Doe' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.errors).toEqual(['An API key has already been issued for this contact email']);
+    expect(mockInsertOne).not.toHaveBeenCalled();
+  });
+
+  test('POST /create returns 500 when database insert fails', async () => {
+    const mockFindOne = jest.fn().mockResolvedValue(null);
+    const mockInsertOne = jest.fn().mockRejectedValue(new Error('insert failed'));
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: mockFindOne,
+        insertOne: mockInsertOne
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com', contactName: 'John Doe' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.errors).toEqual(['Internal server error']);
+  });
+
+  test('GET /list returns 500 when database read fails', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        find: jest.fn().mockReturnValue({
+          toArray: jest.fn().mockRejectedValue(new Error('list failed'))
+        })
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/list`, {
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.errors).toEqual(['Internal server error']);
+  });
+
+  test('GET /retrieve/:key returns key data when key exists', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue({ key: 'k1', teamName: 'team-a' })
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/retrieve/k1`, {
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ key: 'k1', teamName: 'team-a' });
+  });
+
+  test('GET /retrieve/:key returns 404 when key is missing', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null)
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/retrieve/missing`, {
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(payload.errors).toEqual(['API key not found']);
+  });
+
+  test('GET /retrieve/:key returns 500 when lookup fails', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockRejectedValue(new Error('lookup failed'))
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/retrieve/k1`, {
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.errors).toEqual(['Internal server error']);
+  });
+
+  test('DELETE /delete/:key returns success when a key is deleted', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 })
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/delete/k1`, {
+      method: 'DELETE',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.errors).toEqual([]);
+    expect(payload['executed-at']).toEqual(expect.any(Number));
+  });
+
+  test('DELETE /delete/:key returns 404 when key does not exist', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 0 })
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/delete/missing`, {
+      method: 'DELETE',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(payload.errors).toEqual(['API key not found']);
+  });
+
+  test('DELETE /delete/:key returns 500 when delete fails', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        deleteOne: jest.fn().mockRejectedValue(new Error('delete failed'))
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/delete/k1`, {
+      method: 'DELETE',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.errors).toEqual(['Internal server error']);
   });
 });
