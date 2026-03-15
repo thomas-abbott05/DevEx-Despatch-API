@@ -96,7 +96,7 @@ jobs:
         run: |
           node <<'EOF'
           const webhookUrl = `https://discord.com/api/webhooks/${process.env.DISCORD_WEBHOOK_ID}/${process.env.DISCORD_WEBHOOK_TOKEN}`;
-          const content = `${process.env.SUMMARY}\\n${process.env.RUN_URL}`;
+          const content = `${process.env.SUMMARY}`;
 
           fetch(webhookUrl, {
             method: 'POST',
