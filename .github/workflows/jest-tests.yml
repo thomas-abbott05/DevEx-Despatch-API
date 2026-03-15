@@ -1,5 +1,8 @@
 name: Run Jest tests
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main]
@@ -24,10 +27,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Use Node.js 24.14.0
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24.14.0
           cache: npm
@@ -39,11 +42,85 @@ jobs:
         run: npm run build
 
       - name: Run tests
-        run: npm run test
+        id: run_tests
+        continue-on-error: true
+        run: npm run test -- --json --outputFile=coverage/jest-results.json --coverageReporters=text-summary --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=clover
+
+      - name: Build test summary
+        if: always()
+        id: test_summary
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+
+          const jestPath = 'coverage/jest-results.json';
+          const coveragePath = 'coverage/coverage-summary.json';
+
+          let passed = 0;
+          let total = 0;
+          let coveragePct = 'n/a';
+
+          if (fs.existsSync(jestPath)) {
+            const jestSummary = JSON.parse(fs.readFileSync(jestPath, 'utf8'));
+            passed = Number(jestSummary.numPassedTests || 0);
+            total = Number(jestSummary.numTotalTests || 0);
+          }
+
+          if (fs.existsSync(coveragePath)) {
+            const coverageSummary = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
+            const pct = coverageSummary?.total?.lines?.pct;
+            if (typeof pct === 'number' && Number.isFinite(pct)) {
+              coveragePct = pct.toFixed(1);
+            }
+          }
+
+          const outcome = process.env.TEST_OUTCOME || 'failure';
+          const statusWord = outcome === 'success' ? 'PASSED' : 'FAILED';
+          const statusEmoji = outcome === 'success' ? ':white_check_mark:' : ':x:';
+
+          const summaryMessage = `${statusEmoji} Jest ${statusWord}: ${passed}/${total} tests passed - total file coverage is ${coveragePct}%`;
+
+          const outputPath = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(outputPath, `summary=${summaryMessage}\n`);
+          EOF
+        env:
+          TEST_OUTCOME: ${{ steps.run_tests.outcome }}
+
+      - name: Send Discord test summary
+        if: always()
+        env:
+          DISCORD_WEBHOOK_ID: ${{ secrets.DISCORD_WEBHOOK_ID }}
+          DISCORD_WEBHOOK_TOKEN: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          SUMMARY: ${{ steps.test_summary.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node <<'EOF'
+          const webhookUrl = `https://discord.com/api/webhooks/${process.env.DISCORD_WEBHOOK_ID}/${process.env.DISCORD_WEBHOOK_TOKEN}`;
+          const content = `${process.env.SUMMARY}\\n${process.env.RUN_URL}`;
+
+          fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+          }).then(async (res) => {
+            if (!res.ok) {
+              const body = await res.text();
+              throw new Error(`Discord webhook failed (${res.status}): ${body}`);
+            }
+          }).catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          EOF
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage/
           if-no-files-found: error
+
+      - name: Fail if tests failed
+        if: steps.run_tests.outcome != 'success'
+        run: exit 1
