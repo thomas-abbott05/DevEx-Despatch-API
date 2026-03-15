@@ -63,7 +63,7 @@ describe('api-key-management routes', () => {
   });
 
   test('GET /list returns key metadata with valid master key', async () => {
-    const mockToArray = jest.fn().mockResolvedValue([{ key: 'k1', owner: 'team-a' }]);
+    const mockToArray = jest.fn().mockResolvedValue([{ key: 'k1', teamName: 'team-a' }]);
     getDb.mockReturnValue({
       collection: jest.fn().mockReturnValue({
         find: jest.fn().mockReturnValue({ toArray: mockToArray })
@@ -78,11 +78,11 @@ describe('api-key-management routes', () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(payload.results).toEqual([{ key: 'k1', owner: 'team-a' }]);
+    expect(payload.results).toEqual([{ key: 'k1', teamName: 'team-a' }]);
     expect(payload['executed-at']).toEqual(expect.any(Number));
   });
 
-  test('POST /create creates a key with valid master key and teamName', async () => {
+  test('POST /create creates a key with valid master key and teamName, contactEmail, and contactName', async () => {
     const mockInsertOne = jest.fn().mockResolvedValue({ acknowledged: true });
     getDb.mockReturnValue({
       collection: jest.fn().mockReturnValue({
@@ -96,7 +96,7 @@ describe('api-key-management routes', () => {
         'Api-Key': process.env.MASTER_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ teamName: 'team-a' })
+      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com', contactName: 'John Doe' })
     });
     const payload = await response.json();
 
@@ -106,7 +106,10 @@ describe('api-key-management routes', () => {
     expect(payload['executed-at']).toEqual(expect.any(Number));
 
     expect(mockInsertOne).toHaveBeenCalledWith(expect.objectContaining({
-      owner: 'team-a',
+      teamName: 'team-a',
+      contactEmail: 'contact@example.com',
+      contactName: 'John Doe',
+      _id: expect.any(String),
       key: expect.any(String),
       createdAt: expect.any(Number)
     }));
