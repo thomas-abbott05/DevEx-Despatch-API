@@ -7,18 +7,25 @@ const { buildFulfilmentCancelRequestMetadata, buildFulfilmentCancelRetrievalMeta
 const { createFulfilmentCancellation, getFulfilmentCancellation } = require('../despatch/despatch-cancel-fulfilment');
 const router = express.Router();
 
+function getResponseErrors(error) {
+  if (Array.isArray(error.errors) && error.errors.length > 0) {
+    return error.errors;
+  }
+  return [error.message];
+}
+
 router.use(apiKeyValidation);
 
 // POST /api/v1/despatch/cancel/order
 router.post('/order', async (req, res) => {
   const apiKey = req.apiKey;
- 
+
   try {
     const metadata = buildCancelRequestMetadata(req);
     const result = await cancelDespatchAdvice(apiKey, metadata);
     res.status(200).send(result);
   } catch (error) {
-    return res.status(error.statusCode || 500).send({errors: [error.message]});
+    return res.status(error.statusCode || 500).send({errors: getResponseErrors(error), "executed-at": Math.floor(Date.now() / 1000)});
   }
 });
 
@@ -31,7 +38,7 @@ router.get('/order', async (req, res) => {
     const result = await getCancellation(apiKey, metadata);
     res.status(200).send(result);
   } catch (error) {
-    return res.status(error.statusCode || 500).send({errors: [error.message]});
+    return res.status(error.statusCode || 500).send({errors: getResponseErrors(error), "executed-at": Math.floor(Date.now() / 1000)});
   }
 });
 
@@ -44,7 +51,7 @@ router.post('/fulfilment', async (req, res) => {
     const result = await createFulfilmentCancellation(apiKey, metadata);
     res.status(200).send(result);
   } catch (error) {
-    return res.status(error.statusCode || 500).send({ errors: [error.message] });
+    return res.status(error.statusCode || 500).send({ errors: getResponseErrors(error), "executed-at": Math.floor(Date.now() / 1000) });
   }
 });
 
@@ -57,7 +64,7 @@ router.get('/fulfilment', async (req, res) => {
     const result = await getFulfilmentCancellation(apiKey, metadata);
     res.status(200).send(result);
   } catch (error) {
-    return res.status(error.statusCode || 500).send({ errors: [error.message] });
+    return res.status(error.statusCode || 500).send({ errors: getResponseErrors(error), "executed-at": Math.floor(Date.now() / 1000) });
   }
 });
 

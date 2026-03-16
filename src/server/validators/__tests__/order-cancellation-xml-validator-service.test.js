@@ -6,7 +6,7 @@ describe('validateOrderCancellationXml', () => {
   const mockPath = path.join(__dirname, '../../despatch/mocks/order-cancellation-mock.xml');
   const validXml = fs.readFileSync(mockPath, 'utf8');
 
-  test('valid OrderCancellation XML returns success with extracted id and cancellation note', async () => {
+  test('valid OrderCancellation XML returns success with extracted document id and cancellation note', async () => {
     const result = await validateOrderCancellationXml(validXml);
 
     expect(result).toMatchObject({
@@ -30,17 +30,18 @@ describe('validateOrderCancellationXml', () => {
     });
   });
 
-  test('invalid UUID format in cbc:ID returns validation error', async () => {
-    const xmlWithInvalidId = validXml.replace(
+  test('non-UUID cbc:ID is accepted as the document id', async () => {
+    const xmlWithCustomId = validXml.replace(
       /<cbc:ID>[\s\S]*?<\/cbc:ID>/,
       '<cbc:ID>not-a-uuid</cbc:ID>'
     );
 
-    const result = await validateOrderCancellationXml(xmlWithInvalidId);
+    const result = await validateOrderCancellationXml(xmlWithCustomId);
 
-    expect(result).toStrictEqual({
-      success: false,
-      errors: ['Invalid UUID format in OrderCancellation/cbc:ID']
+    expect(result).toMatchObject({
+      success: true,
+      id: 'not-a-uuid',
+      cancellationNote: 'Change of mind'
     });
   });
 

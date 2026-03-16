@@ -1,6 +1,7 @@
 const { getDb } = require('../database');
 const { validateOrderCancellationXml } = require('../validators/order-cancellation-xml-validator-service');
 const { BasicXmlValidationError } = require('../validators/basic-xml-validator-service');
+const { v4: uuid } = require('uuid');
 
 class CancellationNotFoundError extends Error {
   constructor(message) {
@@ -51,7 +52,11 @@ async function cancelDespatchAdvice(apiKey, metadata) {
     throw new BasicXmlValidationError(validatedCancellation.errors, 400);
   }
 
-  const cancellationId = validatedCancellation.id;
+  if (validatedCancellation.originalOrderId !== despatchAdvice.originalOrderId) {
+    throw new BasicXmlValidationError(['Order ID in cancellation document does not match original order ID'], 400);
+  }
+
+  const cancellationId = uuid();
   const cancellationReason = validatedCancellation.cancellationNote;
   const now = new Date();
 
@@ -108,6 +113,12 @@ async function getCancellation(apiKey, metadata) {
  
   if (despatchAdvice.apiKey !== apiKey) {
     throw new CancellationForbiddenError('Unauthorised access.');
+  }
+
+  if (!despatchAdvice.cancellationId) {// advice missing cancellation data therefore not cancelled
+    throw new CancellationNotFoundError(
+      `Despatch Advice with id ${adviceId} has not been cancelled yet.`
+    );
   }
  
   return {

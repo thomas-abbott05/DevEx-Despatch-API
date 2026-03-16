@@ -35,16 +35,16 @@ function buildFulfilmentCancelRequestMetadata(req) {
 
 /**
  * Validates and extracts query params from the GET /despatch/cancel/fulfilment request.
- * Expects either ?id=<advice-id> or ?fulfilment-cancellation-id=<id>.
+ * Expects either ?advice-id=<advice-id> or ?fulfilment-cancellation-id=<id>.
  */
 function buildFulfilmentCancelRetrievalMetadata(req) {
   const query = req.query;
 
-  if (query['id']) {
-    if (!isValidUuid(query['id'])) {
+  if (query['advice-id']) {
+    if (!isValidUuid(query['advice-id'])) {
       throw new RequestValidationError('Invalid advice-id: must be a valid UUID');
     }
-    return { adviceId: query['id'] };
+    return { adviceId: query['advice-id'] };
   }
 
   if (query['fulfilment-cancellation-id']) {
@@ -54,7 +54,7 @@ function buildFulfilmentCancelRetrievalMetadata(req) {
     return { fulfilmentCancellationId: query['fulfilment-cancellation-id'] };
   }
 
-  throw new RequestValidationError('Missing required query parameter: id or fulfilment-cancellation-id');
+  throw new RequestValidationError('Missing required query parameter: advice-id or fulfilment-cancellation-id');
 }
 
 module.exports = {
