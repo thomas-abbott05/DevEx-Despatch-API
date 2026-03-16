@@ -1,5 +1,5 @@
 const { RequestValidationError } = require('./despatch-request-helper');
-const { isValidUuidV4 } = require('../validators/basic-xml-validator-service');
+const { isValidUuid } = require('../validators/basic-xml-validator-service');
 
 /**
  * Validates and extracts fields from the POST api/v1/despatch/cancel/order request body.
@@ -19,8 +19,8 @@ function buildCancelRequestMetadata(req) {
     throw new RequestValidationError('Missing required field: advice-id', 400);
   }
 
-  if (!isValidUuidV4(adviceId.trim())) {
-    throw new RequestValidationError('Invalid advice-id: must be a valid v4 UUID', 400);
+  if (!isValidUuid(adviceId.trim())) {
+    throw new RequestValidationError('Invalid advice-id: must be a valid UUID', 400);
   }
 
   if (!orderCancellationDocument || typeof orderCancellationDocument !== 'string' || orderCancellationDocument.trim() === '') {
@@ -41,15 +41,15 @@ function buildCancelRetrievalMetadata(req) {
   const query = req.query;
  
   if (query['id']) {
-    if (!isValidUuidV4(query['id'])) {
-      throw new RequestValidationError('Invalid advice-id: must be a valid v4 UUID', 400);
+    if (!isValidUuid(query['id'])) {
+      throw new RequestValidationError('Invalid advice-id: must be a valid UUID', 400);
     }
     return { adviceId: query['id'] };
   }
  
   if (query['cancellation-id']) {
-    if (!isValidUuidV4(query['cancellation-id'])) {
-      throw new RequestValidationError('Invalid cancellation-id: must be a valid v4 UUID', 400);
+    if (!isValidUuid(query['cancellation-id'])) {
+      throw new RequestValidationError('Invalid cancellation-id: must be a valid UUID', 400);
     }
     return { cancellationId: query['cancellation-id'] };
   }

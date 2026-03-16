@@ -1,3 +1,5 @@
+const { RequestValidationError } = require('./despatch-request-helper')
+
 function stableStringify(value) {
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value);
@@ -38,7 +40,8 @@ function getLineId(lineNode, fallbackIndex) {
 function getEffectiveDeliveryAddress(orderNode, lineNode) {
   return (
     lineNode?.['cac:LineItem']?.['cac:Delivery']?.['cac:DeliveryAddress'] ||
-    getOrderDeliveryNode(orderNode)?.['cac:DeliveryAddress']
+    getOrderDeliveryNode(orderNode)?.['cac:DeliveryAddress'] ||
+    getOrderDeliveryNode(orderNode)?.['cac:DeliveryLocation']?.['cac:Address']
   );
 }
 
@@ -46,12 +49,12 @@ function buildDespatchGroups(parsedOrderTree) {
   const orderNode = parsedOrderTree?.Order;
 
   if (!orderNode || typeof orderNode !== 'object') {
-    throw new Error('Invalid order tree: Missing Order root');
+    throw new RequestValidationError('Invalid order tree: Missing Order root');
   }
 
   const orderLines = orderNode['cac:OrderLine'];
   if (!Array.isArray(orderLines) || orderLines.length === 0) {
-    throw new Error('Invalid order tree: Missing Order.cac:OrderLine array');
+    throw new RequestValidationError('Invalid order tree: Missing Order.cac:OrderLine array');
   }
 
   const deliveryNode = getOrderDeliveryNode(orderNode);
@@ -64,12 +67,12 @@ function buildDespatchGroups(parsedOrderTree) {
     const quantityValue = getLineQuantity(lineNode);
 
     if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
-      throw new Error(`Invalid order line quantity for line ${lineId}: must be greater than 0`);
+      throw new RequestValidationError(`Invalid order line quantity for line ${lineId}: must be greater than 0`);
     }
 
     const deliveryAddress = getEffectiveDeliveryAddress(orderNode, lineNode);
     if (!deliveryAddress || typeof deliveryAddress !== 'object') {
-      throw new Error(`Invalid order line ${lineId}: missing effective delivery address`);
+      throw new RequestValidationError(`Invalid order line ${lineId}: missing effective delivery address`);
     }
 
     // use custom stringify to ensure deterministic address keys

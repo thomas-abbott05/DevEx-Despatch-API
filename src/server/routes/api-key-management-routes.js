@@ -82,7 +82,6 @@ router.post('/create', jsonParser, async (req, res) => {
     const apiKey = generateApiKey();
     const newKey = {
       _id: apiKey,
-      key: apiKey,
       teamName: teamName,
       contactEmail: contactEmail,
       contactName: contactName,
@@ -128,7 +127,7 @@ router.get('/retrieve/:key', async (req, res) => {
   try {
     const db = getDb();
     const key = req.params.key;
-    const keyData = await db.collection('api-keys').findOne({ key: key });
+    const keyData = await db.collection('api-keys').findOne({ _id: key });
 
     if (!keyData) {
       return res.status(404).send({
@@ -153,7 +152,7 @@ router.delete('/delete/:key', jsonParser, async (req, res) => {
     const db = getDb();
     const key = req.params.key;
 
-    const result = await db.collection('api-keys').deleteOne({ key: key });
+    const result = await db.collection('api-keys').deleteOne({ _id: key });
     if (result.deletedCount === 0) {
       return res.status(404).send({
         errors: ['API key not found'],

@@ -15,7 +15,7 @@ async function apiKeyAuth(req, res, next) {
         const db = getDb();
 
         const keyRecord = await db.collection("api-keys").findOne({
-            key: apiKey
+            _id: apiKey
         });
 
         // Invalid API key 

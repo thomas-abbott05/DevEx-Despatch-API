@@ -112,7 +112,6 @@ describe('api-key-management routes', () => {
       contactEmail: 'contact@example.com',
       contactName: 'John Doe',
       _id: expect.any(String),
-      key: expect.any(String),
       createdAt: expect.any(Number)
     }));
   });

@@ -1,6 +1,6 @@
 const express = require('express');
 const { RequestValidationError, validateXmlRequest } = require('../../despatch/despatch-request-helper');
-const { listDespatchAdvices, createDespatchAdvice } = require('../../despatch/despatch-service');
+const { listDespatchAdvices, createDespatchAdvice } = require('../../despatch/despatch-advice-service');
 
 jest.mock('../../middleware/api-key-validation', () =>
   jest.fn((req, res, next) => {
@@ -10,7 +10,7 @@ jest.mock('../../middleware/api-key-validation', () =>
   })
 );
 
-jest.mock('../../despatch/despatch-service', () => ({
+jest.mock('../../despatch/despatch-advice-service', () => ({
   listDespatchAdvices: jest.fn(),
   createDespatchAdvice: jest.fn()
 }));
