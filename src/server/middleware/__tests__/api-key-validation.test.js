@@ -24,7 +24,7 @@ describe('apiKeyAuth middleware', () => {
 
     test('Invalid API key: returns 401', async () => {
         const req = {
-            header: jest.fn().mockReturnValue("bad-key")
+            header: jest.fn().mockReturnValue("invalid-key")
         };
 
         const res = {
@@ -48,7 +48,7 @@ describe('apiKeyAuth middleware', () => {
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('Valid API key: calls next()', async () => {
+    test('Valid API key: allows the request to proceed)', async () => {
         const req = {
             header: jest.fn().mockReturnValue("valid-key")
         };
@@ -87,7 +87,7 @@ describe('apiKeyAuth middleware', () => {
 
         const mockDb = {
             collection: () => ({
-                findOne: jest.fn().mockRejectedValue(new Error("DB crash"))
+                findOne: jest.fn().mockRejectedValue(new Error("Database error"))
             })
         };
 
