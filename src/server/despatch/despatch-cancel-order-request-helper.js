@@ -40,7 +40,7 @@ function buildCancelRequestMetadata(req) {
  */
 function buildCancelRetrievalMetadata(req) {
   const query = req.query;
-  const adviceId = query.id ?? query['advice-id'];
+  const adviceId = query['advice-id'];
  
   if (adviceId !== undefined) {
     if (!isValidUuid(adviceId)) {
