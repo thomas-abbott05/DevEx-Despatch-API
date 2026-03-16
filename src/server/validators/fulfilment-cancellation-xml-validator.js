@@ -51,8 +51,8 @@ async function validateFulfilmentCancellationXml(rawXml) {
 
     const issueDate = getNodeContent(
       xmlDoc,
-      '/oc:DespatchAdvice/cbc:IssueDate',
-      UBL_DESPATCH_ADVICE_NS
+      '/oc:FulfilmentCancellation/cbc:IssueDate',
+      UBL_ORDER_FULFILMENT_NS
     );
 
     if (!issueDate) {
