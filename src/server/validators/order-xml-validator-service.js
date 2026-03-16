@@ -1,11 +1,7 @@
-const { isValidUuidV4 } = require('./basic-xml-validator-service');
+const { isValidUuid } = require('./basic-xml-validator-service');
 
-// Commented out ones will be validated in XSD
 const REQUIRED_ORDER_FIELDS = [
-  'cbc:UUID',
   'cbc:ID',
-  // 'cac:BuyerCustomerParty',
-  // 'cac:SellerSupplierParty',
   'cac:Delivery',
   'cac:OrderLine'
 ];
@@ -26,13 +22,13 @@ async function validateOrder(parsedOrderTree) {
     }
   }
 
-  if (!isValidUuidV4(order['cbc:UUID'])) {
-    return { success: false, errors: ['Invalid UUID format in Order/cbc:UUID'] };
+  if (order['cbc:UUID'] && !isValidUuid(order['cbc:UUID'])) {
+    return { success: false, errors: [`Invalid UUID format in Order/cbc:UUID - ${order['cbc:UUID']}`] };
   }
 
   return {
     success: true,
-    id: order['cbc:UUID'],
+    id: order['cbc:UUID'], // may be undefined if not provided
     orderId: order['cbc:ID'],
     salesOrderId: order['cbc:SalesOrderID'],
     issueDate: order['cbc:IssueDate']

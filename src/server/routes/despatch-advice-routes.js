@@ -1,10 +1,8 @@
 const express = require('express');
 const apiKeyValidation = require('../middleware/api-key-validation');
-
-const { createDespatchAdvice, listDespatchAdvices } = require('../despatch/despatch-service');
-const { BasicXmlValidationError } = require('../validators/basic-xml-validator-service');
-const { RequestValidationError, buildRequestMetadata, validateXmlRequest } = require('../despatch/despatch-request-helper');
-
+const { createDespatchAdvice, listDespatchAdvices } = require('../despatch/despatch-advice-service');
+const { buildRequestMetadata, validateXmlRequest } = require('../despatch/despatch-request-helper');
+const { searchDespatchAdvice } = require('../despatch/despatch-retrieval-service');
 
 const router = express.Router();
 
@@ -42,11 +40,9 @@ router.post('/create', rawXmlParser, async (req, res) => {
 });
 
 router.get('/retrieve', async (req, res) => {
-  res.status(501).send({
-    success: false,
-    errors: ['Not implemented yet'],
-    'executed-at': Math.floor(Date.now() / 1000)
-  });
+  const apiKey = req.apiKey;
+  const searchType = req.query['search-type'];
+  return await searchDespatchAdvice(req, res, apiKey, searchType);
 });
 
 router.get('/list', async (req, res) => {

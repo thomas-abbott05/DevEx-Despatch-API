@@ -15,8 +15,8 @@ function getNodeContent(xmlDoc, xpath, namespaces) {
   return node ? node.content.trim() : null;
 }
 
-function isValidUuidV4(value) {
-  return typeof value === 'string' && validate(value) && version(value) === 4;
+function isValidUuid(value) {
+  return typeof value === 'string' && validate(value);
 }
 
 class BasicXmlValidationError extends Error {
@@ -31,6 +31,6 @@ class BasicXmlValidationError extends Error {
 module.exports = {
   getXmlDocumentClass,
   getNodeContent,
-  isValidUuidV4,
+  isValidUuid,
   BasicXmlValidationError
 };

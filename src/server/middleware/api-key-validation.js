@@ -15,7 +15,7 @@ async function apiKeyAuth(req, res, next) {
         const db = getDb();
 
         const keyRecord = await db.collection("api-keys").findOne({
-            key: apiKey
+            _id: apiKey
         });
 
         // If API key is provided but it does not exist in the database, 

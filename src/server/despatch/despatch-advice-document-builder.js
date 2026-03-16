@@ -33,9 +33,13 @@ function buildBackorderQuantityNode(deliveredQuantityNode) {
 function buildOrderReference(orderNode) {
   const orderReference = {
     'cbc:ID': orderNode['cbc:ID'],
-    'cbc:UUID': orderNode['cbc:UUID'],
+    'cbc:UUID': orderNode['cbc:UUID'] || undefined, // include UUID if present in order, otherwise omit
     'cbc:IssueDate': orderNode['cbc:IssueDate']
   };
+
+  if (orderNode['cbc:UUID']) { // uuid is optional in orders but if present should be included in despatch advice order reference
+    orderReference['cbc:UUID'] = orderNode['cbc:UUID'];
+  }
 
   if (orderNode['cbc:SalesOrderID']) {
     orderReference['cbc:SalesOrderID'] = orderNode['cbc:SalesOrderID'];
