@@ -1,16 +1,17 @@
-const { isValidUuid, getXmlDocumentClass, getNodeContent } = require('./basic-xml-validator-service');
+const { getXmlDocumentClass, getNodeContent } = require('./basic-xml-validator-service');
 
 const UBL_ORDER_CANCELLATION_NS = {
   oc: 'urn:oasis:names:specification:ubl:schema:xsd:OrderCancellation-2',
-  cbc: 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
+  cbc: 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
+  cac: 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'
 };
 
 /**
  * Validates a UBL OrderCancellation XML string.
  * Checks that it is valid XML, has the correct root element,
- * and contains a valid UUID in the ID field.
+ * and contains an ID field.
  *
- * Returns { success: true, id, cancellationNote } on success,
+ * Returns { success: true, id, originalOrderId, cancellationNote } on success,
  * or { success: false, errors: [...] } on failure.
  */
 async function validateOrderCancellationXml(rawXml) {
@@ -55,13 +56,12 @@ async function validateOrderCancellationXml(rawXml) {
         errors: ['Missing OrderCancellation/cbc:ID element']
       };
     }
-
-    if (!isValidUuid(id)) {
-      return {
-        success: false,
-        errors: ['Invalid UUID format in OrderCancellation/cbc:ID']
-      };
-    }
+    
+    const originalOrderId = getNodeContent(
+      xmlDoc,
+      '/oc:OrderCancellation/cac:OrderReference/cbc:ID',
+      UBL_ORDER_CANCELLATION_NS
+    );
 
     const cancellationNote = getNodeContent(
       xmlDoc,
@@ -72,6 +72,7 @@ async function validateOrderCancellationXml(rawXml) {
     return {
       success: true,
       id,
+      originalOrderId,
       cancellationNote: cancellationNote ?? 'No reason provided'
     };
 

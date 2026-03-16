@@ -1,3 +1,7 @@
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
+}));
+
 const {
   cancelDespatchAdvice,
   getCancellation,
@@ -18,14 +22,16 @@ jest.mock('../../validators/order-cancellation-xml-validator-service', () => ({
 
 const VALID_ADVICE_ID = 'e553cc8e-8b37-4a9b-a0cf-87c34ea70a35';
 const VALID_API_KEY = 'test-api-key';
-const CANCELLATION_ID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
-const VALID_CANCELLATION_XML = '<OrderCancellation/>';
+const GENERATED_CANCELLATION_ID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+const XML_DOCUMENT_ID = 'customer-cancellation-reference';
+const VALID_CANCELLATION_XML = '<OrderCancellation><cbc:ID>customer-cancellation-reference</cbc:ID></OrderCancellation>';
 
 function makeActiveDespatchDoc(overrides = {}) {
   return {
     _id: VALID_ADVICE_ID,
     apiKey: VALID_API_KEY,
     despatchXml: '<DespatchAdvice>...</DespatchAdvice>',
+    originalOrderId: 'AEG012345',
     metadata: { orderId: 'AEG012345' },
     createdAt: new Date(),
     ...overrides
@@ -39,7 +45,7 @@ function makeCancelledDespatchDoc(overrides = {}) {
     status: 'cancelled',
     cancellationXml: VALID_CANCELLATION_XML,
     cancellationReason: 'Change of mind',
-    cancellationId: CANCELLATION_ID,
+    cancellationId: GENERATED_CANCELLATION_ID,
     cancelledAt: new Date(),
     createdAt: new Date(),
     ...overrides
@@ -56,7 +62,8 @@ describe('cancelDespatchAdvice', () => {
 
   const VALID_VALIDATED_CANCELLATION = {
     success: true,
-    id: CANCELLATION_ID,
+    id: XML_DOCUMENT_ID,
+    originalOrderId: 'AEG012345',
     cancellationNote: 'Change of mind'
   };
 
@@ -78,7 +85,7 @@ describe('cancelDespatchAdvice', () => {
     expect(result).toMatchObject({
       'order-cancellation': VALID_CANCELLATION_XML,
       'order-cancellation-reason': 'Change of mind',
-      'order-cancellation-id': CANCELLATION_ID,
+      'order-cancellation-id': GENERATED_CANCELLATION_ID,
       'advice-id': VALID_ADVICE_ID,
       'executed-at': expect.any(Date)
     });
@@ -96,7 +103,7 @@ describe('cancelDespatchAdvice', () => {
           status: 'cancelled',
           cancellationXml: VALID_CANCELLATION_XML,
           cancellationReason: 'Change of mind',
-          cancellationId: CANCELLATION_ID,
+          cancellationId: GENERATED_CANCELLATION_ID,
           cancelledAt: expect.any(Date)
         }),
         $unset: { despatchXml: '' }
@@ -153,7 +160,7 @@ describe('getCancellation', () => {
     expect(result).toMatchObject({
       'order-cancellation': VALID_CANCELLATION_XML,
       'order-cancellation-reason': 'Change of mind',
-      'order-cancellation-id': CANCELLATION_ID,
+      'order-cancellation-id': GENERATED_CANCELLATION_ID,
       'advice-id': VALID_ADVICE_ID,
       'executed-at': expect.any(Date)
     });
@@ -162,9 +169,9 @@ describe('getCancellation', () => {
   test('queries by cancellationId if provided', async () => {
     fakeCollection.findOne.mockResolvedValue(makeCancelledDespatchDoc());
 
-    await getCancellation(VALID_API_KEY, { cancellationId: CANCELLATION_ID });
+    await getCancellation(VALID_API_KEY, { cancellationId: GENERATED_CANCELLATION_ID });
 
-    expect(fakeCollection.findOne).toHaveBeenCalledWith({ cancellationId: CANCELLATION_ID });
+    expect(fakeCollection.findOne).toHaveBeenCalledWith({ cancellationId: GENERATED_CANCELLATION_ID });
   });
 
   test('queries by _id if adviceId provided', async () => {

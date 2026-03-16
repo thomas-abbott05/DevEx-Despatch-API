@@ -126,6 +126,26 @@ describe('despatch cancellation routes', () => {
 
       expect(response.status).toBe(403);
     });
+
+    test('returns detailed XML validation errors when available', async () => {
+      const error = new Error('XML validation failed');
+      error.statusCode = 400;
+      error.errors = ['Missing OrderCancellation root element'];
+      cancelDespatchAdvice.mockRejectedValue(error);
+
+      const response = await fetch(`${baseUrl}/api/v1/despatch/cancel/order`, {
+        method: 'POST',
+        headers: { 'api-key': 'issued-test-key', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          'advice-id': VALID_ADVICE_ID,
+          'order-cancellation-document': '<OrderCancellation/>'
+        })
+      });
+
+      const payload = await response.json();
+      expect(response.status).toBe(400);
+      expect(payload.errors).toEqual(['Missing OrderCancellation root element']);
+    });
   });
 
   describe('GET /order', () => {

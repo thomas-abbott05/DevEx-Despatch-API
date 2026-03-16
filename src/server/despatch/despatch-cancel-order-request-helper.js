@@ -36,22 +36,26 @@ function buildCancelRequestMetadata(req) {
 /**
  * Validates and extracts query params from the GET api/v1/despatch/cancel/order request.
  * Expects either ?id=<advice-id> or ?cancellation-id=<cancellation-id>.
+ * Also accepts ?advice-id=<advice-id> for compatibility.
  */
 function buildCancelRetrievalMetadata(req) {
   const query = req.query;
+  const adviceId = query.id ?? query['advice-id'];
  
-  if (query['id']) {
-    if (!isValidUuid(query['id'])) {
+  if (adviceId !== undefined) {
+    if (!isValidUuid(adviceId)) {
       throw new RequestValidationError('Invalid advice-id: must be a valid UUID', 400);
     }
-    return { adviceId: query['id'] };
+    return { adviceId };
   }
  
-  if (query['cancellation-id']) {
-    if (!isValidUuid(query['cancellation-id'])) {
+  const cancellationId = query['cancellation-id'];
+
+  if (cancellationId !== undefined) {
+    if (!isValidUuid(cancellationId)) {
       throw new RequestValidationError('Invalid cancellation-id: must be a valid UUID', 400);
     }
-    return { cancellationId: query['cancellation-id'] };
+    return { cancellationId };
   }
   
   throw new RequestValidationError('Missing required query parameter: id or cancellation-id', 400);

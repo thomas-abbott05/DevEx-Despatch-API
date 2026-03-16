@@ -76,7 +76,7 @@ describe('buildFulfilmentCancelRetrievalMetadata', () => {
   const makeReq = (query) => ({ query });
 
   test('valid advice-id query returns adviceId', () => {
-    const result = buildFulfilmentCancelRetrievalMetadata(makeReq({ id: VALID_ADVICE_UUID }));
+    const result = buildFulfilmentCancelRetrievalMetadata(makeReq({ "advice-id": VALID_ADVICE_UUID }));
 
     expect(result).toStrictEqual({ adviceId: VALID_ADVICE_UUID });
   });
@@ -89,8 +89,8 @@ describe('buildFulfilmentCancelRetrievalMetadata', () => {
     expect(result).toStrictEqual({ fulfilmentCancellationId: VALID_FULFILMENT_UUID });
   });
 
-  test('invalid UUID for id throws RequestValidationError', () => {
-    expect(() => buildFulfilmentCancelRetrievalMetadata(makeReq({ id: 'not-a-uuid' }))).toThrow(RequestValidationError);
+  test('invalid UUID for advice-id throws RequestValidationError', () => {
+    expect(() => buildFulfilmentCancelRetrievalMetadata(makeReq({ "advice-id": 'not-a-uuid' }))).toThrow(RequestValidationError);
   });
 
   test('invalid UUID for fulfilment-cancellation-id throws RequestValidationError', () => {
@@ -104,9 +104,9 @@ describe('buildFulfilmentCancelRetrievalMetadata', () => {
       .toThrow(RequestValidationError);
   });
 
-  test('id takes priority over fulfilment-cancellation-id when both provided', () => {
+  test('advice-id takes priority over fulfilment-cancellation-id when both provided', () => {
     const result = buildFulfilmentCancelRetrievalMetadata(makeReq({
-      id: VALID_ADVICE_UUID,
+      'advice-id': VALID_ADVICE_UUID,
       'fulfilment-cancellation-id': VALID_FULFILMENT_UUID
     }));
 
