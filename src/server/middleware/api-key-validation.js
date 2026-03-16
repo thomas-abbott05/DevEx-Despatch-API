@@ -4,7 +4,7 @@ async function apiKeyAuth(req, res, next) {
     try {
         const apiKey = req.header("Api-Key");
 
-        // If API key is missing
+        // If API key is missing, then it rejects the request.
         if (!apiKey) {
             return res.status(401).json({
                 errors: ["Missing API key header. A valid key is required for this endpoint."],
@@ -18,7 +18,8 @@ async function apiKeyAuth(req, res, next) {
             _id: apiKey
         });
 
-        // Invalid API key 
+        // If API key is provided but it does not exist in the database, 
+        // then error is shown.
         if (!keyRecord) {
             return res.status(401).json({
                 errors: ["Invalid API key. Check it matches the one we issued you."],
@@ -26,7 +27,7 @@ async function apiKeyAuth(req, res, next) {
             });
         }
 
-        // Store the key itself so the routes can later access it easily.
+        // Save API key information so other routes can use it.
         req.apiKey = apiKey;
         req.apiKeyOwner = keyRecord.owner;
 
