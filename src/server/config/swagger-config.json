@@ -758,8 +758,8 @@
       },
       "get": {
         "tags": ["Despatch Cancellation"],
-        "summary": "Retrieve cancellation by advice id or cancellation id",
-        "description": "Use either query parameter id or cancellation-id.",
+        "summary": "Retrieve order cancellation",
+        "description": "Retrieves an order cancellation using advice-id or cancellation-id query parameters.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -767,14 +767,14 @@
         ],
         "parameters": [
           {
-            "name": "id",
+            "name": "advice-id",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
               "format": "uuid"
             },
-            "description": "Despatch advice id"
+            "description": "Despatch advice id."
           },
           {
             "name": "cancellation-id",
