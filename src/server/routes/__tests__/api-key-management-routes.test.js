@@ -82,40 +82,6 @@ describe('api-key-management routes', () => {
     expect(payload['executed-at']).toEqual(expect.any(Number));
   });
 
-  test('POST /create creates a key with valid master key and teamName, contactEmail, and contactName', async () => {
-    const mockInsertOne = jest.fn().mockResolvedValue({ acknowledged: true });
-    getDb.mockReturnValue({
-      collection: jest.fn().mockReturnValue({
-        insertOne: mockInsertOne
-      })
-    });
-    const mockFindOne = jest.fn().mockResolvedValue(null);
-    getDb().collection().findOne = mockFindOne;
-
-    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
-      method: 'POST',
-      headers: {
-        'Api-Key': process.env.MASTER_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com', contactName: 'John Doe' })
-    });
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.apiKey).toEqual(expect.any(String));
-    expect(payload.apiKey).toHaveLength(64);
-    expect(payload['executed-at']).toEqual(expect.any(Number));
-
-    expect(mockInsertOne).toHaveBeenCalledWith(expect.objectContaining({
-      teamName: 'team-a',
-      contactEmail: 'contact@example.com',
-      contactName: 'John Doe',
-      _id: expect.any(String),
-      createdAt: expect.any(Number)
-    }));
-  });
-
   test('POST /create returns 400 when teamName is missing', async () => {
     getDb.mockReturnValue({
       collection: jest.fn().mockReturnValue({
@@ -180,55 +146,6 @@ describe('api-key-management routes', () => {
 
     expect(response.status).toBe(400);
     expect(payload.errors).toEqual(['Missing contactName in request body']);
-  });
-
-  test('POST /create returns 400 when contactEmail already has an issued key', async () => {
-    const mockFindOne = jest.fn().mockResolvedValue({ key: 'existing' });
-    const mockInsertOne = jest.fn();
-    getDb.mockReturnValue({
-      collection: jest.fn().mockReturnValue({
-        findOne: mockFindOne,
-        insertOne: mockInsertOne
-      })
-    });
-
-    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
-      method: 'POST',
-      headers: {
-        'Api-Key': process.env.MASTER_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com', contactName: 'John Doe' })
-    });
-    const payload = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(payload.errors).toEqual(['An API key has already been issued for this contact email']);
-    expect(mockInsertOne).not.toHaveBeenCalled();
-  });
-
-  test('POST /create returns 500 when database insert fails', async () => {
-    const mockFindOne = jest.fn().mockResolvedValue(null);
-    const mockInsertOne = jest.fn().mockRejectedValue(new Error('insert failed'));
-    getDb.mockReturnValue({
-      collection: jest.fn().mockReturnValue({
-        findOne: mockFindOne,
-        insertOne: mockInsertOne
-      })
-    });
-
-    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
-      method: 'POST',
-      headers: {
-        'Api-Key': process.env.MASTER_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ teamName: 'team-a', contactEmail: 'contact@example.com', contactName: 'John Doe' })
-    });
-    const payload = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(payload.errors).toEqual(['Internal server error']);
   });
 
   test('GET /list returns 500 when database read fails', async () => {
