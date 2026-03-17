@@ -1,8 +1,19 @@
 const https = require('https');
 const SSLConfig = require('./config/ssl-config');
 const { createExpressApp, setupErrorHandling } = require('./config/server-config');
+const { preloadEmailTemplates } = require('./config/email-template-service');
 const { connectToDatabase } = require('./database');
 const apiRouter = require('./routes');
+
+const REQUIRED_ENV_VARS = [
+  'MONGODB_URI',
+  'MASTER_API_KEY',
+  'EMAIL_HOST',
+  'EMAIL_PORT',
+  'EMAIL_USER',
+  'EMAIL_PASSWORD',
+  'DEFAULT_DOCS_URL'
+];
 
 class DevExServer {
   constructor() {
@@ -12,11 +23,19 @@ class DevExServer {
   }
 
   async initialise() {
-    try {
+    try {      
       await connectToDatabase();
       console.log('Database connection established');
 
+      REQUIRED_ENV_VARS.forEach(v => {
+        if (!process.env[v]) {
+          throw new Error(`Missing required environment variable: ${v}`);
+        }
+      });
+
       this.app = createExpressApp();
+
+      preloadEmailTemplates();
       
       this.sslConfig = new SSLConfig();
 

@@ -1,9 +1,12 @@
 const express = require('express');
 const crypto = require('crypto');
 const { getDb } = require('../database');
-
+const nodemailer = require('nodemailer');
+const { ConfigOptions } = require('../config/nodemailer-config');
+const { renderEmailTemplate } = require('../config/email-template-service');
 const router = express.Router();
 const MASTER_KEY = process.env.MASTER_API_KEY;
+const DEFAULT_DOCS_URL = process.env.DEFAULT_DOCS_URL;
 
 const jsonParser = express.json({
   limit: '1mb'
@@ -33,8 +36,35 @@ async function checkMasterKey(req, res, next) {
   next();
 }
 
-// All API key management routes require the master key.
-router.use(checkMasterKey);
+async function sendAPIKeyEmail(contactEmail, contactName, apiKey, teamName, resend=false) {
+  const transporter = nodemailer.createTransport(new ConfigOptions().config);
+  const subject = resend ? 'Lost your API key? No worries :)' : 'DevEx Despatch API Key Information';
+  const templateName = resend ? 'api-key-reminder.html' : 'api-key-created.html';
+  try {
+    const html = renderEmailTemplate(templateName, {
+      contactName,
+      teamName,
+      apiKey,
+      supportEmail: process.env.EMAIL_USER,
+      docsUrl: DEFAULT_DOCS_URL,
+      baseURL: process.env.BASE_URL
+    });
+
+    await transporter.sendMail({
+      from: {
+        name: process.env.EMAIL_DISPLAY_NAME || 'DevEx Despatch API',
+        address: process.env.EMAIL_USER
+      },
+      to: contactEmail,
+      subject: subject,
+      html: html
+    });
+    console.log(`API key email sent to ${contactEmail}, resend: ${resend}`);
+  } catch (error) {
+    console.error('Error sending API key email:', error);
+    throw new Error('Failed to send API key email');
+  }
+}
 
 router.post('/create', jsonParser, async (req, res) => {
   try {
@@ -70,11 +100,22 @@ router.post('/create', jsonParser, async (req, res) => {
         'executed-at': Math.floor(Date.now() / 1000)
       });
     }
+
+    // apply regex to email
+    const emailRegex = /^[^\s@]+@(ad\.unsw\.edu\.au|student\.unsw\.edu\.au|unsw\.edu\.au)$/;
+    if (!emailRegex.test(contactEmail)) {
+      return res.status(400).send({
+        errors: ['Invalid email format - please provide a valid contactEmail (username@ad.unsw.edu.au or username@student.unsw.edu.au or username@unsw.edu.au).'],
+        'executed-at': Math.floor(Date.now() / 1000)
+      });
+    }
+
     // ensure the email is unique and we have not already issued a key to this contact email
     const existingKey = await db.collection('api-keys').findOne({ contactEmail: contactEmail });
     if (existingKey) {
-      return res.status(400).send({
-        errors: ['An API key has already been issued for this contact email'],
+      await sendAPIKeyEmail(contactEmail, contactName, existingKey._id, teamName, true);
+      return res.send({
+        message: 'An API key has already been issued for this contact email, we will resend your information in case you have forgotten! **Allow two minutes for it to get through UNSW spam filters, and check your junk folder!**',
         'executed-at': Math.floor(Date.now() / 1000)
       });
     }
@@ -89,9 +130,10 @@ router.post('/create', jsonParser, async (req, res) => {
     };
 
     await db.collection('api-keys').insertOne(newKey);
+    await sendAPIKeyEmail(contactEmail, contactName, apiKey, teamName, false);
 
     res.send({
-      apiKey,
+      message: "API key created successfully - an email will be sent to the specified email address. **Allow two minutes for it to get through UNSW spam filters, and check your junk folder!**",
       'executed-at': Math.floor(Date.now() / 1000)
     });
   } catch (error) {
@@ -103,6 +145,9 @@ router.post('/create', jsonParser, async (req, res) => {
     });
   }
 });
+
+// All API key management routes (except for the creation one) require the master key.
+router.use(checkMasterKey);
 
 router.get('/list', async (req, res) => {
   try {
