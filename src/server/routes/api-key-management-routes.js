@@ -46,7 +46,8 @@ async function sendAPIKeyEmail(contactEmail, contactName, apiKey, teamName, rese
       teamName,
       apiKey,
       supportEmail: process.env.EMAIL_USER,
-      docsUrl: DEFAULT_DOCS_URL
+      docsUrl: DEFAULT_DOCS_URL,
+      baseURL: process.env.BASE_URL
     });
 
     await transporter.sendMail({
@@ -114,7 +115,7 @@ router.post('/create', jsonParser, async (req, res) => {
     if (existingKey) {
       await sendAPIKeyEmail(contactEmail, contactName, existingKey._id, teamName, true);
       return res.send({
-        message: 'An API key has already been issued for this contact email, we will resend your information in case you have forgotten!',
+        message: 'An API key has already been issued for this contact email, we will resend your information in case you have forgotten! **Allow two minutes for it to get through UNSW spam filters, and check your junk folder!**',
         'executed-at': Math.floor(Date.now() / 1000)
       });
     }
@@ -132,7 +133,7 @@ router.post('/create', jsonParser, async (req, res) => {
     await sendAPIKeyEmail(contactEmail, contactName, apiKey, teamName, false);
 
     res.send({
-      message: "API key created successfully - an email will be sent to the specified email address (please check junk folder, and allow a few minutes).",
+      message: "API key created successfully - an email will be sent to the specified email address. **Allow two minutes for it to get through UNSW spam filters, and check your junk folder!**",
       'executed-at': Math.floor(Date.now() / 1000)
     });
   } catch (error) {

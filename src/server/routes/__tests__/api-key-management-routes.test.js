@@ -1,12 +1,24 @@
 const express = require('express');
 
 process.env.MASTER_API_KEY = 'master-test-key';
+process.env.EMAIL_USER = 'devex@ad.unsw.edu.au';
+process.env.DEFAULT_DOCS_URL = 'https://devex.cloud.tcore.network/api-docs';
 
 jest.mock('../../database', () => ({
   getDb: jest.fn()
 }));
 
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn()
+}));
+
+jest.mock('../../config/email-template-service', () => ({
+  renderEmailTemplate: jest.fn()
+}));
+
 const { getDb } = require('../../database');
+const nodemailer = require('nodemailer');
+const { renderEmailTemplate } = require('../../config/email-template-service');
 const router = require('../api-key-management-routes');
 
 function startServerWithRouter(router) {
@@ -40,6 +52,10 @@ describe('api-key-management routes', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    renderEmailTemplate.mockReturnValue('<p>email</p>');
+    nodemailer.createTransport.mockReturnValue({
+      sendMail: jest.fn().mockResolvedValue({})
+    });
   });
 
   test('GET /list returns 401 without master key', async () => {
@@ -146,6 +162,136 @@ describe('api-key-management routes', () => {
 
     expect(response.status).toBe(400);
     expect(payload.errors).toEqual(['Missing contactName in request body']);
+  });
+
+  test('POST /create returns 400 when contactEmail domain is invalid', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null),
+        insertOne: jest.fn()
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        teamName: 'team-a',
+        contactEmail: 'user@gmail.com',
+        contactName: 'John Doe'
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.errors[0]).toContain('Invalid email format');
+  });
+
+  test('POST /create resends key details when contactEmail already exists', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue({ _id: 'existing-key-1' }),
+        insertOne: jest.fn()
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        teamName: 'team-a',
+        contactEmail: 'user@unsw.edu.au',
+        contactName: 'John Doe'
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.message).toContain('already been issued');
+    expect(renderEmailTemplate).toHaveBeenCalledWith(
+      'api-key-reminder.html',
+      expect.objectContaining({
+        contactName: 'John Doe',
+        teamName: 'team-a',
+        apiKey: 'existing-key-1'
+      })
+    );
+  });
+
+  test('POST /create creates key and sends created template email', async () => {
+    const findOne = jest.fn().mockResolvedValue(null);
+    const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne,
+        insertOne
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        teamName: 'team-a',
+        contactEmail: 'new.user@ad.unsw.edu.au',
+        contactName: 'Jane Doe'
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.message).toContain('API key created successfully');
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: expect.any(String),
+        teamName: 'team-a',
+        contactEmail: 'new.user@ad.unsw.edu.au',
+        contactName: 'Jane Doe',
+        createdAt: expect.any(Number)
+      })
+    );
+    expect(renderEmailTemplate).toHaveBeenCalledWith(
+      'api-key-created.html',
+      expect.objectContaining({
+        contactName: 'Jane Doe',
+        teamName: 'team-a',
+        supportEmail: process.env.EMAIL_USER,
+        docsUrl: process.env.DEFAULT_DOCS_URL
+      })
+    );
+  });
+
+  test('POST /create returns 500 when sending email throws', async () => {
+    const sendMail = jest.fn().mockRejectedValue(new Error('smtp failed'));
+    nodemailer.createTransport.mockReturnValue({ sendMail });
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(null),
+        insertOne: jest.fn().mockResolvedValue({ acknowledged: true })
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        teamName: 'team-a',
+        contactEmail: 'new.user@student.unsw.edu.au',
+        contactName: 'Jane Doe'
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.errors).toEqual(['Internal server error']);
   });
 
   test('GET /list returns 500 when database read fails', async () => {
