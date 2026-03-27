@@ -371,7 +371,8 @@ describe('api-key-management routes', () => {
   test('DELETE /delete/:key returns success when a key is deleted', async () => {
     getDb.mockReturnValue({
       collection: jest.fn().mockReturnValue({
-        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 })
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+        deleteMany: jest.fn().mockResolvedValue({})
       })
     });
 
