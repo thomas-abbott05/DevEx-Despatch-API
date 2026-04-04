@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -12,16 +14,20 @@ export default function HomePage() {
 
   return (
     <main className="home-screen">
-      <section className="home-card">
-        <h1>Welcome, {user?.firstName} {user?.lastName}</h1>
-        <p>Signed in as {user?.email}</p>
-        <p>Your dashboard is now available at the root route.</p>
+      <Card className="home-card">
+        <CardHeader>
+          <CardTitle>Welcome, {user?.firstName} {user?.lastName}</CardTitle>
+          <CardDescription>Signed in as {user?.email}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>Your dashboard is now available at the root route.</p>
 
-        <div className="home-actions">
-          <a href="/api-docs">Open API docs</a>
-          <button type="button" onClick={onLogout}>Logout</button>
-        </div>
-      </section>
+          <div className="home-actions">
+            <a href="/api-docs">Open API docs</a>
+            <Button type="button" onClick={onLogout}>Logout</Button>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   )
 }

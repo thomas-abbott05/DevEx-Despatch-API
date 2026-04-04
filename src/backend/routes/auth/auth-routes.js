@@ -46,7 +46,6 @@ function sanitiseProfilePhotoUuid(value) {
 function buildSafeUser(userDoc) {
   return {
     id: userDoc._id.toString(),
-    username: userDoc.username,
     email: userDoc.email,
     profilePhotoUuid: userDoc.profilePhotoUuid || null,
     firstName: userDoc.firstName,
@@ -57,18 +56,11 @@ function buildSafeUser(userDoc) {
 function validateRegistrationInput(payload) {
   const errors = [];
 
-  const username = sanitiseText(payload?.username);
   const email = normaliseEmail(payload?.email);
   const password = typeof payload?.password === 'string' ? payload.password : '';
   const firstName = sanitiseText(payload?.firstName);
   const lastName = sanitiseText(payload?.lastName);
   const profilePhotoUuid = sanitiseProfilePhotoUuid(payload?.profilePhotoUuid);
-
-  if (!username) {
-    errors.push('Missing username in request body.');
-  } else if (!/^[A-Za-z0-9_.-]{3,32}$/.test(username)) {
-    errors.push('Invalid username format. Use 3-32 characters: letters, numbers, dot, underscore, or hyphen.');
-  }
 
   if (!email) {
     errors.push('Missing email in request body.');
@@ -101,7 +93,6 @@ function validateRegistrationInput(payload) {
   return {
     errors,
     data: {
-      username,
       email,
       password,
       profilePhotoUuid,
@@ -178,16 +169,8 @@ router.post('/register', jsonParser, async (req, res) => {
 
     const existingEmail = await usersCollection.findOne({ email: data.email }, { projection: { _id: 1 } });
     if (existingEmail) {
-      return res.status(409).json({
+      return res.status(400).json({
         errors: ['Email is already registered.'],
-        'executed-at': nowUnix()
-      });
-    }
-
-    const existingUsername = await usersCollection.findOne({ username: data.username }, { projection: { _id: 1 } });
-    if (existingUsername) {
-      return res.status(409).json({
-        errors: ['Username is already taken.'],
         'executed-at': nowUnix()
       });
     }
@@ -196,7 +179,6 @@ router.post('/register', jsonParser, async (req, res) => {
     const createdAt = nowUnix();
 
     const result = await usersCollection.insertOne({
-      username: data.username,
       email: data.email,
       passwordHash,
       profilePhotoUuid: data.profilePhotoUuid,
@@ -216,8 +198,8 @@ router.post('/register', jsonParser, async (req, res) => {
     });
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(409).json({
-        errors: ['A user with this email or username already exists.'],
+      return res.status(400).json({
+        errors: ['A user with this email already exists.'],
         'executed-at': nowUnix()
       });
     }

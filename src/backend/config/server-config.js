@@ -20,6 +20,8 @@ function createExpressApp() {
   const distPath = path.join(__dirname, '../../../dist');
   const distIndexPath = path.join(distPath, 'index.html');
   const publicPath = path.join(__dirname, '../../../public');
+  const faviconPath = path.join(publicPath, 'favicon.ico');
+  const legacyFaviconPath = path.join(publicPath, 'img', 'devexlogo.ico');
 
   function serveFrontendEntry(req, res) {
     if (fs.existsSync(distIndexPath)) {
@@ -37,6 +39,19 @@ function createExpressApp() {
     // Serve built frontend first, then legacy static assets like our email images
     app.use(express.static(distPath));
     app.use(express.static(publicPath));
+
+    app.get('/favicon.ico', (req, res) => {
+      const resolvedFaviconPath = fs.existsSync(faviconPath)
+        ? faviconPath
+        : legacyFaviconPath;
+
+      if (fs.existsSync(resolvedFaviconPath)) {
+        res.type('image/x-icon');
+        return res.sendFile(resolvedFaviconPath);
+      }
+
+      return res.status(404).end();
+    });
 
     // Swagger config
     const swaggerSpecJSON = require('./swagger-config.json');

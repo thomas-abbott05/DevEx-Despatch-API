@@ -16,7 +16,14 @@ describe('database module', () => {
 
   test('connectToDatabase connects, pings admin db, and returns devex db instance', async () => {
     const mockCommand = jest.fn().mockResolvedValue({ ok: 1 });
-    const devexDb = { name: 'devex' };
+    const mockCreateIndex = jest.fn().mockResolvedValue('email_1');
+    const mockCollection = jest.fn().mockReturnValue({
+      createIndex: mockCreateIndex
+    });
+    const devexDb = {
+      name: 'devex',
+      collection: mockCollection
+    };
     const mockDb = jest.fn((name) => {
       if (name === 'admin') {
         return { command: mockCommand };
@@ -46,6 +53,8 @@ describe('database module', () => {
     expect(mockDb).toHaveBeenCalledWith('admin');
     expect(mockCommand).toHaveBeenCalledWith({ ping: 1 });
     expect(mockDb).toHaveBeenCalledWith('devex');
+    expect(mockCollection).toHaveBeenCalledWith('users');
+    expect(mockCreateIndex).toHaveBeenCalledWith({ email: 1 }, { unique: true });
     expect(connectedDb).toBe(devexDb);
     expect(dbModule.getDb()).toBe(devexDb);
   });

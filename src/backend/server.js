@@ -1,11 +1,13 @@
 const https = require('https');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const connectMongo = require('connect-mongo');
 const SSLConfig = require('./config/ssl-config');
 const { createExpressApp, setupErrorHandling } = require('./config/server-config');
 const { preloadEmailTemplates } = require('./config/email-template-service');
 const { connectToDatabase, getDbClient } = require('./database');
 const apiRouter = require('./routes');
+
+const MongoStore = connectMongo.default || connectMongo.MongoStore || connectMongo;
 
 const REQUIRED_ENV_VARS = [
   'MONGODB_URI',

@@ -4,6 +4,7 @@ import PublicOnlyRoute from '../features/auth/PublicOnlyRoute'
 import HomePage from '../features/auth/pages/HomePage'
 import LoginPage from '../features/auth/pages/LoginPage'
 import RegisterPage from '../features/auth/pages/RegisterPage'
+import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage'
 import NotFoundPage from '../features/auth/pages/NotFoundPage'
 
 export default function App() {
@@ -31,6 +32,14 @@ export default function App() {
         element={
           <PublicOnlyRoute>
             <RegisterPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicOnlyRoute>
+            <ForgotPasswordPage />
           </PublicOnlyRoute>
         }
       />

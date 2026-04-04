@@ -26,8 +26,9 @@ async function initialiseIndexes() {
     return;
   }
 
-  await db.collection('users').createIndex({ email: 1 }, { unique: true });
-  await db.collection('users').createIndex({ username: 1 }, { unique: true });
+  const usersCollection = db.collection('users');
+  await usersCollection.createIndex({ email: 1 }, { unique: true });
+
   indexesInitialised = true;
 }
 
