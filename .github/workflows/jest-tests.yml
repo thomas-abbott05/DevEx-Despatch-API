@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 15
 
     env:
-      # Needed because src/server/database.js exits on import if undefined.
+      # Needed because src/backend/database.js exits on import if undefined.
       MONGODB_URI: mongodb://localhost:27017/devex-ci
 
     steps:

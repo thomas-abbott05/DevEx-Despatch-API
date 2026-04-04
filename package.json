@@ -15,8 +15,13 @@
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
-    "build": "esbuild src/client/Index.jsx --bundle --minify --outfile=public/compiled-js/bundle.js",
-    "start": "npm run build && node main.js",
+    "dev": "concurrently --kill-others --handle-input --names api,web \"nodemon --signal SIGINT main.js\" \"vite --host\"",
+    "dev:backend": "nodemon --signal SIGINT main.js",
+    "dev:frontend": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prestart": "npm run build",
+    "start": "node main.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage"
   },
   "dependencies": {
@@ -31,7 +36,10 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "esbuild": "^0.28.0",
-    "jest": "^30.0.0"
+    "@vitejs/plugin-react": "^5.0.1",
+    "concurrently": "^9.2.1",
+    "jest": "^30.0.0",
+    "nodemon": "^3.1.10",
+    "vite": "^7.1.10"
   }
 }
