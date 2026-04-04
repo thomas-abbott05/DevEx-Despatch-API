@@ -19,6 +19,17 @@ const client = new MongoClient(uri, {
 });
 
 let db = null;
+let indexesInitialised = false;
+
+async function initialiseIndexes() {
+  if (!db || indexesInitialised) {
+    return;
+  }
+
+  await db.collection('users').createIndex({ email: 1 }, { unique: true });
+  await db.collection('users').createIndex({ username: 1 }, { unique: true });
+  indexesInitialised = true;
+}
 
 function getDbClient() {
   return client;
@@ -38,6 +49,7 @@ async function connectToDatabase() {
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     db = client.db("devex");
+    await initialiseIndexes();
     console.log("Successfully connected to MongoDB!");
     return db;
   } catch (error) {

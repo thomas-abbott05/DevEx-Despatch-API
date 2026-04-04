@@ -1,8 +1,10 @@
 const https = require('https');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const SSLConfig = require('./config/ssl-config');
 const { createExpressApp, setupErrorHandling } = require('./config/server-config');
 const { preloadEmailTemplates } = require('./config/email-template-service');
-const { connectToDatabase } = require('./database');
+const { connectToDatabase, getDbClient } = require('./database');
 const apiRouter = require('./routes');
 
 const REQUIRED_ENV_VARS = [
@@ -34,6 +36,29 @@ class DevExServer {
       });
 
       this.app = createExpressApp();
+
+      if (!process.env.SESSION_SECRET) {
+        console.warn('SESSION_SECRET is not set. Falling back to prototype default secret.');
+      }
+
+      this.app.use(session({
+        name: 'devex.sid',
+        secret: process.env.SESSION_SECRET || 'devex-prototype-secret-change-me',
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({
+          client: getDbClient(),
+          dbName: 'devex',
+          collectionName: 'sessions',
+          ttl: 60 * 60 * 24 * 7
+        }),
+        cookie: {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 1000 * 60 * 60 * 24 * 7
+        }
+      }));
 
       preloadEmailTemplates();
       

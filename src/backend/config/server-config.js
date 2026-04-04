@@ -21,6 +21,14 @@ function createExpressApp() {
   const distIndexPath = path.join(distPath, 'index.html');
   const publicPath = path.join(__dirname, '../../../public');
 
+  function serveFrontendEntry(req, res) {
+    if (fs.existsSync(distIndexPath)) {
+      return res.sendFile(distIndexPath);
+    }
+
+    return res.status(503).send('Frontend build not found. Run "npm run build" for production or "npm run dev" for development.');
+  }
+
     app.use(requestLogger);
 
     // parse JSON bodies
@@ -34,14 +42,8 @@ function createExpressApp() {
     const swaggerSpecJSON = require('./swagger-config.json');
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecJSON));
 
-    // Serve the frontend root page from the Vite production build.
-    app.get('/', (req, res) => {
-      if (fs.existsSync(distIndexPath)) {
-        return res.sendFile(distIndexPath);
-      }
-
-      return res.status(503).send('Frontend build not found. Run "npm run build" for production or "npm run dev" for development.');
-    });
+    // Serve the React app for all non-API routes in production so deep links work.
+    app.get(/^\/(?!api(?:\/|$)|api-docs(?:\/|$)).*/, serveFrontendEntry);
 
     return app;
 }

@@ -2,6 +2,7 @@
 const express = require('express');
 const { getServerConstants } = require('../config/server-config');
 const apiKeyManagementRoutes = require('./api-key/api-key-management-routes');
+const authRoutes = require('./auth/auth-routes');
 const despatchRoutes = require('./despatch/despatch-advice-routes');
 const despatchCancellationRoutes = require('./despatch/despatch-cancellation-routes');
 const validateDocRoutes = require('./validation/validate-doc-routes');
@@ -21,6 +22,9 @@ router.get('/health', (req, res) => {
 
 // Internal API key management routes, protected with master key in .env file.
 router.use('/api-key', apiKeyManagementRoutes);
+
+// User authentication routes (login/registration/session).
+router.use('/auth', authRoutes);
 
 // External despatch routes - protected with normal issued API keys.
 router.use('/despatch', despatchRoutes);
