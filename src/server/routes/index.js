@@ -1,10 +1,10 @@
 // This is the entry point that loads all of our API routes.
 const express = require('express');
 const { getServerConstants } = require('../config/server-config');
-const apiKeyManagementRoutes = require('./api-key-management-routes');
-const despatchRoutes = require('./despatch-advice-routes');
-const despatchCancellationRoutes = require('./despatch-cancellation-routes');
-const validateDocRoutes = require('./validate-doc-routes');
+const apiKeyManagementRoutes = require('./api-key/api-key-management-routes');
+const despatchRoutes = require('./despatch/despatch-advice-routes');
+const despatchCancellationRoutes = require('./despatch/despatch-cancellation-routes');
+const validateDocRoutes = require('./validation/validate-doc-routes');
 
 const router = express.Router();
 
