@@ -1,7 +1,7 @@
 const { getDb } = require('../../database');
 const { validateOrderCancellationXml } = require('../../validators/cancellation/order-cancellation-xml-validator-service');
 const { BasicXmlValidationError } = require('../../validators/common/basic-xml-validator-service');
-const { v4: uuid } = require('uuid');
+const { randomUUID } = require('node:crypto');
 
 class CancellationNotFoundError extends Error {
   constructor(message) {
@@ -56,7 +56,7 @@ async function cancelDespatchAdvice(apiKey, metadata) {
     throw new BasicXmlValidationError(['Order ID in cancellation document does not match original order ID'], 400);
   }
 
-  const cancellationId = uuid();
+  const cancellationId = randomUUID();
   const cancellationReason = validatedCancellation.cancellationNote;
   const now = new Date();
 

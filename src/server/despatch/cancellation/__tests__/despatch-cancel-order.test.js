@@ -1,5 +1,5 @@
-jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
+jest.mock('node:crypto', () => ({
+  randomUUID: jest.fn(() => 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
 }));
 
 const {
