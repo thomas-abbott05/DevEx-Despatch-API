@@ -8,9 +8,10 @@ const router = express.Router();
 
 router.use(apiKeyValidation);
 
-router.post('/:document-type', express.text({ type: ['text/xml', 'application/xml'] }), async (req, res) => {
+// POST /api/v1/validate-doc/:documentType
+router.post('/:documentType', express.text({ type: ['text/xml', 'application/xml'] }), async (req, res) => {
   const executedAt = Math.floor(Date.now() / 1000);
-  const documentType = req.params['document-type'];
+  const documentType = req.params.documentType;
   const rawXml = req.body;
 
   if (!VALID_DOCUMENT_TYPES.includes(documentType)) {
