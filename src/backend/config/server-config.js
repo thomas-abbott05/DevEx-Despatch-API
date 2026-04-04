@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 
@@ -15,23 +16,31 @@ function requestLogger(req, res, next) {
 }
 
 function createExpressApp() {
-    const app = express();
+  const app = express();
+  const distPath = path.join(__dirname, '../../../dist');
+  const distIndexPath = path.join(distPath, 'index.html');
+  const publicPath = path.join(__dirname, '../../../public');
 
     app.use(requestLogger);
 
     // parse JSON bodies
     app.use(express.json());
 
-    // Serve static files from public directory e.g. images
-    app.use(express.static(path.join(__dirname, '../../../public')));
+    // Serve built frontend first, then legacy static assets like our email images
+    app.use(express.static(distPath));
+    app.use(express.static(publicPath));
 
     // Swagger config
     const swaggerSpecJSON = require('./swagger-config.json');
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecJSON));
 
-    // temporary frontend route
+    // Serve the frontend root page from the Vite production build.
     app.get('/', (req, res) => {
-      res.sendFile(path.join(__dirname, '../../../public/html/index.html'));
+      if (fs.existsSync(distIndexPath)) {
+        return res.sendFile(distIndexPath);
+      }
+
+      return res.status(503).send('Frontend build not found. Run "npm run build" for production or "npm run dev" for development.');
     });
 
     return app;

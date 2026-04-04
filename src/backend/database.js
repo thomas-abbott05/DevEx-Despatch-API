@@ -1,7 +1,8 @@
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']); // MongoDB SRV record lookup can fail on some DNS servers. Force Google DNS.
-const env = require('dotenv').config()
+const env = require('dotenv').config();
+console.log('Environment variables loaded from .env file:', env?.parsed ? Object.keys(env.parsed) : 'No .env file found or it is empty');
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
