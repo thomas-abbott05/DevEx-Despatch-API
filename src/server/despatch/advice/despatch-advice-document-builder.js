@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('node:crypto');
 
 const DESPATCH_ADVICE_NAMESPACES = {
   '@_xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
@@ -110,7 +110,7 @@ function buildDespatchAdviceDocument(parsedOrderTree, despatchGroup) {
     throw new Error('Invalid despatch group: Missing deliveryAddress');
   }
 
-  const adviceUuid = uuidv4();
+  const adviceUuid = randomUUID();
   const issueDate = getTodayDate();
   const orderReference = buildOrderReference(orderNode);
 

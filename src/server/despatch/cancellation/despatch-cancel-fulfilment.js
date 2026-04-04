@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('node:crypto');
 const { XMLParser, XMLBuilder } = require('fast-xml-parser');
 const { getDb } = require('../../database');
 
@@ -28,7 +28,7 @@ class FulfilmentCancellationForbiddenError extends Error {
 
 function buildFulfilmentCancellationXml(despatchDoc, cancellationReason) {
   const despatch = new XMLParser(XML_OPTIONS).parse(despatchDoc.despatchXml)?.DespatchAdvice;
-  const fulfilmentCancellationId = uuidv4();
+  const fulfilmentCancellationId = randomUUID();
 
   const xml = new XMLBuilder(XML_OPTIONS).build({
     FulfilmentCancellation: {

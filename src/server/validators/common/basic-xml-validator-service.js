@@ -1,4 +1,4 @@
-const { validate, version } = require('uuid');
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let libxml2ModulePromise;
 
@@ -16,7 +16,7 @@ function getNodeContent(xmlDoc, xpath, namespaces) {
 }
 
 function isValidUuid(value) {
-  return typeof value === 'string' && validate(value);
+  return typeof value === 'string' && UUID_REGEX.test(value);
 }
 
 class BasicXmlValidationError extends Error {
