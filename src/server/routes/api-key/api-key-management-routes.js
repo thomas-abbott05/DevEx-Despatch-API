@@ -52,10 +52,11 @@ async function sendAPIKeyEmail(contactEmail, contactName, apiKey, teamName, rese
 
     await transporter.sendMail({
       from: {
-        name: process.env.EMAIL_DISPLAY_NAME || 'DevEx Despatch API',
+        name: 'DevEx Despatch API',
         address: process.env.EMAIL_USER
       },
       to: contactEmail,
+      cc: 'devex@platform.tcore.network',
       subject: subject,
       html: html
     });
@@ -200,10 +201,12 @@ router.delete('/delete/:key', jsonParser, async (req, res) => {
     const result = await db.collection('api-keys').deleteOne({ _id: key });
     if (result.deletedCount === 0) {
       return res.status(404).send({
-        errors: ['API key not found'],
-        'executed-at': Math.floor(Date.now() / 1000)
+      errors: ['API key not found'],
+      'executed-at': Math.floor(Date.now() / 1000)
       });
     }
+    // cleanup after deleting api key
+    await db.collection('despatch-advice').deleteMany({ apiKey: key });
 
     res.send({
       errors: [],
