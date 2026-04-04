@@ -15,7 +15,7 @@
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
-    "build": "esbuild src/client/Index.jsx --bundle --outfile=public/compiled-js/bundle.js",
+    "build": "esbuild src/client/Index.jsx --bundle --minify --outfile=public/compiled-js/bundle.js",
     "start": "npm run build && node main.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage"
   },
