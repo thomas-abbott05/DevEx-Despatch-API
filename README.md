@@ -25,7 +25,6 @@ What this does:
 - Frontend API calls to `/api/*` and `/api-docs` are proxied to the backend.
 
 ### Local environment variables
-Use `.env.example` as a template for your local `.env`.
 
 Frontend/backend proxy and port variables:
 - `PORT=80`
