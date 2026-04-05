@@ -88,6 +88,82 @@ export function AuthProvider({ children }) {
     return payload?.user || null
   }, [])
 
+  const requestVerificationCode = useCallback(async ({ email }) => {
+    const response = await fetch('/api/v1/auth/request-verification-code', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    })
+
+    const payload = await readResponsePayload(response)
+
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, 'Unable to send verification code.'))
+    }
+
+    return payload || null
+  }, [])
+
+  const verifyRegistrationCode = useCallback(async ({ email, code }) => {
+    const response = await fetch('/api/v1/auth/verify-email', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, code })
+    })
+
+    const payload = await readResponsePayload(response)
+
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, 'Unable to verify email.'))
+    }
+
+    return payload || null
+  }, [])
+
+  const requestPasswordReset = useCallback(async ({ email }) => {
+    const response = await fetch('/api/v1/auth/request-password-reset', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    })
+
+    const payload = await readResponsePayload(response)
+
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, 'Unable to request a password reset.'))
+    }
+
+    return payload || null
+  }, [])
+
+  const resetPassword = useCallback(async ({ token, password }) => {
+    const response = await fetch('/api/v1/auth/reset-password', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token, password })
+    })
+
+    const payload = await readResponsePayload(response)
+
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, 'Unable to reset password.'))
+    }
+
+    return payload || null
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await fetch('/api/v1/auth/logout', {
@@ -107,9 +183,24 @@ export function AuthProvider({ children }) {
       refreshSession,
       login,
       register,
+      requestVerificationCode,
+      verifyRegistrationCode,
+      requestPasswordReset,
+      resetPassword,
       logout
     }),
-    [user, initialising, refreshSession, login, register, logout]
+    [
+      user,
+      initialising,
+      refreshSession,
+      login,
+      register,
+      requestVerificationCode,
+      verifyRegistrationCode,
+      requestPasswordReset,
+      resetPassword,
+      logout
+    ]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

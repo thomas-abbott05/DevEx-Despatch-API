@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import MeshGradientBackground from '../components/MeshGradientBackground'
+import { useAuth } from '../AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import './styles/ForgotPasswordPage.css'
 
 export default function ForgotPasswordPage() {
+  const { requestPasswordReset } = useAuth()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -20,12 +23,11 @@ export default function ForgotPasswordPage() {
     setSuccessMessage('')
 
     try {
-      // Prototype flow: keep UX in place until reset-email backend endpoint is introduced.
-      await new Promise((resolve) => setTimeout(resolve, 600))
-      setSuccessMessage('If an account exists for this email, password reset instructions will be sent.')
+      const payload = await requestPasswordReset({ email })
+      setSuccessMessage(payload?.message || 'If an account exists for this email, password reset instructions will be sent.')
       setEmail('')
-    } catch {
-      setError('Unable to process your request right now. Please try again.')
+    } catch (submitError) {
+      setError(submitError.message)
     } finally {
       setSubmitting(false)
     }

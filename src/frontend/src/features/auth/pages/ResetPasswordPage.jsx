@@ -1,41 +1,35 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react'
-import { Turnstile } from '@marsidev/react-turnstile'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Eye, EyeOff, Lock } from 'lucide-react'
 import MeshGradientBackground from '../components/MeshGradientBackground'
 import { useAuth } from '../AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import './styles/RegisterPage.css'
+import './styles/ResetPasswordPage.css'
 
 const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Za-z])(?=.*\d).+$/
 
-export default function RegisterPage() {
+export default function ResetPasswordPage() {
   const navigate = useNavigate()
-  const { register } = useAuth()
-  const turnstileSiteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
+  const [searchParams] = useSearchParams()
+  const { resetPassword } = useAuth()
 
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: ''
-  })
+  const token = searchParams.get('token') || ''
+
+  const [form, setForm] = useState({ password: '', confirmPassword: '' })
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [turnstileToken, setTurnstileToken] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   async function onSubmit(event) {
     event.preventDefault()
 
-    if (!turnstileToken) {
-      setError('Please complete the Turnstile challenge before creating your account.')
+    if (!token) {
+      setError('Reset token is missing or invalid. Request a new reset link.')
       return
     }
 
@@ -54,18 +48,9 @@ export default function RegisterPage() {
     setSuccessMessage('')
 
     try {
-      await register({
-        email: form.email,
-        password: form.password,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        turnstileToken
-      })
-      setSuccessMessage('Registration successful. Please verify the 6 digit code sent to your email.')
-      navigate('/verify?req=1', {
-        replace: true,
-        state: { email: form.email.trim().toLowerCase() }
-      })
+      const payload = await resetPassword({ token, password: form.password })
+      setSuccessMessage(payload?.message || 'Password reset successful. You can now log in.')
+      navigate('/login', { replace: true })
     } catch (submitError) {
       setError(submitError.message)
     } finally {
@@ -79,60 +64,18 @@ export default function RegisterPage() {
         <Card className="auth-card">
           <CardHeader className="auth-header">
             <CardTitle>
-              <img className="auth-logo" src="/img/devexlogo2.png" alt="DevEx" />
+              <img className="auth-logo auth-logo-login" src="/img/devexlogo2.png" alt="DevEx" />
             </CardTitle>
-            <CardDescription>Create a new DevEx account</CardDescription>
+            <CardDescription>Set your new account password.</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="auth-form" onSubmit={onSubmit}>
-              <Label htmlFor="firstName">First name</Label>
-              <div className="auth-input-wrap">
-                <UserRound className="auth-input-icon" aria-hidden="true" />
-                <Input
-                  id="firstName"
-                  type="text"
-                  autoComplete="given-name"
-                  required
-                  className="auth-input-with-icon"
-                  value={form.firstName}
-                  onChange={(event) => setForm((previous) => ({ ...previous, firstName: event.target.value }))}
-                />
-              </div>
-
-              <Label htmlFor="lastName">Last name</Label>
-              <div className="auth-input-wrap">
-                <UserRound className="auth-input-icon" aria-hidden="true" />
-                <Input
-                  id="lastName"
-                  type="text"
-                  autoComplete="family-name"
-                  required
-                  className="auth-input-with-icon"
-                  value={form.lastName}
-                  onChange={(event) => setForm((previous) => ({ ...previous, lastName: event.target.value }))}
-                />
-              </div>
-
-              <Label htmlFor="registerEmail">Email address</Label>
-              <div className="auth-input-wrap">
-                <Mail className="auth-input-icon" aria-hidden="true" />
-                <Input
-                  id="registerEmail"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="auth-input-with-icon"
-                  value={form.email}
-                  onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-                />
-              </div>
-
-              <Label htmlFor="registerPassword">Password</Label>
+              <Label htmlFor="newPassword">New password</Label>
               <span className="auth-password-requirements">(At least 8 characters, including a letter and a number)</span>
               <div className="auth-input-wrap">
                 <Lock className="auth-input-icon" aria-hidden="true" />
                 <Input
-                  id="registerPassword"
+                  id="newPassword"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
@@ -152,16 +95,16 @@ export default function RegisterPage() {
                 </Button>
               </div>
 
-              <Label htmlFor="confirmPassword">Repeat password</Label>
+              <Label htmlFor="confirmNewPassword">Repeat password</Label>
               <div className="auth-input-wrap">
                 <Lock className="auth-input-icon" aria-hidden="true" />
                 <Input
-                  id="confirmPassword"
+                  id="confirmNewPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
                   className="auth-input-with-icon auth-input-with-toggle"
-                  value={form.confirmPassword || ''}
+                  value={form.confirmPassword}
                   onChange={(event) => setForm((previous) => ({ ...previous, confirmPassword: event.target.value }))}
                 />
                 <Button
@@ -179,22 +122,13 @@ export default function RegisterPage() {
               {error ? <p className="auth-error">{error}</p> : null}
               {successMessage ? <p className="auth-success">{successMessage}</p> : null}
 
-              <div className="auth-turnstile-block">
-                <Turnstile
-                  siteKey={turnstileSiteKey}
-                  options={{ theme: 'dark' }}
-                  onSuccess={(token) => setTurnstileToken(token)}
-                  onExpire={() => setTurnstileToken('')}
-                  onError={() => setTurnstileToken('')}
-                />
-              </div>
-
-              <Button type="submit" className="auth-main-action" disabled={submitting || !turnstileToken}>
-                {submitting ? 'Creating account...' : 'Register'}
+              <Button type="submit" variant="secondary" size="lg" className="auth-main-action" disabled={submitting}>
+                {submitting ? 'Updating...' : 'Reset password'}
               </Button>
 
-              <p className="auth-link-row">
-                <Link to="/login">Already have an account?</Link>
+              <p className="auth-link-row auth-link-row-split">
+                <Link to="/forgot-password">Request another link</Link>
+                <Link to="/login">Back to login</Link>
               </p>
             </form>
           </CardContent>

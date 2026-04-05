@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { BarLoader } from 'react-spinners'
 import { useAuth } from './AuthContext'
 import MeshGradientBackground from './components/MeshGradientBackground'
+import './pages/styles/AuthShared.css'
 
 export function AuthRouteLoader({ statusLabel = 'Checking your session' }) {
   return (

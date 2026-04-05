@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import './styles/LoginPage.css'
+
+const UNVERIFIED_ACCOUNT_ERROR = 'Email address is not verified yet. Please verify your account before logging in.'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -89,6 +92,16 @@ export default function LoginPage() {
               </div>
 
               {error ? <p className="auth-error">{error}</p> : null}
+              {error === UNVERIFIED_ACCOUNT_ERROR ? (
+                <p className="auth-link-row" style={{ marginTop: '0.2rem' }}>
+                  <Link
+                    to="/verify"
+                    state={{ email: form.email.trim().toLowerCase() }}
+                  >
+                    Need a new verification code?
+                  </Link>
+                </p>
+              ) : null}
 
               <Button type="submit" variant="secondary" size="lg" className="auth-main-action" disabled={submitting} style={{ marginTop: '1.8rem' }}>
                 {submitting ? 'Signing in...' : 'Login'}

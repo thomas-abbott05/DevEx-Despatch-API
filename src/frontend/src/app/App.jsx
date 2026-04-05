@@ -4,6 +4,8 @@ import HomePage from '../features/auth/pages/HomePage'
 import LoginPage from '../features/auth/pages/LoginPage'
 import RegisterPage from '../features/auth/pages/RegisterPage'
 import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage'
+import VerifyCodePage from '../features/auth/pages/VerifyCodePage'
+import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage'
 import NotFoundPage from '../features/auth/pages/NotFoundPage'
 
 export default function App() {
@@ -39,6 +41,22 @@ export default function App() {
         element={
           <PublicOnlyRoute>
             <ForgotPasswordPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/verify"
+        element={
+          <PublicOnlyRoute>
+            <VerifyCodePage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PublicOnlyRoute>
+            <ResetPasswordPage />
           </PublicOnlyRoute>
         }
       />
