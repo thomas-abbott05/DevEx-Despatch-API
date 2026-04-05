@@ -2,13 +2,14 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { ObjectId } = require('mongodb');
 const { getDb } = require('../../database');
-const { isValidUuid } = require('../../validators/common/basic-xml-validator-service');
 const requireSessionAuth = require('../../middleware/session-auth');
 
 const router = express.Router();
 const jsonParser = express.json({ limit: '1mb' });
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SESSION_COOKIE_NAME = 'devex.sid';
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+const TURNSTILE_TEST_SECRET = '1x0000000000000000000000000000000AA';
 
 function nowUnix() {
   return Math.floor(Date.now() / 1000);
@@ -30,19 +31,6 @@ function sanitiseText(value) {
   return value.trim();
 }
 
-function sanitiseProfilePhotoUuid(value) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  const trimmed = sanitiseText(value);
-  if (!trimmed) {
-    return null;
-  }
-
-  return trimmed;
-}
-
 function buildSafeUser(userDoc) {
   return {
     id: userDoc._id.toString(),
@@ -53,6 +41,54 @@ function buildSafeUser(userDoc) {
   };
 }
 
+function getTurnstileSecret() {
+  if (process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY) {
+    return process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return TURNSTILE_TEST_SECRET;
+  }
+
+  return null;
+}
+
+async function verifyTurnstileToken(token, remoteIp) {
+  const secret = getTurnstileSecret();
+  if (!secret) {
+    return { success: false, errorCodes: ['missing-input-secret'] };
+  }
+
+  const payload = new URLSearchParams({
+    secret,
+    response: token
+  });
+
+  if (remoteIp) {
+    payload.append('remoteip', remoteIp);
+  }
+
+  const response = await fetch(TURNSTILE_VERIFY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload
+  });
+
+  const verificationPayload = await response.json().catch(() => null);
+  if (!response.ok || !verificationPayload) {
+    return { success: false, errorCodes: ['verification-request-failed'] };
+  }
+
+  return {
+    success: Boolean(verificationPayload.success),
+    errorCodes: Array.isArray(verificationPayload['error-codes'])
+      ? verificationPayload['error-codes']
+      : []
+  };
+}
+
 function validateRegistrationInput(payload) {
   const errors = [];
 
@@ -60,7 +96,7 @@ function validateRegistrationInput(payload) {
   const password = typeof payload?.password === 'string' ? payload.password : '';
   const firstName = sanitiseText(payload?.firstName);
   const lastName = sanitiseText(payload?.lastName);
-  const profilePhotoUuid = sanitiseProfilePhotoUuid(payload?.profilePhotoUuid);
+  const turnstileToken = sanitiseText(payload?.turnstileToken);
 
   if (!email) {
     errors.push('Missing email in request body.');
@@ -86,8 +122,8 @@ function validateRegistrationInput(payload) {
     errors.push('lastName must be 80 characters or less.');
   }
 
-  if (profilePhotoUuid && !isValidUuid(profilePhotoUuid)) {
-    errors.push('profilePhotoUuid must be a valid UUID when provided.');
+  if (!turnstileToken) {
+    errors.push('Missing turnstileToken in request body.');
   }
 
   return {
@@ -95,9 +131,9 @@ function validateRegistrationInput(payload) {
     data: {
       email,
       password,
-      profilePhotoUuid,
       firstName,
-      lastName
+      lastName,
+      turnstileToken
     }
   };
 }
@@ -164,6 +200,15 @@ router.post('/register', jsonParser, async (req, res) => {
       });
     }
 
+    const turnstileResult = await verifyTurnstileToken(data.turnstileToken, req.ip);
+    if (!turnstileResult.success) {
+      return res.status(400).json({
+        errors: ['Turnstile verification failed. Please try again.'],
+        details: turnstileResult.errorCodes,
+        'executed-at': nowUnix()
+      });
+    }
+
     const db = getDb();
     const usersCollection = db.collection('users');
 
@@ -181,7 +226,7 @@ router.post('/register', jsonParser, async (req, res) => {
     const result = await usersCollection.insertOne({
       email: data.email,
       passwordHash,
-      profilePhotoUuid: data.profilePhotoUuid,
+      profilePhotoUuid: null,
       firstName: data.firstName,
       lastName: data.lastName,
       createdAt,

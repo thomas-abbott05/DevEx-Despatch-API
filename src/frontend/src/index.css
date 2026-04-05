@@ -75,10 +75,22 @@ a:hover {
 
 .route-loading {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  font-size: 1rem;
-  color: var(--app-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding: 2rem 1rem;
+}
+
+.route-loading-logo {
+  width: min(290px, 62vw);
+  margin-bottom: 0;
+}
+
+.route-loading-bar-wrap {
+  width: min(320px, 76vw);
+  padding: 0.45rem 0;
 }
 
 .mesh-gradient-root {
@@ -200,7 +212,7 @@ a:hover {
 .auth-card label {
   font-size: 0.86rem;
   font-weight: 600;
-  color: #ece3ff;
+  color: #ffffff;
 }
 
 .auth-form label {
@@ -211,8 +223,64 @@ a:hover {
   margin-top: 0.5rem;
 }
 
+.auth-form label + .auth-input-wrap {
+  margin-top: 0.5rem;
+}
+
 .auth-form input + label {
   margin-top: 0.65rem;
+}
+
+.auth-form .auth-input-wrap + label {
+  margin-top: 0.65rem;
+}
+
+.auth-input-wrap {
+  position: relative;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.auth-card .auth-input-wrap input.auth-input-with-icon {
+  padding-left: 2.5rem;
+}
+
+.auth-card .auth-input-wrap input.auth-input-with-toggle {
+  padding-right: 2.9rem;
+}
+
+.auth-card .auth-password-toggle {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.auth-card .auth-password-toggle:hover {
+  background: rgba(155, 120, 255, 0.18);
+}
+
+.auth-card .auth-password-toggle:focus-visible {
+  outline: 2px solid rgba(155, 120, 255, 0.6);
+  outline-offset: 1px;
 }
 
 .auth-card input {
@@ -233,7 +301,7 @@ a:hover {
 .auth-card button {
   margin-top: 1rem;
   margin-bottom: 1rem;
-  border: 0;
+  border: 1px solid rgba(155, 120, 255, 0.65);
   border-radius: 7px;
   background: var(--primary);
   color: #ffffff;
@@ -257,6 +325,25 @@ a:hover {
   gap: 0.6rem;
   margin-top: 0.5rem;
   justify-items: center;
+}
+
+.auth-turnstile-block {
+  width: min(320px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem auto 0.75rem;
+  padding-inline: 0.25rem;
+}
+
+.auth-turnstile-block > div {
+  margin-inline: auto;
+}
+
+.auth-password-requirements {
+  font-size: 0.82rem;
+  color: #b3b3bc;
+  margin-top: 0.25rem;
 }
 
 .auth-main-action,

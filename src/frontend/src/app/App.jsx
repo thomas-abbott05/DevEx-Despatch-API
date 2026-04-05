@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import ProtectedRoute from '../features/auth/ProtectedRoute'
-import PublicOnlyRoute from '../features/auth/PublicOnlyRoute'
+import {ProtectedRoute, PublicOnlyRoute} from '../features/auth/ProtectedRoute'
 import HomePage from '../features/auth/pages/HomePage'
 import LoginPage from '../features/auth/pages/LoginPage'
 import RegisterPage from '../features/auth/pages/RegisterPage'

@@ -35,8 +35,10 @@ function startServerWithRouter(authRouter) {
 describe('auth routes', () => {
   let server;
   let baseUrl;
+  let realFetch;
 
   beforeAll(async () => {
+    realFetch = global.fetch;
     const started = await startServerWithRouter(router);
     server = started.server;
     baseUrl = started.baseUrl;
@@ -48,6 +50,27 @@ describe('auth routes', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    global.fetch = jest.fn((url, options) => {
+      if (typeof url === 'string' && url.startsWith('http://127.0.0.1:')) {
+        return realFetch(url, options);
+      }
+
+      if (url === 'https://challenges.cloudflare.com/turnstile/v0/siteverify') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true, 'error-codes': [] })
+        });
+      }
+
+      return Promise.resolve({
+        ok: false,
+        json: async () => ({ success: false, 'error-codes': ['invalid-url'] })
+      });
+    });
+  });
+
+  afterEach(() => {
+    global.fetch = realFetch;
   });
 
   test('POST /register returns 400 when required fields are missing', async () => {
@@ -63,7 +86,8 @@ describe('auth routes', () => {
     expect(payload.errors).toEqual(expect.arrayContaining([
       'Missing password in request body.',
       'Missing firstName in request body.',
-      'Missing lastName in request body.'
+      'Missing lastName in request body.',
+      'Missing turnstileToken in request body.'
     ]));
   });
 
@@ -95,7 +119,8 @@ describe('auth routes', () => {
         password: 'Password123',
         firstName: 'Test',
         lastName: 'User',
-        profilePhotoUuid: null
+        profilePhotoUuid: '11111111-1111-1111-1111-111111111111',
+        turnstileToken: 'test-turnstile-token'
       })
     });
 
@@ -113,6 +138,7 @@ describe('auth routes', () => {
     expect(insertOne).toHaveBeenCalledWith(expect.objectContaining({
       email: 'tester@example.com',
       passwordHash: expect.any(String),
+      profilePhotoUuid: null,
       firstName: 'Test',
       lastName: 'User'
     }));

@@ -14,6 +14,7 @@ export default function ForgotPasswordPage() {
 
   async function onSubmit(event) {
     event.preventDefault()
+
     setSubmitting(true)
     setError('')
     setSuccessMessage('')
@@ -36,7 +37,7 @@ export default function ForgotPasswordPage() {
         <Card className="auth-card">
           <CardHeader className="auth-header">
             <CardTitle>
-              <img className="auth-logo" src="/img/devexlogo.png" alt="DevEx" />
+              <img className="auth-logo" src="/img/devexlogo2.png" alt="DevEx" />
             </CardTitle>
             <CardDescription>Enter your email to request a password reset.</CardDescription>
           </CardHeader>
@@ -55,7 +56,7 @@ export default function ForgotPasswordPage() {
               {error ? <p className="auth-error">{error}</p> : null}
               {successMessage ? <p className="auth-success">{successMessage}</p> : null}
 
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" variant="secondary" size="lg" className="auth-main-action" disabled={submitting}>
                 {submitting ? 'Submitting...' : 'Send reset link'}
               </Button>
 

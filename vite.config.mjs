@@ -6,24 +6,12 @@ import path from 'node:path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const backendTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:80';
-  const productionReactDefine = {
-    'process.env.NODE_ENV': JSON.stringify('production')
-  };
 
   return {
     root: 'src/frontend',
     publicDir: path.resolve(__dirname, 'public'),
     envDir: '.',
     plugins: [react(), tailwindcss()],
-    define: productionReactDefine,
-    esbuild: {
-      jsxDev: false,
-    },
-    optimizeDeps: {
-      esbuildOptions: {
-        define: productionReactDefine,
-      },
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src/frontend/src')

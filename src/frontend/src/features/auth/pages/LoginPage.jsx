@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import MeshGradientBackground from '../components/MeshGradientBackground'
 import { useAuth } from '../AuthContext'
+import { AuthRouteLoader } from '../ProtectedRoute'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,9 +16,11 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function onSubmit(event) {
     event.preventDefault()
+
     setSubmitting(true)
     setError('')
 
@@ -28,6 +32,10 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (submitting) {
+    return <AuthRouteLoader statusLabel="Signing you in" />
   }
 
   return (
@@ -43,39 +51,64 @@ export default function LoginPage() {
           <CardContent>
             <form className="auth-form" onSubmit={onSubmit}>
               <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={form.email}
-                onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-              />
+              <div className="auth-input-wrap">
+                <Mail className="auth-input-icon" aria-hidden="true" />
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="auth-input-with-icon"
+                  value={form.email}
+                  onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
+                />
+              </div>
 
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={form.password}
-                onChange={(event) => setForm((previous) => ({ ...previous, password: event.target.value }))}
-              />
+              <div className="auth-input-wrap">
+                <Lock className="auth-input-icon" aria-hidden="true" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  className="auth-input-with-icon auth-input-with-toggle"
+                  value={form.password}
+                  onChange={(event) => setForm((previous) => ({ ...previous, password: event.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="auth-password-toggle"
+                  onClick={() => setShowPassword((previous) => !previous)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </Button>
+              </div>
 
               {error ? <p className="auth-error">{error}</p> : null}
 
-              <Button type="submit" variant="secondary" size="lg" className="auth-main-action" disabled={submitting}>
+              <Button type="submit" variant="secondary" size="lg" className="auth-main-action" disabled={submitting} style={{ marginTop: '1.8rem' }}>
                 {submitting ? 'Signing in...' : 'Login'}
               </Button>
 
               <div className="auth-secondary-actions">
-                <Button asChild variant="secondary" size="lg" className="auth-secondary-action">
-                  <Link to="/register">Create an account</Link>
-                </Button>
-                <Button asChild variant="secondary" size="lg" className="auth-secondary-action">
-                  <Link to="/forgot-password">Forgot password?</Link>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  className="auth-secondary-action"
+                  onClick={() => navigate('/register')}
+                >
+                  Create an account
                 </Button>
               </div>
+
+              <p className="auth-link-row">
+                <Link to="/forgot-password">Forgot password?</Link>
+              </p>
             </form>
           </CardContent>
         </Card>

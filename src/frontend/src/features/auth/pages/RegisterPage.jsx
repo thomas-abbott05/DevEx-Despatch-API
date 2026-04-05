@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react'
+import { Turnstile } from '@marsidev/react-turnstile'
 import MeshGradientBackground from '../components/MeshGradientBackground'
 import { useAuth } from '../AuthContext'
 import { Button } from '@/components/ui/button'
@@ -10,20 +12,29 @@ import { Label } from '@/components/ui/label'
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
+  const turnstileSiteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
 
   const [form, setForm] = useState({
     email: '',
     password: '',
     firstName: '',
-    lastName: '',
-    profilePhotoUuid: ''
+    lastName: ''
   })
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   async function onSubmit(event) {
     event.preventDefault()
+
+    if (!turnstileToken) {
+      setError('Please complete the Turnstile challenge before creating your account.')
+      return
+    }
+
     setSubmitting(true)
     setError('')
     setSuccessMessage('')
@@ -31,7 +42,7 @@ export default function RegisterPage() {
     try {
       await register({
         ...form,
-        profilePhotoUuid: form.profilePhotoUuid.trim() || null
+        turnstileToken
       })
       setSuccessMessage('Registration successful. You can now log in.')
       navigate('/login', { replace: true })
@@ -50,64 +61,115 @@ export default function RegisterPage() {
             <CardTitle>
               <img className="auth-logo" src="/img/devexlogo2.png" alt="DevEx" />
             </CardTitle>
-            <CardDescription>Let's get started - tell us about you</CardDescription>
+            <CardDescription>Create a new DevEx account</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="auth-form" onSubmit={onSubmit}>
               <Label htmlFor="firstName">First name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                autoComplete="given-name"
-                required
-                value={form.firstName}
-                onChange={(event) => setForm((previous) => ({ ...previous, firstName: event.target.value }))}
-              />
+              <div className="auth-input-wrap">
+                <UserRound className="auth-input-icon" aria-hidden="true" />
+                <Input
+                  id="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  required
+                  className="auth-input-with-icon"
+                  value={form.firstName}
+                  onChange={(event) => setForm((previous) => ({ ...previous, firstName: event.target.value }))}
+                />
+              </div>
 
               <Label htmlFor="lastName">Last name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                autoComplete="family-name"
-                required
-                value={form.lastName}
-                onChange={(event) => setForm((previous) => ({ ...previous, lastName: event.target.value }))}
-              />
+              <div className="auth-input-wrap">
+                <UserRound className="auth-input-icon" aria-hidden="true" />
+                <Input
+                  id="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  required
+                  className="auth-input-with-icon"
+                  value={form.lastName}
+                  onChange={(event) => setForm((previous) => ({ ...previous, lastName: event.target.value }))}
+                />
+              </div>
 
               <Label htmlFor="registerEmail">Email address</Label>
-              <Input
-                id="registerEmail"
-                type="email"
-                autoComplete="email"
-                required
-                value={form.email}
-                onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-              />
+              <div className="auth-input-wrap">
+                <Mail className="auth-input-icon" aria-hidden="true" />
+                <Input
+                  id="registerEmail"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="auth-input-with-icon"
+                  value={form.email}
+                  onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
+                />
+              </div>
 
               <Label htmlFor="registerPassword">Password</Label>
-              <Input
-                id="registerPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={form.password}
-                onChange={(event) => setForm((previous) => ({ ...previous, password: event.target.value }))}
-              />
-
-              <Label htmlFor="confirmPassword">Confirm password</Label>
+              <span className="auth-password-requirements">(At least 8 characters, including a letter and a number)</span>
+              <div className="auth-input-wrap">
+                <Lock className="auth-input-icon" aria-hidden="true" />
                 <Input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={form.confirmPassword || ''}
-                    onChange={(event) => setForm((previous) => ({ ...previous, confirmPassword: event.target.value }))}
-                /> 
+                  id="registerPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  className="auth-input-with-icon auth-input-with-toggle"
+                  value={form.password}
+                  onChange={(event) => setForm((previous) => ({ ...previous, password: event.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="auth-password-toggle"
+                  onClick={() => setShowPassword((previous) => !previous)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </Button>
+              </div>
+
+              <Label htmlFor="confirmPassword">Repeat password</Label>
+              <div className="auth-input-wrap">
+                <Lock className="auth-input-icon" aria-hidden="true" />
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  className="auth-input-with-icon auth-input-with-toggle"
+                  value={form.confirmPassword || ''}
+                  onChange={(event) => setForm((previous) => ({ ...previous, confirmPassword: event.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="auth-password-toggle"
+                  onClick={() => setShowConfirmPassword((previous) => !previous)}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  {showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </Button>
+              </div>
 
               {error ? <p className="auth-error">{error}</p> : null}
               {successMessage ? <p className="auth-success">{successMessage}</p> : null}
 
-              <Button type="submit" disabled={submitting}>
+              <div className="auth-turnstile-block">
+                <Turnstile
+                  siteKey={turnstileSiteKey}
+                  options={{ theme: 'dark' }}
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onExpire={() => setTurnstileToken('')}
+                  onError={() => setTurnstileToken('')}
+                />
+              </div>
+
+              <Button type="submit" className="auth-main-action" disabled={submitting || !turnstileToken}>
                 {submitting ? 'Creating account...' : 'Register'}
               </Button>
 

@@ -31,6 +31,8 @@ Frontend/backend proxy and port variables:
 - `PORT=80`
 - `HTTPS_PORT=443`
 - `VITE_API_PROXY_TARGET=http://localhost:80`
+- `VITE_CLOUDFLARE_TURNSTILE_SITE_KEY=1x00000000000000000000AA`
+- `CLOUDFLARE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`
 
 ### Production-style local run
 1. Start backend server:
