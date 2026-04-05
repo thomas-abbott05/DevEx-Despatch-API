@@ -9,7 +9,7 @@ See [here](https://unswcse.atlassian.net/wiki/spaces/DevEx/pages/1500414069/Deve
 
 ## Local development workflow
 
-### Start with realtime frontend reload (recommended)
+### Start with realtime frontend reload (recommended for building webapp)
 1. Install dependencies:
 	- `npm install`
 2. Start both backend and frontend watchers:
