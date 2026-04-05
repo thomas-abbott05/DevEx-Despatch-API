@@ -1,5 +1,6 @@
 import './styles/LegalPage.css'
 import { Link } from 'react-router-dom'
+import SiteFooter from '@/components/layout/SiteFooter'
 
 const sections = [
   {
@@ -72,21 +73,7 @@ export default function TermsPage() {
           ))}
         </article>
 
-        <footer className="auth-footer legal-footer" aria-label="Footer links">
-          <Link to="/" aria-label="Go to home page">
-            <img src="/img/devexlogo2.png" className="legal-footer-logo" alt="DevEx" />
-          </Link>
-          <div className="auth-footer-links">
-            <a className="auth-footer-link" href="/">Home</a>
-            <span className="auth-footer-dot" aria-hidden="true">&bull;</span>
-            <a className="auth-footer-link" href="mailto:devex@platform.tcore.network">Support</a>
-            <span className="auth-footer-dot" aria-hidden="true">&bull;</span>
-            <a className="auth-footer-link" href="/terms">T&amp;Cs</a>
-            <span className="auth-footer-dot" aria-hidden="true">&bull;</span>
-            <a className="auth-footer-link" href="/privacy">Privacy</a>
-          </div>
-          <p className="auth-footer-copyright">© 2026 DevEx Team</p>
-        </footer>
+        <SiteFooter />
       </section>
     </main>
   )
