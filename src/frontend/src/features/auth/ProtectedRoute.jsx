@@ -6,7 +6,7 @@ import './pages/styles/AuthShared.css'
 
 export function AuthRouteLoader({ statusLabel = 'Checking your session' }) {
   return (
-    <MeshGradientBackground>
+    <MeshGradientBackground animated={false}>
       <section className="route-loading" aria-live="polite" aria-busy="true">
         <img className="auth-logo route-loading-logo" src="/img/devexlogo2.png" alt="DevEx" />
         <div className="route-loading-bar-wrap" role="status" aria-label={statusLabel}>
@@ -18,8 +18,8 @@ export function AuthRouteLoader({ statusLabel = 'Checking your session' }) {
 }
 
 export function PublicOnlyRoute({ children }) {
-  const { initialising, isAuthenticated } = useAuth()
-  if (initialising) {
+  const { initialSessionResolved, isAuthenticated } = useAuth()
+  if (!initialSessionResolved) {
     return <AuthRouteLoader />
   }
   if (isAuthenticated) {
@@ -29,9 +29,9 @@ export function PublicOnlyRoute({ children }) {
 }
 
 export function ProtectedRoute({ children }) {
-  const { initialising, isAuthenticated } = useAuth()
+  const { initialSessionResolved, isAuthenticated } = useAuth()
 
-  if (initialising) {
+  if (!initialSessionResolved) {
     return <AuthRouteLoader />
   }
 

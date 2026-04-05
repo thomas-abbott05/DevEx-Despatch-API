@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import MeshGradientBackground from '../components/MeshGradientBackground'
 import { useAuth } from '../AuthContext'
-import { AuthRouteLoader } from '../ProtectedRoute'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,10 +34,6 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (submitting) {
-    return <AuthRouteLoader statusLabel="Signing you in" />
   }
 
   return (

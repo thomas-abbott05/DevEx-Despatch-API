@@ -102,7 +102,7 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: #12161d;
-  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.38);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
   z-index: 35;
   opacity: 0;
   transform: translateY(8px) scale(0.985);

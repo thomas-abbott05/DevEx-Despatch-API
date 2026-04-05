@@ -210,19 +210,19 @@ export default function HomePage() {
         <div className="home-rails">
           <ActivityRail
             title="Orders"
-            subtitle="Track drafts, edits, and recently updated orders"
+            subtitle="View, create or upload existing Order XML documents, or create Despatch Advice/Invoices from them."
             viewAllTo="/order"
             items={railData.orders}
           />
           <ActivityRail
             title="Despatch Advice"
-            subtitle="Monitor status updates and outbound despatch activity"
+            subtitle="View, create, delete or upload existing Despatch Advice XML documents, or create Invoices from them."
             viewAllTo="/despatch"
             items={railData.despatchAdvice}
           />
           <ActivityRail
             title="Invoices"
-            subtitle="Review invoice changes and export-ready documents"
+            subtitle="View existing invoices, or upload/create new ones from existing XML/Despatch Advice."
             viewAllTo="/invoice"
             items={railData.invoices}
           />

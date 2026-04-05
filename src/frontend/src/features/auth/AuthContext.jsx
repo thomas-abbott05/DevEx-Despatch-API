@@ -1,18 +1,55 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 const AuthContext = createContext(null)
+const MIN_AUTH_LOADER_MS = 1200
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 async function readResponsePayload(response) {
   try {
-    return await response.json()
+    const responseText = await response.text()
+
+    if (!responseText) {
+      return null
+    }
+
+    try {
+      return JSON.parse(responseText)
+    } catch {
+      return responseText
+    }
   } catch {
     return null
   }
 }
 
 function getErrorMessage(payload, fallbackMessage) {
-  if (payload?.errors?.length) {
-    return payload.errors.join(' ')
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload.trim()
+  }
+
+  if (Array.isArray(payload?.errors) && payload.errors.length) {
+    return payload.errors
+      .map((error) => (typeof error === 'string' ? error : String(error)))
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+  }
+
+  if (typeof payload?.message === 'string' && payload.message.trim()) {
+    return payload.message.trim()
+  }
+
+  if (typeof payload?.error === 'string' && payload.error.trim()) {
+    return payload.error.trim()
+  }
+
+  if (typeof payload?.reason === 'string' && payload.reason.trim()) {
+    return payload.reason.trim()
   }
 
   return fallbackMessage
@@ -21,8 +58,11 @@ function getErrorMessage(payload, fallbackMessage) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [initialising, setInitialising] = useState(true)
+  const [initialSessionResolved, setInitialSessionResolved] = useState(false)
 
   const refreshSession = useCallback(async () => {
+    const initialisingStart = Date.now()
+
     try {
       const response = await fetch('/api/v1/auth/session', {
         method: 'GET',
@@ -41,7 +81,14 @@ export function AuthProvider({ children }) {
       setUser(null)
       return null
     } finally {
+      const elapsedMs = Date.now() - initialisingStart
+      const remainingMs = Math.max(0, MIN_AUTH_LOADER_MS - elapsedMs)
+      if (remainingMs > 0) {
+        await wait(remainingMs)
+      }
+
       setInitialising(false)
+      setInitialSessionResolved(true)
     }
   }, [])
 
@@ -82,7 +129,7 @@ export function AuthProvider({ children }) {
     const payload = await readResponsePayload(response)
 
     if (!response.ok) {
-      throw new Error(getErrorMessage(payload, 'Registration failed.'))
+      throw new Error('Registration failed.')
     }
 
     return payload?.user || null
@@ -180,6 +227,7 @@ export function AuthProvider({ children }) {
       user,
       isAuthenticated: Boolean(user),
       initialising,
+      initialSessionResolved,
       refreshSession,
       login,
       register,
@@ -192,6 +240,7 @@ export function AuthProvider({ children }) {
     [
       user,
       initialising,
+      initialSessionResolved,
       refreshSession,
       login,
       register,

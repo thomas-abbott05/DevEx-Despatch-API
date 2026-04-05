@@ -1,6 +1,6 @@
-export default function MeshGradientBackground({ children }) {
+export default function MeshGradientBackground({ children, animated = true }) {
   return (
-    <div className="mesh-gradient-root">
+    <div className={`mesh-gradient-root${animated ? '' : ' mesh-gradient-static'}`}>
       <div className="mesh-orb mesh-orb-1" />
       <div className="mesh-orb mesh-orb-2" />
       <div className="mesh-orb mesh-orb-3" />
