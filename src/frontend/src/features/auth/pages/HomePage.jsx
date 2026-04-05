@@ -24,7 +24,7 @@ export default function HomePage() {
           <p>Your dashboard is now available at the root route.</p>
 
           <div className="home-actions">
-            <a href="/api-docs">Open API docs</a>
+            <a href="/api-docs" className="link-animated">Open API docs</a>
             <Button type="button" onClick={onLogout}>Logout</Button>
           </div>
         </CardContent>

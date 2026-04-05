@@ -63,8 +63,8 @@ export default function ForgotPasswordPage() {
               </Button>
 
               <p className="auth-link-row auth-link-row-split">
-                <Link to="/login">Back to login</Link>
-                <Link to="/register">Create an account</Link>
+                <Link to="/login" className="link-animated">Back to login</Link>
+                <Link to="/register" className="link-animated">Create an account</Link>
               </p>
             </form>
           </CardContent>

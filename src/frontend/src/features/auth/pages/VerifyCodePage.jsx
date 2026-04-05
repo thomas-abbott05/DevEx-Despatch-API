@@ -141,8 +141,8 @@ export default function VerifyCodePage() {
               </Button>
 
               <p className="auth-link-row auth-link-row-split">
-                <Link to="/register">Back to register</Link>
-                <Link to="/login">Go to login</Link>
+                <Link to="/register" className="link-animated">Back to register</Link>
+                <Link to="/login" className="link-animated">Go to login</Link>
               </p>
             </form>
           </CardContent>

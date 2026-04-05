@@ -17,7 +17,7 @@ export default function NotFoundPage() {
           </CardHeader>
           <CardContent>
             <Button className="auth-main-action" style={{ marginTop: '2rem', marginBottom: '2rem' }} asChild>
-              <Link to="/">Go to home</Link>
+              <Link to="/">Return home</Link>
             </Button>
             <img className="not-found-image" src="/img/devexlogo2.png" alt="DevEx Logo" />
             <p style={{fontSize: '0.6rem'}}>Copyright (not really..) DevEx SENG team 26T1 😼😼😼</p>

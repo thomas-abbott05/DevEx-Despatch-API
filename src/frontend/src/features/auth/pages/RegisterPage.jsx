@@ -194,7 +194,7 @@ export default function RegisterPage() {
               </Button>
 
               <p className="auth-link-row">
-                <Link to="/login">Already have an account?</Link>
+                <Link to="/login" className="link-animated">Already have an account?</Link>
               </p>
             </form>
           </CardContent>

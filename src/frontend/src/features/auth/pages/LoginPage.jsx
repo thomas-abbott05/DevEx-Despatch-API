@@ -96,6 +96,7 @@ export default function LoginPage() {
                 <p className="auth-link-row" style={{ marginTop: '0.2rem' }}>
                   <Link
                     to="/verify"
+                    className="link-animated"
                     state={{ email: form.email.trim().toLowerCase() }}
                   >
                     Need a new verification code?
@@ -120,8 +121,19 @@ export default function LoginPage() {
               </div>
 
               <p className="auth-link-row">
-                <Link to="/forgot-password">Forgot password?</Link>
+                <Link to="/forgot-password" className="link-animated">Forgot password?</Link>
               </p>
+
+              <div className="auth-footer" aria-label="Footer links">
+                <div className="auth-footer-links">
+                  <a className="auth-footer-link" href="mailto:devex@platform.tcore.network">Support</a>
+                  <span className="auth-footer-dot" aria-hidden="true">&bull;</span>
+                  <a className="auth-footer-link" href="/terms">T&amp;Cs</a>
+                  <span className="auth-footer-dot" aria-hidden="true">&bull;</span>
+                  <a className="auth-footer-link" href="/privacy">Privacy</a>
+                </div>
+                <p className="auth-footer-copyright">© 2026 DevEx Team</p>
+              </div>
             </form>
           </CardContent>
         </Card>

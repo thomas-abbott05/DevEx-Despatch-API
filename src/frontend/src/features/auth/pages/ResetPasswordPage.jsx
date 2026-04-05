@@ -127,8 +127,8 @@ export default function ResetPasswordPage() {
               </Button>
 
               <p className="auth-link-row auth-link-row-split">
-                <Link to="/forgot-password">Request another link</Link>
-                <Link to="/login">Back to login</Link>
+                <Link to="/forgot-password" className="link-animated">Request another link</Link>
+                <Link to="/login" className="link-animated">Back to login</Link>
               </p>
             </form>
           </CardContent>

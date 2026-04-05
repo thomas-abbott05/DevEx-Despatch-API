@@ -6,6 +6,8 @@ import RegisterPage from '../features/auth/pages/RegisterPage'
 import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage'
 import VerifyCodePage from '../features/auth/pages/VerifyCodePage'
 import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage'
+import TermsPage from '../features/auth/pages/TermsPage'
+import PrivacyPage from '../features/auth/pages/PrivacyPage'
 import NotFoundPage from '../features/auth/pages/NotFoundPage'
 
 export default function App() {
@@ -60,6 +62,8 @@ export default function App() {
           </PublicOnlyRoute>
         }
       />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
