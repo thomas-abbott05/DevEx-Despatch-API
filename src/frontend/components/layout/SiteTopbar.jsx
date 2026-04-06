@@ -53,6 +53,14 @@ const topbarMenus = [
   }
 ]
 
+function formatBreadcrumbLabel(label) {
+  if (label.length >= 15) {
+    return `${label.slice(0, 15)}...`
+  }
+
+  return label
+}
+
 function useMenuTransition(isOpen, durationMs = MENU_ANIMATION_MS) {
   const [isMounted, setIsMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -340,12 +348,24 @@ export default function SiteTopbar({ firstName = 'there', onLogout, breadcrumbs 
                       {crumb.to && !isLast ? (
                         <BreadcrumbLink asChild>
                           <Link to={crumb.to} className="home-topbar-breadcrumb-link">
-                            <span className="home-topbar-breadcrumb-link-label">{crumb.label}</span>
+                            <span
+                              className="home-topbar-breadcrumb-link-label"
+                              title={crumb.label}
+                              aria-label={crumb.label}
+                            >
+                              {formatBreadcrumbLabel(crumb.label)}
+                            </span>
                           </Link>
                         </BreadcrumbLink>
                       ) : (
                         <BreadcrumbPage className="home-topbar-breadcrumb-page">
-                          <span className="home-topbar-breadcrumb-link-label">{crumb.label}</span>
+                          <span
+                            className="home-topbar-breadcrumb-link-label"
+                            title={crumb.label}
+                            aria-label={crumb.label}
+                          >
+                            {formatBreadcrumbLabel(crumb.label)}
+                          </span>
                         </BreadcrumbPage>
                       )}
                     </BreadcrumbItem>

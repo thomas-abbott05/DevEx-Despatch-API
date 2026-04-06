@@ -1,0 +1,529 @@
+const {
+  validateOrderCreateBody,
+  validateDespatchCreateBody,
+  validateInvoiceCreateBody,
+  buildChalksnifferOrderPayload,
+  buildSelectedOrderXml,
+  mapOrderDetail,
+  deriveInvoiceLinesFromDespatch,
+  calculateInvoiceTotals,
+  postChalksnifferOrderForXmlResponse
+} = require('../user/user-routes-utilities');
+const { parseOrderXml } = require('../../../despatch/order-parser-service');
+const { validateOrder } = require('../../../validators/order/order-xml-validator-service');
+
+describe('user route utilities', () => {
+  test('validateOrderCreateBody accepts a valid payload', () => {
+    const payload = {
+      sellerPartyId: 'seller-1',
+      supplierAbn: '12345678987',
+      customerAbn: '98765432109',
+      data: {
+        ID: 'ORD-1001',
+        IssueDate: '2026-04-06',
+        BuyerCustomerParty: {
+          Party: {
+            PartyName: [{ Name: 'Acme Buyer' }],
+            PostalAddress: {
+              StreetName: '123 Buyer St',
+              CityName: 'Sydney',
+              PostalZone: '2000',
+              Country: {
+                IdentificationCode: 'AU'
+              }
+            }
+          }
+        },
+        SellerSupplierParty: {
+          Party: {
+            PartyName: [{ Name: 'Supplier One' }],
+            PostalAddress: {
+              StreetName: '456 Seller Ave',
+              CityName: 'Melbourne',
+              PostalZone: '3000',
+              Country: {
+                IdentificationCode: 'AU'
+              }
+            }
+          }
+        },
+        OrderLine: [
+          {
+            LineItem: {
+              ID: 'LINE-001',
+              Quantity: 2,
+              Delivery: {
+                DeliveryAddress: {
+                  StreetName: '10 Main St',
+                  CityName: 'Sydney',
+                  PostalZone: '2000',
+                  Country: {
+                    IdentificationCode: 'AU'
+                  }
+                }
+              },
+              Item: {
+                Description: ['Widget'],
+                Name: 'Test Product'
+              }
+            }
+          }
+        ]
+      }
+    };
+
+    const validation = validateOrderCreateBody(payload);
+
+    expect(validation.errors).toEqual([]);
+    expect(validation.sellerPartyId).toBe('seller-1');
+    expect(validation.data.ID).toBe('ORD-1001');
+  });
+
+  test('validateOrderCreateBody rejects missing party postal addresses', () => {
+    const validation = validateOrderCreateBody({
+      data: {
+        ID: 'ORD-1002',
+        IssueDate: '2026-04-06',
+        BuyerCustomerParty: {
+          Party: {
+            PartyName: [{ Name: 'Acme Buyer' }]
+          }
+        },
+        SellerSupplierParty: {
+          Party: {
+            PartyName: [{ Name: 'Supplier One' }]
+          }
+        },
+        OrderLine: [
+          {
+            LineItem: {
+              ID: 'LINE-001',
+              Quantity: 1,
+              Delivery: {
+                DeliveryAddress: {
+                  StreetName: '10 Main St',
+                  CityName: 'Sydney',
+                  PostalZone: '2000',
+                  Country: {
+                    IdentificationCode: 'AU'
+                  }
+                }
+              },
+              Item: {
+                Name: 'Widget',
+                Description: ['Test item']
+              }
+            }
+          }
+        ]
+      }
+    });
+
+    expect(validation.errors.some((entry) => /BuyerCustomerParty\.Party\.PostalAddress/i.test(entry))).toBe(true);
+    expect(validation.errors.some((entry) => /SellerSupplierParty\.Party\.PostalAddress/i.test(entry))).toBe(true);
+  });
+
+  test('validateDespatchCreateBody rejects invalid input', () => {
+    const validation = validateDespatchCreateBody({
+      orderUuid: 'invalid-uuid',
+      lineSelections: [{ lineId: '', fulfilmentQuantity: 0 }]
+    });
+
+    expect(validation.errors.length).toBeGreaterThan(0);
+    expect(validation.errors.some((entry) => /orderUuid/i.test(entry))).toBe(true);
+  });
+
+  test('validateInvoiceCreateBody applies defaults', () => {
+    const validation = validateInvoiceCreateBody({
+      despatchUuid: '34ec2376-a8c4-4a59-a307-e64f7aaf1150'
+    });
+
+    expect(validation.errors).toEqual([]);
+    expect(validation.currency).toBe('AUD');
+    expect(validation.gstPercent).toBe(10);
+    expect(validation.defaultUnitPrice).toBe(1);
+  });
+
+  test('buildSelectedOrderXml guards against duplicate line selections', () => {
+    const parsedOrderTree = {
+      Order: {
+        'cac:OrderLine': [
+          {
+            'cac:LineItem': {
+              'cbc:ID': 'LINE-001',
+              'cbc:Quantity': '2'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(parsedOrderTree, [
+        { lineId: 'LINE-001', fulfilmentQuantity: 1 },
+        { lineId: 'LINE-001', fulfilmentQuantity: 1 }
+      ])
+    ).toThrow(/Duplicate lineId/i);
+  });
+
+  test('buildSelectedOrderXml accepts LINE-### selection for numeric XML line IDs', () => {
+    const parsedOrderTree = {
+      Order: {
+        'cac:OrderLine': [
+          {
+            'cac:LineItem': {
+              'cbc:ID': '1',
+              'cbc:Quantity': '2'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(parsedOrderTree, [{ lineId: 'LINE-001', fulfilmentQuantity: 1 }])
+    ).not.toThrow();
+  });
+
+  test('buildSelectedOrderXml accepts numeric selection for LINE-### XML line IDs', () => {
+    const parsedOrderTree = {
+      Order: {
+        'cac:OrderLine': [
+          {
+            'cac:LineItem': {
+              'cbc:ID': 'LINE-001',
+              'cbc:Quantity': '2'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(parsedOrderTree, [{ lineId: '1', fulfilmentQuantity: 1 }])
+    ).not.toThrow();
+  });
+
+  test('buildSelectedOrderXml falls back to selection order when line IDs do not match', () => {
+    const parsedOrderTree = {
+      Order: {
+        'cac:OrderLine': [
+          {
+            'cac:LineItem': {
+              'cbc:ID': '1',
+              'cbc:Quantity': '2'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(parsedOrderTree, [{ lineId: 'some-arbitrary-id', fulfilmentQuantity: 1 }])
+    ).not.toThrow();
+  });
+
+  test('buildSelectedOrderXml accepts plain OrderLine and LineItem element names', () => {
+    const parsedOrderTree = {
+      Order: {
+        OrderLine: [
+          {
+            LineItem: {
+              ID: '1',
+              Quantity: '2'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(parsedOrderTree, [{ lineId: 'LINE-001', fulfilmentQuantity: 1 }])
+    ).not.toThrow();
+  });
+
+  test('buildSelectedOrderXml reads quantity from RequestedQuantity', () => {
+    const parsedOrderTree = {
+      Order: {
+        'cac:OrderLine': [
+          {
+            'cac:LineItem': {
+              'cbc:ID': 'LINE-001',
+              'cbc:RequestedQuantity': '5'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(parsedOrderTree, [{ lineId: 'LINE-001', fulfilmentQuantity: 5 }])
+    ).not.toThrow();
+  });
+
+  test('buildSelectedOrderXml falls back to stored order line quantity when XML quantity is zero', () => {
+    const parsedOrderTree = {
+      Order: {
+        'cac:OrderLine': [
+          {
+            'cac:LineItem': {
+              'cbc:ID': 'LINE-001',
+              'cbc:Quantity': '0'
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      buildSelectedOrderXml(
+        parsedOrderTree,
+        [{ lineId: 'LINE-001', fulfilmentQuantity: 5 }],
+        [{ lineId: 'LINE-001', requestedQuantity: 5 }]
+      )
+    ).not.toThrow();
+  });
+
+  test('buildSelectedOrderXml normalises lower-case order nodes for despatch validation', async () => {
+    const parsedOrderTree = {
+      Order: {
+        ID: 'ORD-001',
+        IssueDate: '2026-04-06',
+        BuyerCustomerParty: {
+          party: {
+            partyName: 'Thomas Abbott'
+          }
+        },
+        SellerSupplierParty: {
+          party: {
+            partyName: 'Riot Games'
+          }
+        },
+        OrderLine: [
+          {
+            lineItem: {
+              id: 'LINE-001',
+              quantity: '100',
+              delivery: {
+                deliveryAddress: {
+                  streetName: '123 Test St',
+                  cityName: 'Sydney',
+                  postalZone: '2000',
+                  country: 'AU'
+                }
+              }
+            }
+          }
+        ]
+      }
+    };
+
+    const selectedXml = buildSelectedOrderXml(parsedOrderTree, [{ lineId: 'LINE-001', fulfilmentQuantity: 50 }]);
+    const selectedTree = parseOrderXml(selectedXml);
+
+    const validation = await validateOrder(selectedTree);
+    expect(validation.success).toBe(true);
+
+    expect(selectedTree.Order['cbc:ID']).toBe('ORD-001');
+    expect(selectedTree.Order['cbc:IssueDate']).toBe('2026-04-06');
+    expect(Array.isArray(selectedTree.Order['cac:OrderLine'])).toBe(true);
+    expect(selectedTree.Order['cac:OrderLine'][0]['cac:LineItem']['cbc:ID']).toBe('LINE-001');
+    expect(Number(selectedTree.Order['cac:OrderLine'][0]['cac:LineItem']['cbc:Quantity'])).toBe(50);
+    expect(selectedTree.Order['cac:Delivery']).toBeDefined();
+  });
+
+  test('buildChalksnifferOrderPayload maps legacy payload into Chalksniffer request shape', () => {
+    const mapped = buildChalksnifferOrderPayload({
+      ID: 'ORD-1001',
+      IssueDate: '2026-04-06',
+      DocumentCurrencyCode: 'AUD',
+      BuyerCustomerParty: {
+        Party: {
+          PartyName: [{ Name: 'Buyer Co' }],
+          PostalAddress: {
+            StreetName: '123 Buyer St',
+            CityName: 'Sydney',
+            PostalZone: '2000',
+            Country: {
+              IdentificationCode: 'AU'
+            }
+          }
+        }
+      },
+      SellerSupplierParty: {
+        Party: {
+          PartyName: [{ Name: 'Seller Co' }],
+          PostalAddress: {
+            StreetName: '456 Seller Ave',
+            CityName: 'Melbourne',
+            PostalZone: '3000',
+            Country: {
+              IdentificationCode: 'AU'
+            }
+          }
+        }
+      },
+      OrderLine: [
+        {
+          LineItem: {
+            ID: '1',
+            Quantity: 2,
+            Item: {
+              Name: 'Widget',
+              Description: ['Test Item']
+            },
+            Price: {
+              PriceAmount: 50
+            }
+          }
+        }
+      ]
+    });
+
+    expect(mapped.id).toBe('ORD-1001');
+    expect(mapped.issueDate).toBe('2026-04-06');
+    expect(mapped.documentCurrencyCode).toBe('AUD');
+    expect(mapped.buyerCustomerParty.party.partyName).toBe('Buyer Co');
+    expect(mapped.sellerSupplierParty.party.partyName).toBe('Seller Co');
+    expect(mapped.orderLines).toHaveLength(1);
+    expect(mapped.orderLines[0].lineItem.id).toBe('1');
+    expect(mapped.orderLines[0].lineItem.price.priceAmount).toBe(50);
+  });
+
+  test('mapOrderDetail rehydrates unresolved stored orderLines from lower-case XML nodes', () => {
+    const orderXml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<Order xmlns="urn:oasis:names:specification:ubl:schema:xsd:Order-2">',
+      '  <OrderLine>',
+      '    <lineItem>',
+      '      <id>LINE-001</id>',
+      '      <quantity>100</quantity>',
+      '      <item>',
+      '        <name>Valorant Points</name>',
+      '        <description>test</description>',
+      '      </item>',
+      '      <price>',
+      '        <priceAmount>50</priceAmount>',
+      '      </price>',
+      '      <delivery>',
+      '        <deliveryAddress>',
+      '          <streetName>123 Test St</streetName>',
+      '          <cityName>Sydney</cityName>',
+      '          <postalZone>2000</postalZone>',
+      '          <country>AU</country>',
+      '        </deliveryAddress>',
+      '      </delivery>',
+      '    </lineItem>',
+      '  </OrderLine>',
+      '</Order>'
+    ].join('\n');
+
+    const mapped = mapOrderDetail({
+      _id: '34ec2376-a8c4-4a59-a307-e64f7aaf1150',
+      displayId: 'ORD-001',
+      buyer: 'Thomas Abbott',
+      supplier: 'Riot Games',
+      lineItems: 1,
+      status: 'Pending',
+      issueDate: '2026-04-06',
+      updatedAt: new Date('2026-04-06T00:00:00.000Z'),
+      generatedOrderXml: orderXml,
+      orderLines: [
+        {
+          lineId: 'LINE-001',
+          requestedQuantity: 0,
+          itemName: 'Line Item 1',
+          description: '',
+          destinationOptions: []
+        }
+      ]
+    });
+
+    expect(mapped.orderLines).toHaveLength(1);
+    expect(mapped.orderLines[0].lineId).toBe('LINE-001');
+    expect(mapped.orderLines[0].requestedQuantity).toBe(100);
+    expect(mapped.orderLines[0].unitPrice).toBe(50);
+    expect(mapped.orderLines[0].itemName).toBe('Valorant Points');
+    expect(mapped.orderLines[0].description).toBe('test');
+    expect(mapped.orderLines[0].destinationOptions).toHaveLength(1);
+    expect(mapped.orderLines[0].destinationOptions[0].label).toContain('123 Test St');
+  });
+
+  test('deriveInvoiceLinesFromDespatch and calculateInvoiceTotals build expected totals', () => {
+    const invoiceLines = deriveInvoiceLinesFromDespatch(
+      {
+        lines: [
+          {
+            lineId: '1',
+            quantity: 3,
+            description: 'Service item'
+          }
+        ]
+      },
+      4.5
+    );
+
+    const totals = calculateInvoiceTotals(invoiceLines, 10);
+
+    expect(invoiceLines).toHaveLength(1);
+    expect(invoiceLines[0].lineTotal).toBe(13.5);
+    expect(totals.linesTotal).toBe(13.5);
+    expect(totals.gstAmount).toBe(1.35);
+    expect(totals.totalAmount).toBe(14.85);
+  });
+
+  test('postChalksnifferOrderForXmlResponse follows xmlUrl and returns XML payload', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          id: '34',
+          xmlUrl: '/orders/34/xml'
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => '<Order><cbc:ID>34</cbc:ID></Order>'
+      });
+
+    global.fetch = fetchMock;
+
+    try {
+      const xml = await postChalksnifferOrderForXmlResponse(
+        'https://chalksniffer.com/orders',
+        { id: 'ORD-001' },
+        'Order generation request',
+        'chalk-token-123'
+      );
+
+      expect(xml).toContain('<Order>');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        'https://www.chalksniffer.com/orders',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'chalk-token-123'
+          })
+        })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        'https://www.chalksniffer.com/orders/34/xml',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            Authorization: 'chalk-token-123'
+          })
+        })
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});

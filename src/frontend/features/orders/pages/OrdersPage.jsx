@@ -103,7 +103,7 @@ export default function OrdersPage() {
                   <th>Supplier</th>
                   <th>Line Items</th>
                   <th>Status</th>
-                  <th>Date</th>
+                  <th>Created</th>
                   <th><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -124,7 +124,7 @@ export default function OrdersPage() {
                     <td className="orders-date-cell">{order.issueDate}</td>
                     <td className="orders-row-actions">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/order/${order.uuid}`}>View</Link>
+                        <Link className="orders-view-link auth-footer-link" to={`/order/${order.uuid}`}>View</Link>
                       </Button>
                     </td>
                   </tr>

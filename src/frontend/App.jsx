@@ -19,6 +19,9 @@ import InvoiceDetailPage from './features/invoice/pages/InvoiceDetailPage'
 import UploadOrderPage from './features/orders/pages/UploadOrderPage'
 import UploadDespatchPage from './features/despatch/pages/UploadDespatchPage'
 import UploadInvoicePage from './features/invoice/pages/UploadInvoicePage'
+import CreateOrderPage from './features/orders/pages/CreateOrderPage'
+import CreateDespatchPage from './features/despatch/pages/CreateDespatchPage'
+import CreateInvoicePage from './features/invoice/pages/CreateInvoicePage'
 
 const ROUTE_TITLES = {
   '/': 'DevEx - Home',
@@ -29,10 +32,13 @@ const ROUTE_TITLES = {
   '/verify': 'DevEx - Verify Code',
   '/reset-password': 'DevEx - Reset Password',
   '/order': 'DevEx - Orders',
+  '/order/create': 'DevEx - Create Order',
   '/order/upload': 'DevEx - Upload Orders',
   '/despatch': 'DevEx - Despatch Advice',
+  '/despatch/create': 'DevEx - Create Despatch Advice',
   '/despatch/upload': 'DevEx - Upload Despatch Advice',
   '/invoice': 'DevEx - Invoices',
+  '/invoice/create': 'DevEx - Create Invoice',
   '/invoice/upload': 'DevEx - Upload Invoices',
   '/terms': 'DevEx - Terms',
   '/privacy': 'DevEx - Privacy',
@@ -130,6 +136,14 @@ export default function App() {
         }
       />
       <Route
+        path="/order/create"
+        element={
+          <ProtectedRoute>
+            <CreateOrderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/order/:uuid"
         element={
           <ProtectedRoute>
@@ -154,6 +168,14 @@ export default function App() {
         }
       />
       <Route
+        path="/despatch/create"
+        element={
+          <ProtectedRoute>
+            <CreateDespatchPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/despatch/:uuid"
         element={
           <ProtectedRoute>
@@ -174,6 +196,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <UploadInvoicePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoice/create"
+        element={
+          <ProtectedRoute>
+            <CreateInvoicePage />
           </ProtectedRoute>
         }
       />

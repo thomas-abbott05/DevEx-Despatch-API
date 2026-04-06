@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
@@ -57,9 +58,17 @@ export default function DespatchDetailPage() {
             <h1 className="despatch-detail-title">Despatch Advice Detail</h1>
             <p className="despatch-detail-subtitle">UUID: {uuid}</p>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/despatch">Back to despatch</Link>
-          </Button>
+          <div className="despatch-detail-actions">
+            <Button asChild variant="secondary" size="sm" className="despatch-detail-create-btn">
+              <Link to={`/invoice/create?despatchUuid=${encodeURIComponent(uuid)}`}>
+                Create Invoice
+                <ChevronRight className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/despatch">Back to view all</Link>
+            </Button>
+          </div>
         </header>
 
         <section className="despatch-detail-card">

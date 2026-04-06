@@ -24,6 +24,24 @@
   margin-bottom: 1rem;
 }
 
+.despatch-detail-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.despatch-detail-create-btn[data-slot='button'] {
+  background: rgba(61, 102, 219, 0.8);
+  border-color: rgba(96, 134, 243, 0.6);
+  color: #f8fbff;
+}
+
+.despatch-detail-create-btn[data-slot='button']:hover {
+  background: rgba(61, 102, 219, 0.95);
+  border-color: rgba(120, 154, 255, 0.8);
+}
+
 .despatch-detail-title {
   font-size: clamp(1.6rem, 3.7vw, 2.4rem);
   line-height: 1.1;

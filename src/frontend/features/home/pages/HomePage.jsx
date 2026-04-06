@@ -49,11 +49,14 @@ function ActivityRail({
   onRetry,
   emptyMessage,
   emptyCtaTo,
-  emptyCtaLabel
+  emptyCtaLabel,
+  resolveCardId,
+  resolveMetaText
 }) {
   const viewportRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const SCROLL_EDGE_TOLERANCE = 8
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -65,7 +68,7 @@ function ActivityRail({
 
     const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
     setCanScrollLeft(false)
-    setCanScrollRight(maxScrollLeft > 2)
+    setCanScrollRight(maxScrollLeft > SCROLL_EDGE_TOLERANCE)
   }, [items.length])
 
   const updateScrollControls = useCallback(() => {
@@ -75,8 +78,8 @@ function ActivityRail({
     }
 
     const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
-    setCanScrollLeft(viewport.scrollLeft > 2)
-    setCanScrollRight(viewport.scrollLeft < maxScrollLeft - 2)
+    setCanScrollLeft(viewport.scrollLeft > SCROLL_EDGE_TOLERANCE)
+    setCanScrollRight(viewport.scrollLeft < maxScrollLeft - SCROLL_EDGE_TOLERANCE)
   }, [])
 
   useEffect(() => {
@@ -115,18 +118,21 @@ function ActivityRail({
       return
     }
 
-    const firstCard = viewport.querySelector('.home-rail-card:not(.home-rail-card-view-all)')
+    const firstCard = viewport.querySelector('.home-rail-card-link')
+    const track = viewport.querySelector('.home-rail-track')
     const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : viewport.clientWidth * 0.85
-    const step = cardWidth + 14
+    const trackStyles = track ? window.getComputedStyle(track) : null
+    const railGap = trackStyles ? Number.parseFloat(trackStyles.columnGap || trackStyles.gap || '0') || 0 : 0
+    const step = cardWidth + railGap
     const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
     const delta = direction === 'left' ? -step : step
     const targetScrollLeft = Math.min(maxScrollLeft, Math.max(0, viewport.scrollLeft + delta))
 
-    setCanScrollLeft(targetScrollLeft > 2)
-    setCanScrollRight(targetScrollLeft < maxScrollLeft - 2)
+    setCanScrollLeft(targetScrollLeft > SCROLL_EDGE_TOLERANCE)
+    setCanScrollRight(targetScrollLeft < maxScrollLeft - SCROLL_EDGE_TOLERANCE)
 
-    viewport.scrollBy({
-      left: delta,
+    viewport.scrollTo({
+      left: targetScrollLeft,
       behavior: 'smooth'
     })
   }
@@ -203,29 +209,39 @@ function ActivityRail({
             ) : null}
 
             <div className={`home-rail-track${items.length === 0 ? ' home-rail-track-empty' : ''}`}>
-              {items.map((item) => (
-                <Link key={item.uuid} className="home-rail-card-link" to={`${detailBaseTo}/${item.uuid}`}>
-                  <Card className="home-rail-card" size="sm">
-                    <CardContent className="home-rail-card-content">
-                      <div className="home-rail-card-icon-wrap" aria-hidden="true">
-                        <Icon className="home-rail-card-icon" />
-                      </div>
+              {items.map((item) => {
+                const cardId = typeof resolveCardId === 'function' ? resolveCardId(item) : item.displayId
+                const metaText = typeof resolveMetaText === 'function' ? resolveMetaText(item) : ''
+                const buyerName = item.buyer || 'Unknown Buyer'
+                const issuedText = `Issued ${item.issueDate || 'Unknown date'} for ${buyerName}`
 
-                      <div className="home-rail-card-body">
-                        <div className="home-rail-card-title-row">
-                          <h3 className="home-rail-card-title">{documentType}</h3>
-                          <p className="home-rail-card-id">
-                            <Hash className="home-rail-card-id-icon" aria-hidden="true" />
-                            <span>{item.displayId}</span>
-                          </p>
+                return (
+                  <Link key={item.uuid} className="home-rail-card-link" to={`${detailBaseTo}/${item.uuid}`}>
+                    <Card className="home-rail-card" size="sm">
+                      <CardContent className="home-rail-card-content">
+                        <div className="home-rail-card-icon-wrap" aria-hidden="true">
+                          <Icon className="home-rail-card-icon" />
                         </div>
-                        <p className="home-rail-card-summary">{item.status}</p>
-                        <p className="home-rail-card-updated">Issued {item.issueDate}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+
+                        <div className="home-rail-card-body">
+                          <div className="home-rail-card-title-row">
+                            <h3 className="home-rail-card-title">{documentType}</h3>
+                            <p className="home-rail-card-id">
+                              <Hash className="home-rail-card-id-icon" aria-hidden="true" />
+                              <span title={cardId || item.displayId}>{cardId || item.displayId}</span>
+                            </p>
+                          </div>
+                          <p className="home-rail-card-summary">{item.status}</p>
+                          <p className="home-rail-card-updated" title={issuedText}>{issuedText}</p>
+                          {metaText ? (
+                            <p className="home-rail-card-meta-subtle">{metaText}</p>
+                          ) : null}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
 
               {items.length > 0 ? (
                 <Link className="home-rail-card-link" to={viewAllTo}>
@@ -305,6 +321,9 @@ export default function HomePage() {
             loading={loading}
             error={error}
             onRetry={loadHomeSummary}
+            emptyMessage="Nothing here, yet!"
+            emptyCtaTo="/order/create"
+            emptyCtaLabel="Create Order"
           />
           <ActivityRail
             title="Recent Despatch Advice"
@@ -317,6 +336,11 @@ export default function HomePage() {
             loading={loading}
             error={error}
             onRetry={loadHomeSummary}
+            resolveCardId={(item) => item.uuid}
+            resolveMetaText={(item) => `Order: ${item.orderDisplayId || item.displayId || 'Unknown'}`}
+            emptyMessage="Nothing here, yet!"
+            emptyCtaTo="/despatch/create"
+            emptyCtaLabel="Create Despatch Advice"
           />
           <ActivityRail
             title="Recent Invoices"

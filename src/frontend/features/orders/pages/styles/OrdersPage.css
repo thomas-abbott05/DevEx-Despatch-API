@@ -83,11 +83,14 @@
   border-radius: 16px;
   background: rgba(21, 25, 32, 0.62);
   backdrop-filter: blur(7px);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .orders-table {
   width: 100%;
+  min-width: 860px;
   border-collapse: collapse;
   font-size: 0.9rem;
   color: #e2e8f4;
@@ -126,7 +129,11 @@
 }
 
 .orders-id-badge {
-  display: inline-flex;
+  display: inline-block;
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -135,6 +142,11 @@
   border-radius: 999px;
   padding: 0.16rem 0.5rem;
   font-weight: 500;
+}
+
+.orders-id-cell {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .orders-center-cell {
@@ -192,6 +204,36 @@
   text-align: right;
 }
 
+.orders-view-link[data-slot='button'] {
+  position: relative;
+  color: #dbe5f3;
+  text-decoration: none;
+}
+
+.orders-view-link[data-slot='button']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.18rem;
+  width: 100%;
+  height: 1px;
+  background: #ffffff;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.orders-view-link[data-slot='button']:hover,
+.orders-view-link[data-slot='button']:focus-visible {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.orders-view-link[data-slot='button']:hover::after,
+.orders-view-link[data-slot='button']:focus-visible::after {
+  transform: scaleX(1);
+}
+
 /* Empty state */
 .orders-empty {
   display: flex;
@@ -211,11 +253,12 @@
 
 /* Responsive */
 @media (max-width: 760px) {
-  .orders-table th:nth-child(3),
-  .orders-table td:nth-child(3),
-  .orders-table th:nth-child(4),
-  .orders-table td:nth-child(4) {
-    display: none;
+  .orders-table {
+    min-width: 760px;
+  }
+
+  .orders-id-badge {
+    max-width: 9.5rem;
   }
 
   .orders-header {

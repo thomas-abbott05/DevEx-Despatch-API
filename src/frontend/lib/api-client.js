@@ -58,3 +58,37 @@ export async function getJson(path, fallbackMessage) {
 
   return payload
 }
+
+export async function postJson(path, body, fallbackMessage) {
+  const response = await fetch(path, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+
+  const payload = await readResponsePayload(response)
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(payload, fallbackMessage))
+  }
+
+  return payload
+}
+
+export async function deleteJson(path, fallbackMessage) {
+  const response = await fetch(path, {
+    method: 'DELETE',
+    credentials: 'include'
+  })
+
+  const payload = await readResponsePayload(response)
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(payload, fallbackMessage))
+  }
+
+  return payload
+}
