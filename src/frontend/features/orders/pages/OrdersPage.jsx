@@ -1,19 +1,13 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Upload, FileText } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
+import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
+import { fetchOrderSummaries } from '../api/orders-api'
 import './styles/OrdersPage.css'
-
-const mockOrders = [
-  { id: 'ORD-001', buyer: 'Acme Corp', supplier: 'GlobalSupply Ltd', items: 4, status: 'Pending', date: '2026-04-06' },
-  { id: 'ORD-002', buyer: 'Nexus Inc', supplier: 'PartnerCo', items: 2, status: 'Confirmed', date: '2026-04-05' },
-  { id: 'ORD-003', buyer: 'Skyline Group', supplier: 'GlobalSupply Ltd', items: 7, status: 'In Transit', date: '2026-04-04' },
-  { id: 'ORD-004', buyer: 'Acme Corp', supplier: 'FastShip Pty', items: 1, status: 'Delivered', date: '2026-04-02' },
-  { id: 'ORD-005', buyer: 'Meridian LLC', supplier: 'PartnerCo', items: 3, status: 'Pending', date: '2026-04-01' },
-]
 
 const STATUS_CLASS = {
   Pending: 'status-pending',
@@ -26,7 +20,33 @@ const STATUS_CLASS = {
 export default function OrdersPage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Orders' },
+  ]
+
+  const loadOrders = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const summaries = await fetchOrderSummaries()
+      setOrders(summaries)
+    } catch (loadError) {
+      setOrders([])
+      setError(loadError.message || 'Unable to load orders.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
 
   async function handleLogout() {
     await logout()
@@ -35,7 +55,7 @@ export default function OrdersPage() {
 
   return (
     <main className="home-screen orders-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content orders-content">
         <header className="orders-header">
@@ -60,7 +80,16 @@ export default function OrdersPage() {
         </header>
 
         <div className="orders-table-wrap">
-          {mockOrders.length === 0 ? (
+          {loading ? (
+            <div className="orders-empty">
+              <PurpleBarLoader statusLabel="Loading orders" maxWidth="280px" />
+            </div>
+          ) : error ? (
+            <div className="orders-empty">
+              <p>{error}</p>
+              <Button type="button" variant="outline" size="sm" onClick={loadOrders}>Retry</Button>
+            </div>
+          ) : orders.length === 0 ? (
             <div className="orders-empty">
               <FileText className="orders-empty-icon" aria-hidden="true" />
               <p>No orders yet. Create or upload one to get started.</p>
@@ -79,23 +108,23 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockOrders.map((order) => (
-                  <tr key={order.id}>
+                {orders.map((order) => (
+                  <tr key={order.uuid}>
                     <td className="orders-id-cell">
-                      <span className="orders-id-badge">{order.id}</span>
+                      <span className="orders-id-badge">{order.displayId}</span>
                     </td>
                     <td>{order.buyer}</td>
                     <td>{order.supplier}</td>
-                    <td className="orders-center-cell">{order.items}</td>
+                    <td className="orders-center-cell">{order.lineItems}</td>
                     <td>
                       <span className={`orders-status-badge ${STATUS_CLASS[order.status] ?? ''}`}>
                         {order.status}
                       </span>
                     </td>
-                    <td className="orders-date-cell">{order.date}</td>
+                    <td className="orders-date-cell">{order.issueDate}</td>
                     <td className="orders-row-actions">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/order/${order.id}`}>View</Link>
+                        <Link to={`/order/${order.uuid}`}>View</Link>
                       </Button>
                     </td>
                   </tr>

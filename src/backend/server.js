@@ -6,6 +6,7 @@ const { createExpressApp, setupErrorHandling } = require('./config/server-config
 const { preloadEmailTemplates } = require('./config/email-template-service');
 const { connectToDatabase, getDbClient } = require('./database');
 const apiRouter = require('./routes');
+const apiV2Router = require('./routes/v2');
 
 const MongoStore = connectMongo.default || connectMongo.MongoStore || connectMongo;
 
@@ -67,6 +68,7 @@ class DevExServer {
       this.sslConfig = new SSLConfig();
 
       this.app.use('/api/v1', apiRouter);
+      this.app.use('/api/v2', apiV2Router);
 
       // Setup error handling for 404s and 500s etc (must be after route definitions!)
       setupErrorHandling(this.app);

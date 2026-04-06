@@ -21,6 +21,11 @@ export default function UploadOrderPage() {
   const { user, logout } = useAuth()
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const fileInputRef = useRef(null)
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Orders', to: '/order' },
+    { label: 'Upload Order' },
+  ]
 
   const [selectedFiles, setSelectedFiles] = useState([])
   const [isDragging, setIsDragging] = useState(false)
@@ -95,7 +100,7 @@ export default function UploadOrderPage() {
 
   return (
     <main className="home-screen order-upload-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content order-upload-content">
         <header className="order-upload-header">

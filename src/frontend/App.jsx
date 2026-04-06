@@ -13,6 +13,9 @@ import NotFoundPage from './features/auth/pages/NotFoundPage'
 import OrdersPage from './features/orders/pages/OrdersPage'
 import DespatchPage from './features/despatch/pages/DespatchPage'
 import InvoicePage from './features/invoice/pages/InvoicePage'
+import OrderDetailPage from './features/orders/pages/OrderDetailPage'
+import DespatchDetailPage from './features/despatch/pages/DespatchDetailPage'
+import InvoiceDetailPage from './features/invoice/pages/InvoiceDetailPage'
 import UploadOrderPage from './features/orders/pages/UploadOrderPage'
 import UploadDespatchPage from './features/despatch/pages/UploadDespatchPage'
 import UploadInvoicePage from './features/invoice/pages/UploadInvoicePage'
@@ -127,6 +130,14 @@ export default function App() {
         }
       />
       <Route
+        path="/order/:uuid"
+        element={
+          <ProtectedRoute>
+            <OrderDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/despatch"
         element={
           <ProtectedRoute>
@@ -143,6 +154,14 @@ export default function App() {
         }
       />
       <Route
+        path="/despatch/:uuid"
+        element={
+          <ProtectedRoute>
+            <DespatchDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/invoice"
         element={
           <ProtectedRoute>
@@ -155,6 +174,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <UploadInvoicePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoice/:uuid"
+        element={
+          <ProtectedRoute>
+            <InvoiceDetailPage />
           </ProtectedRoute>
         }
       />

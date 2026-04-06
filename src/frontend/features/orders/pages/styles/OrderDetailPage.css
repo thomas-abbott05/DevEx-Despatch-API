@@ -1,0 +1,94 @@
+.order-detail-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-detail-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.order-detail-content .home-footer {
+  margin-top: auto;
+}
+
+.order-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.order-detail-title {
+  font-size: clamp(1.6rem, 3.7vw, 2.4rem);
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  font-family: 'Arial Black', 'Segoe UI', sans-serif;
+  color: #f2f6fc;
+}
+
+.order-detail-subtitle {
+  margin-top: 0.4rem;
+  font-family: Consolas, 'Courier New', monospace;
+  color: #c4cedd;
+  font-size: 0.86rem;
+}
+
+.order-detail-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(21, 25, 32, 0.62);
+  backdrop-filter: blur(7px);
+  padding: 1.2rem;
+}
+
+.order-detail-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.9rem;
+}
+
+.order-detail-grid dt {
+  font-size: 0.74rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #8d9ab0;
+}
+
+.order-detail-grid dd {
+  margin-top: 0.25rem;
+  color: #e2e8f4;
+  font-size: 0.96rem;
+}
+
+.order-detail-section-title {
+  margin-top: 1.2rem;
+  margin-bottom: 0.55rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f2f6fc;
+}
+
+.order-detail-xml {
+  font-size: 0.81rem;
+  color: #d7e0ed;
+  border-radius: 12px;
+  padding: 0.8rem;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 14, 20, 0.5);
+  line-height: 1.45;
+}

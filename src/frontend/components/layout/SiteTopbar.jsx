@@ -1,15 +1,30 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { UserRound } from 'lucide-react'
+import { FileText, House, Receipt, Truck, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import './styles/SiteTopbar.css'
 
 const MENU_ANIMATION_MS = 150
+const BREADCRUMB_ANIMATION_MS = 220
+
+let lastBreadcrumbSnapshot = {
+  hadBreadcrumbs: false,
+  breadcrumbs: []
+}
 
 const topbarMenus = [
   {
     key: 'orders',
     label: 'Orders',
+    icon: FileText,
     items: [
       { label: 'View Orders', to: '/order' },
       { label: 'Create Order', to: '/order/create' },
@@ -19,6 +34,7 @@ const topbarMenus = [
   {
     key: 'despatch-advice',
     label: 'Despatch Advice',
+    icon: Truck,
     items: [
       { label: 'View Despatch Advice', to: '/despatch' },
       { label: 'Create Despatch Advice', to: '/despatch/create' },
@@ -28,6 +44,7 @@ const topbarMenus = [
   {
     key: 'invoices',
     label: 'Invoices',
+    icon: Receipt,
     items: [
       { label: 'View Invoices', to: '/invoice' },
       { label: 'Create Invoice', to: '/invoice/create' },
@@ -37,8 +54,8 @@ const topbarMenus = [
 ]
 
 function useMenuTransition(isOpen, durationMs = MENU_ANIMATION_MS) {
-  const [isMounted, setIsMounted] = useState(isOpen)
-  const [isVisible, setIsVisible] = useState(isOpen)
+  const [isMounted, setIsMounted] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
     let hideTimer
@@ -80,6 +97,7 @@ function useMenuTransition(isOpen, durationMs = MENU_ANIMATION_MS) {
 
 function TopbarDropdown({ menu, isOpen, onToggle, onClose }) {
   const { isMounted, isVisible } = useMenuTransition(isOpen)
+  const MenuIcon = menu.icon
 
   return (
     <div className="home-nav-dropdown">
@@ -92,6 +110,7 @@ function TopbarDropdown({ menu, isOpen, onToggle, onClose }) {
         aria-expanded={isOpen}
         onClick={onToggle}
       >
+        {MenuIcon ? <MenuIcon className="home-nav-trigger-icon size-4" aria-hidden="true" /> : null}
         <span>{menu.label}</span>
         <span className="home-nav-arrow" aria-hidden="true" />
       </Button>
@@ -123,7 +142,7 @@ function TopbarUtilityMenu({ isOpen, onToggle, onClose, onLogout }) {
   const { isMounted, isVisible } = useMenuTransition(isOpen)
 
   return (
-    <div className="home-user-menu-wrap" style={{ translate: '0 -1px'}}>
+    <div className="home-user-menu-wrap">
       <button
         type="button"
         className={`home-menu-button${isOpen ? ' is-open' : ''}`}
@@ -156,9 +175,33 @@ function TopbarUtilityMenu({ isOpen, onToggle, onClose, onLogout }) {
   )
 }
 
-export default function SiteTopbar({ firstName = 'there', onLogout }) {
+export default function SiteTopbar({ firstName = 'there', onLogout, breadcrumbs = [] }) {
   const topbarRef = useRef(null)
   const [openMenu, setOpenMenu] = useState(null)
+  const hasBreadcrumbs = breadcrumbs.length > 0
+  const shouldAnimateOpen = hasBreadcrumbs && !lastBreadcrumbSnapshot.hadBreadcrumbs
+  const shouldAnimateClose = !hasBreadcrumbs && lastBreadcrumbSnapshot.hadBreadcrumbs && lastBreadcrumbSnapshot.breadcrumbs.length > 0
+  const [displayedBreadcrumbs, setDisplayedBreadcrumbs] = useState(() => {
+    if (hasBreadcrumbs) {
+      return breadcrumbs
+    }
+    if (shouldAnimateClose) {
+      return lastBreadcrumbSnapshot.breadcrumbs
+    }
+    return []
+  })
+  const [breadcrumbPhase, setBreadcrumbPhase] = useState(() => {
+    if (shouldAnimateOpen) {
+      return 'is-closing'
+    }
+    if (shouldAnimateClose || hasBreadcrumbs) {
+      return 'is-open'
+    }
+    return 'is-hidden'
+  })
+  const isBreadcrumbMounted = breadcrumbPhase !== 'is-hidden'
+  const activeBreadcrumbs = hasBreadcrumbs ? breadcrumbs : displayedBreadcrumbs
+  const breadcrumbKey = activeBreadcrumbs.map((crumb, index) => crumb.to || `current-${index}`).join('>')
 
   async function handleLogoutClick() {
     setOpenMenu(null)
@@ -166,6 +209,48 @@ export default function SiteTopbar({ firstName = 'there', onLogout }) {
       await onLogout()
     }
   }
+
+  useEffect(() => {
+    let animationFrameId
+    let closeTimer
+
+    if (hasBreadcrumbs) {
+      setDisplayedBreadcrumbs(breadcrumbs)
+    }
+
+    if (shouldAnimateOpen) {
+      animationFrameId = window.requestAnimationFrame(() => {
+        setBreadcrumbPhase('is-open')
+      })
+    } else if (hasBreadcrumbs) {
+      setBreadcrumbPhase('is-open')
+    }
+
+    if (shouldAnimateClose) {
+      animationFrameId = window.requestAnimationFrame(() => {
+        setBreadcrumbPhase('is-closing')
+      })
+
+      closeTimer = window.setTimeout(() => {
+        setBreadcrumbPhase('is-hidden')
+        setDisplayedBreadcrumbs([])
+      }, BREADCRUMB_ANIMATION_MS)
+    }
+
+    lastBreadcrumbSnapshot = {
+      hadBreadcrumbs: hasBreadcrumbs,
+      breadcrumbs: hasBreadcrumbs ? breadcrumbs : lastBreadcrumbSnapshot.breadcrumbs
+    }
+
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+      if (closeTimer) {
+        window.clearTimeout(closeTimer)
+      }
+    }
+  }, [breadcrumbs, hasBreadcrumbs, shouldAnimateClose, shouldAnimateOpen])
 
   useEffect(() => {
     function handleOutsidePointerDown(event) {
@@ -199,6 +284,13 @@ export default function SiteTopbar({ firstName = 'there', onLogout }) {
 
       <div className="home-topbar-navband" ref={topbarRef}>
         <nav className="home-nav" aria-label="Primary navigation options">
+          <Button asChild variant="ghost" size="sm" className="home-nav-home-button">
+            <Link to="/" aria-label="Home">
+              <House className="size-4" aria-hidden="true" />
+              <span>Home</span>
+            </Link>
+          </Button>
+
           {topbarMenus.map((menu) => (
             <TopbarDropdown
               key={menu.key}
@@ -231,7 +323,41 @@ export default function SiteTopbar({ firstName = 'there', onLogout }) {
             onLogout={handleLogoutClick}
           />
         </div>
+
       </div>
+
+      {isBreadcrumbMounted && activeBreadcrumbs.length ? (
+        <div className={`home-topbar-breadcrumb-band ${breadcrumbPhase}`}>
+          <Breadcrumb key={breadcrumbKey} className="home-topbar-breadcrumb">
+            <BreadcrumbList className="home-topbar-breadcrumb-list">
+              {activeBreadcrumbs.map((crumb, index) => {
+                const isLast = index === activeBreadcrumbs.length - 1
+                const crumbKey = `${crumb.to || `current-${index}`}`
+
+                return (
+                  <Fragment key={crumbKey}>
+                    <BreadcrumbItem className="home-topbar-breadcrumb-item">
+                      {crumb.to && !isLast ? (
+                        <BreadcrumbLink asChild>
+                          <Link to={crumb.to} className="home-topbar-breadcrumb-link">
+                            <span className="home-topbar-breadcrumb-link-label">{crumb.label}</span>
+                          </Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage className="home-topbar-breadcrumb-page">
+                          <span className="home-topbar-breadcrumb-link-label">{crumb.label}</span>
+                        </BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+
+                    {!isLast ? <BreadcrumbSeparator className="home-topbar-breadcrumb-separator" /> : null}
+                  </Fragment>
+                )
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      ) : null}
     </header>
   )
 }

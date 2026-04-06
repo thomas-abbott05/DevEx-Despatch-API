@@ -21,6 +21,11 @@ export default function UploadInvoicePage() {
   const { user, logout } = useAuth()
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const fileInputRef = useRef(null)
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Invoices', to: '/invoice' },
+    { label: 'Upload Invoice' },
+  ]
 
   const [selectedFiles, setSelectedFiles] = useState([])
   const [isDragging, setIsDragging] = useState(false)
@@ -95,7 +100,7 @@ export default function UploadInvoicePage() {
 
   return (
     <main className="home-screen invoice-upload-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content invoice-upload-content">
         <header className="invoice-upload-header">

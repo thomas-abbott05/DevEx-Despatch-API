@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, ChevronLeft, ChevronRight, FileText, Receipt, Truck } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, Hash, Receipt, Truck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
+import { fetchHomeSummary } from '../api/home-api'
 import './styles/HomePage.css'
 
 const subtitleOptions = [
@@ -14,33 +16,6 @@ const subtitleOptions = [
   'LET\'S GET READY TO RUMBLEEEEEEE!!!!!!',
   'Ducks: in a row. Ordered. Immaculate. Like your XML documents.'
 ]
-
-const railData = {
-  orders: [
-    { id: 'ord-001', summary: 'Recently modified', updated: '8 minutes ago' },
-    { id: 'ord-002', summary: 'Created today', updated: '26 minutes ago' },
-    { id: 'ord-003', summary: 'Cancelled - order cancellation', updated: '39 minutes ago' },
-    { id: 'ord-004', summary: 'Shipped', updated: '1 hour ago' },
-    { id: 'ord-005', summary: 'Order changed', updated: '2 hours ago' },
-    { id: 'ord-006', summary: 'Draft created', updated: '3 hours ago' }
-  ],
-  despatchAdvice: [
-    { id: 'dsp-001', summary: 'Receipt Status changed', updated: '11 minutes ago' },
-    { id: 'dsp-002', summary: 'Recently created', updated: '31 minutes ago' },
-    { id: 'dsp-003', summary: 'Cancelled - fulfilment issue', updated: '55 minutes ago' },
-    { id: 'dsp-004', summary: 'Fulfilled', updated: '1 hour ago' },
-    { id: 'dsp-005', summary: 'Partially fulfilled', updated: '2 hours ago' },
-    { id: 'dsp-006', summary: 'Awaiting receipt', updated: '4 hours ago' }
-  ],
-  invoices: [
-    { id: 'inv-001', summary: 'Recently updated', updated: '14 minutes ago' },
-    { id: 'inv-002', summary: 'Draft finalized', updated: '41 minutes ago' },
-    { id: 'inv-003', summary: 'Payment terms changed', updated: '58 minutes ago' },
-    { id: 'inv-004', summary: 'Amount adjusted', updated: '1 hour ago' },
-    { id: 'inv-005', summary: 'Reference updated', updated: '2 hours ago' },
-    { id: 'inv-006', summary: 'Ready for export', updated: '5 hours ago' }
-  ]
-}
 
 const railIcons = {
   orders: FileText,
@@ -61,10 +36,37 @@ function resolveGreetingByHour() {
   return 'Good evening'
 }
 
-function ActivityRail({ title, subtitle, viewAllTo, items, Icon, documentType }) {
+function ActivityRail({
+  title,
+  subtitle,
+  viewAllTo,
+  detailBaseTo,
+  items,
+  Icon,
+  documentType,
+  loading,
+  error,
+  onRetry,
+  emptyMessage,
+  emptyCtaTo,
+  emptyCtaLabel
+}) {
   const viewportRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(items.length > 0)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) {
+      setCanScrollLeft(false)
+      setCanScrollRight(false)
+      return
+    }
+
+    const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+    setCanScrollLeft(false)
+    setCanScrollRight(maxScrollLeft > 2)
+  }, [items.length])
 
   const updateScrollControls = useCallback(() => {
     const viewport = viewportRef.current
@@ -113,12 +115,18 @@ function ActivityRail({ title, subtitle, viewAllTo, items, Icon, documentType })
       return
     }
 
-    const firstCard = viewport.querySelector('.home-rail-card')
+    const firstCard = viewport.querySelector('.home-rail-card:not(.home-rail-card-view-all)')
     const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : viewport.clientWidth * 0.85
     const step = cardWidth + 14
+    const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+    const delta = direction === 'left' ? -step : step
+    const targetScrollLeft = Math.min(maxScrollLeft, Math.max(0, viewport.scrollLeft + delta))
+
+    setCanScrollLeft(targetScrollLeft > 2)
+    setCanScrollRight(targetScrollLeft < maxScrollLeft - 2)
 
     viewport.scrollBy({
-      left: direction === 'left' ? -step : step,
+      left: delta,
       behavior: 'smooth'
     })
   }
@@ -168,28 +176,70 @@ function ActivityRail({ title, subtitle, viewAllTo, items, Icon, documentType })
       </header>
 
       <div className="home-rail-shell">
-        <div className="home-rail-viewport" ref={viewportRef}>
-          <div className="home-rail-track">
-            {items.map((item) => (
-              <Card key={item.id} className="home-rail-card" size="sm">
-                <CardContent className="home-rail-card-content">
-                  <div className="home-rail-card-icon-wrap" aria-hidden="true">
-                    <Icon className="home-rail-card-icon" />
-                  </div>
-
-                  <div className="home-rail-card-body">
-                    <div className="home-rail-card-title-row">
-                      <h3 className="home-rail-card-title">{documentType}</h3>
-                      <p className="home-rail-card-id">{item.id.toUpperCase()}</p>
-                    </div>
-                    <p className="home-rail-card-summary">{item.summary}</p>
-                    <p className="home-rail-card-updated">Updated {item.updated}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {loading ? (
+          <div className="home-rail-feedback">
+            <PurpleBarLoader statusLabel={`Loading ${title.toLowerCase()}`} maxWidth="280px" />
           </div>
-        </div>
+        ) : error ? (
+          <div className="home-rail-feedback home-rail-feedback-error">
+            <p>{error}</p>
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>Retry</Button>
+          </div>
+        ) : (
+          <div className="home-rail-viewport" ref={viewportRef}>
+            {items.length === 0 ? (
+              <div className="home-rail-empty-state">
+                <p className="home-rail-empty-text">{emptyMessage || `No ${title.toLowerCase()} available yet.`}</p>
+                {emptyCtaTo && emptyCtaLabel ? (
+                  <p className="home-rail-empty-subtitle">
+                    Create one to get started:
+                    <Link className="auth-footer-link home-rail-empty-link" to={emptyCtaTo}>
+                      <span>{emptyCtaLabel}</span>
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className={`home-rail-track${items.length === 0 ? ' home-rail-track-empty' : ''}`}>
+              {items.map((item) => (
+                <Link key={item.uuid} className="home-rail-card-link" to={`${detailBaseTo}/${item.uuid}`}>
+                  <Card className="home-rail-card" size="sm">
+                    <CardContent className="home-rail-card-content">
+                      <div className="home-rail-card-icon-wrap" aria-hidden="true">
+                        <Icon className="home-rail-card-icon" />
+                      </div>
+
+                      <div className="home-rail-card-body">
+                        <div className="home-rail-card-title-row">
+                          <h3 className="home-rail-card-title">{documentType}</h3>
+                          <p className="home-rail-card-id">
+                            <Hash className="home-rail-card-id-icon" aria-hidden="true" />
+                            <span>{item.displayId}</span>
+                          </p>
+                        </div>
+                        <p className="home-rail-card-summary">{item.status}</p>
+                        <p className="home-rail-card-updated">Issued {item.issueDate}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+
+              {items.length > 0 ? (
+                <Link className="home-rail-card-link" to={viewAllTo}>
+                  <Card className="home-rail-card home-rail-card-view-all" size="sm">
+                    <CardContent className="home-rail-card-content home-rail-card-view-all-content">
+                      <p className="home-rail-card-view-all-text">View All</p>
+                      <ArrowRight className="size-5" aria-hidden="true" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -198,6 +248,9 @@ function ActivityRail({ title, subtitle, viewAllTo, items, Icon, documentType })
 export default function HomePage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const [homeData, setHomeData] = useState({ orders: [], despatch: [], invoices: [] })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const greeting = useMemo(() => resolveGreetingByHour(), [])
   const subtitle = useMemo(
@@ -211,6 +264,25 @@ export default function HomePage() {
     navigate('/login', { replace: true })
   }
 
+  const loadHomeSummary = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const payload = await fetchHomeSummary()
+      setHomeData(payload)
+    } catch (loadError) {
+      setHomeData({ orders: [], despatch: [], invoices: [] })
+      setError(loadError.message || 'Unable to load document summary.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadHomeSummary()
+  }, [loadHomeSummary])
+
   return (
     <main className="home-screen home-page">
       <SiteTopbar firstName={firstName} onLogout={handleLogout} />
@@ -223,28 +295,43 @@ export default function HomePage() {
 
         <div className="home-rails">
           <ActivityRail
-            title="Orders"
+            title="Recent Orders"
             subtitle="View, create or upload existing Order XML documents, or create Despatch Advice/Invoices from them."
             viewAllTo="/order"
-            items={railData.orders}
+            detailBaseTo="/order"
+            items={homeData.orders}
             Icon={railIcons.orders}
             documentType="Order"
+            loading={loading}
+            error={error}
+            onRetry={loadHomeSummary}
           />
           <ActivityRail
-            title="Despatch Advice"
+            title="Recent Despatch Advice"
             subtitle="View, create, delete or upload existing Despatch Advice XML documents, or create Invoices from them."
             viewAllTo="/despatch"
-            items={railData.despatchAdvice}
+            detailBaseTo="/despatch"
+            items={homeData.despatch}
             Icon={railIcons.despatchAdvice}
             documentType="Despatch Advice"
+            loading={loading}
+            error={error}
+            onRetry={loadHomeSummary}
           />
           <ActivityRail
-            title="Invoices"
+            title="Recent Invoices"
             subtitle="View existing invoices, or upload/create new ones from existing XML/Despatch Advice."
             viewAllTo="/invoice"
-            items={railData.invoices}
+            detailBaseTo="/invoice"
+            items={homeData.invoices}
             Icon={railIcons.invoices}
             documentType="Invoice"
+            loading={loading}
+            error={error}
+            onRetry={loadHomeSummary}
+            emptyMessage="Nothing here, yet!"
+            emptyCtaTo="/invoice/create"
+            emptyCtaLabel="Create Invoice"
           />
         </div>
 

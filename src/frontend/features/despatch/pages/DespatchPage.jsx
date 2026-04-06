@@ -1,19 +1,14 @@
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Upload, Truck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
+import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
+import { fetchDespatchSummaries } from '../api/despatch-api'
 import './styles/DespatchPage.css'
-
-const mockDespatches = [
-  { id: 'DSP-001', orderId: 'ORD-001', carrier: 'FedEx', trackingNo: 'FX-10293847', status: 'Shipped', date: '2026-04-06' },
-  { id: 'DSP-002', orderId: 'ORD-002', carrier: 'DHL', trackingNo: 'DH-29384756', status: 'In Transit', date: '2026-04-05' },
-  { id: 'DSP-003', orderId: 'ORD-003', carrier: 'UPS', trackingNo: 'UP-38475612', status: 'Delivered', date: '2026-04-04' },
-  { id: 'DSP-004', orderId: 'ORD-004', carrier: 'StarTrack', trackingNo: 'ST-47561293', status: 'Pending', date: '2026-04-03' },
-  { id: 'DSP-005', orderId: 'ORD-005', carrier: 'FedEx', trackingNo: 'FX-56129384', status: 'Shipped', date: '2026-04-01' },
-]
 
 const STATUS_CLASS = {
   Pending: 'status-pending',
@@ -26,7 +21,33 @@ const STATUS_CLASS = {
 export default function DespatchPage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const [despatches, setDespatches] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Despatch Advice' },
+  ]
+
+  const loadDespatches = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const summaries = await fetchDespatchSummaries()
+      setDespatches(summaries)
+    } catch (loadError) {
+      setDespatches([])
+      setError(loadError.message || 'Unable to load despatch documents.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadDespatches()
+  }, [loadDespatches])
 
   async function handleLogout() {
     await logout()
@@ -35,7 +56,7 @@ export default function DespatchPage() {
 
   return (
     <main className="home-screen despatch-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content despatch-content">
         <header className="despatch-header">
@@ -60,7 +81,16 @@ export default function DespatchPage() {
         </header>
 
         <div className="despatch-table-wrap">
-          {mockDespatches.length === 0 ? (
+          {loading ? (
+            <div className="despatch-empty">
+              <PurpleBarLoader statusLabel="Loading despatch documents" maxWidth="280px" />
+            </div>
+          ) : error ? (
+            <div className="despatch-empty">
+              <p>{error}</p>
+              <Button type="button" variant="outline" size="sm" onClick={loadDespatches}>Retry</Button>
+            </div>
+          ) : despatches.length === 0 ? (
             <div className="despatch-empty">
               <Truck className="despatch-empty-icon" aria-hidden="true" />
               <p>No despatch advice yet. Create or upload one to get started.</p>
@@ -79,13 +109,13 @@ export default function DespatchPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockDespatches.map((d) => (
-                  <tr key={d.id}>
+                {despatches.map((d) => (
+                  <tr key={d.uuid}>
                     <td>
-                      <span className="despatch-id-badge">{d.id}</span>
+                      <span className="despatch-id-badge">{d.displayId}</span>
                     </td>
                     <td className="despatch-ref-cell">
-                      <Link to={`/order/${d.orderId}`} className="despatch-order-link">{d.orderId}</Link>
+                      <Link to={`/order/${d.orderUuid}`} className="despatch-order-link">{d.orderDisplayId}</Link>
                     </td>
                     <td>{d.carrier}</td>
                     <td className="despatch-tracking-cell">{d.trackingNo}</td>
@@ -94,10 +124,10 @@ export default function DespatchPage() {
                         {d.status}
                       </span>
                     </td>
-                    <td className="despatch-date-cell">{d.date}</td>
+                    <td className="despatch-date-cell">{d.issueDate}</td>
                     <td className="despatch-row-actions">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/despatch/${d.id}`}>View</Link>
+                        <Link to={`/despatch/${d.uuid}`}>View</Link>
                       </Button>
                     </td>
                   </tr>

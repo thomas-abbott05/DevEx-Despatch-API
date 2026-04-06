@@ -1,19 +1,14 @@
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Upload, Receipt } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
+import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
+import { fetchInvoiceSummaries } from '../api/invoice-api'
 import './styles/InvoicePage.css'
-
-const mockInvoices = [
-  { id: 'INV-001', despatchId: 'DSP-001', buyer: 'Acme Corp', total: '$4,250.00', status: 'Issued', date: '2026-04-06' },
-  { id: 'INV-002', despatchId: 'DSP-002', buyer: 'Nexus Inc', total: '$1,180.00', status: 'Paid', date: '2026-04-05' },
-  { id: 'INV-003', despatchId: 'DSP-003', buyer: 'Skyline Group', total: '$9,720.00', status: 'Overdue', date: '2026-04-04' },
-  { id: 'INV-004', despatchId: 'DSP-004', buyer: 'Acme Corp', total: '$640.00', status: 'Draft', date: '2026-04-03' },
-  { id: 'INV-005', despatchId: 'DSP-005', buyer: 'Meridian LLC', total: '$3,310.00', status: 'Issued', date: '2026-04-01' },
-]
 
 const STATUS_CLASS = {
   Draft: 'status-draft',
@@ -26,7 +21,33 @@ const STATUS_CLASS = {
 export default function InvoicePage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Invoices' },
+  ]
+
+  const loadInvoices = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const summaries = await fetchInvoiceSummaries()
+      setInvoices(summaries)
+    } catch (loadError) {
+      setInvoices([])
+      setError(loadError.message || 'Unable to load invoices.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadInvoices()
+  }, [loadInvoices])
 
   async function handleLogout() {
     await logout()
@@ -35,7 +56,7 @@ export default function InvoicePage() {
 
   return (
     <main className="home-screen invoice-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content invoice-content">
         <header className="invoice-header">
@@ -60,7 +81,16 @@ export default function InvoicePage() {
         </header>
 
         <div className="invoice-table-wrap">
-          {mockInvoices.length === 0 ? (
+          {loading ? (
+            <div className="invoice-empty">
+              <PurpleBarLoader statusLabel="Loading invoices" maxWidth="280px" />
+            </div>
+          ) : error ? (
+            <div className="invoice-empty">
+              <p>{error}</p>
+              <Button type="button" variant="outline" size="sm" onClick={loadInvoices}>Retry</Button>
+            </div>
+          ) : invoices.length === 0 ? (
             <div className="invoice-empty">
               <Receipt className="invoice-empty-icon" aria-hidden="true" />
               <p>No invoices yet. Create or upload one to get started.</p>
@@ -79,13 +109,13 @@ export default function InvoicePage() {
                 </tr>
               </thead>
               <tbody>
-                {mockInvoices.map((inv) => (
-                  <tr key={inv.id}>
+                {invoices.map((inv) => (
+                  <tr key={inv.uuid}>
                     <td>
-                      <span className="invoice-id-badge">{inv.id}</span>
+                      <span className="invoice-id-badge">{inv.displayId}</span>
                     </td>
                     <td>
-                      <Link to={`/despatch/${inv.despatchId}`} className="invoice-ref-link">{inv.despatchId}</Link>
+                      <Link to={`/despatch/${inv.despatchUuid}`} className="invoice-ref-link">{inv.despatchDisplayId}</Link>
                     </td>
                     <td>{inv.buyer}</td>
                     <td className="invoice-total-cell">{inv.total}</td>
@@ -94,10 +124,10 @@ export default function InvoicePage() {
                         {inv.status}
                       </span>
                     </td>
-                    <td className="invoice-date-cell">{inv.date}</td>
+                    <td className="invoice-date-cell">{inv.issueDate}</td>
                     <td className="invoice-row-actions">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/invoice/${inv.id}`}>View</Link>
+                        <Link to={`/invoice/${inv.uuid}`}>View</Link>
                       </Button>
                     </td>
                   </tr>
