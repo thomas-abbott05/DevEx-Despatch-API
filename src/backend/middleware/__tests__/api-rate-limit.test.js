@@ -56,4 +56,44 @@ describe('api-rate-limit middleware', () => {
       })
     });
   });
+
+  test('buildRateLimitConfig falls back to defaults when given invalid overrides', () => {
+    const config = buildRateLimitConfig({ windowMs: 'invalid', limit: -10 });
+    expect(config.windowMs).toBe(60 * 1000);
+    expect(config.limit).toBe(100);
+  });
+
+  test('buildRateLimitConfig falls back to defaults when given zero values', () => {
+    const config = buildRateLimitConfig({ windowMs: 0, limit: 0 });
+    expect(config.windowMs).toBe(60 * 1000);
+    expect(config.limit).toBe(100);
+  });
+
+  test('buildRateLimitConfig uses provided custom handler', () => {
+    const customHandler = jest.fn();
+    const config = buildRateLimitConfig({ handler: customHandler });
+    expect(config.handler).toBe(customHandler);
+  });
+
+  test('default handler uses statusCode from options', () => {
+    const config = buildRateLimitConfig();
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+    config.handler({}, res, jest.fn(), { statusCode: 429 });
+
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      errors: ['Too many requests. Please try again later.'],
+      'executed-at': expect.any(Number)
+    }));
+  });
+
+  test('default handler falls back to 429 when statusCode is missing from options', () => {
+    const config = buildRateLimitConfig();
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+    config.handler({}, res, jest.fn(), {});
+
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
 });

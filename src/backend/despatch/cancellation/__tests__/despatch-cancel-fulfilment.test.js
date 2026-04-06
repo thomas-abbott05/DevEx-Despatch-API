@@ -111,6 +111,36 @@ describe('createFulfilmentCancellation', () => {
       createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA)
     ).rejects.toThrow(FulfilmentCancellationForbiddenError);
   });
+
+  test('despatch with no optional XML fields (OrderReference, Delivery, Supplier) still creates cancellation', async () => {
+    const minimalDespatchDoc = makeActiveDespatchDoc({
+      despatchXml: '<DespatchAdvice/>'
+    });
+
+    fakeCollection.findOne.mockResolvedValue(minimalDespatchDoc);
+
+    const result = await createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA);
+
+    expect(result['fulfilment-cancellation']).toContain('FulfilmentCancellation');
+    expect(result['fulfilment-cancellation-reason']).toBe(VALID_REASON);
+  });
+
+  test('despatch with optional XML fields (OrderReference, DeliveryCustomerParty, DespatchSupplierParty) includes them in cancellation', async () => {
+    const richXml = `<DespatchAdvice>
+      <cbc:IssueDate>2024-01-01</cbc:IssueDate>
+      <cac:OrderReference><cbc:ID>ORD-001</cbc:ID></cac:OrderReference>
+      <cac:DeliveryCustomerParty><cbc:ID>BUYER-001</cbc:ID></cac:DeliveryCustomerParty>
+      <cac:DespatchSupplierParty><cbc:ID>SELLER-001</cbc:ID></cac:DespatchSupplierParty>
+    </DespatchAdvice>`;
+
+    fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc({ despatchXml: richXml }));
+
+    const result = await createFulfilmentCancellation(VALID_API_KEY, VALID_METADATA);
+
+    expect(result['fulfilment-cancellation']).toContain('FulfilmentCancellation');
+    expect(result['fulfilment-cancellation']).toContain('BUYER-001');
+    expect(result['fulfilment-cancellation']).toContain('SELLER-001');
+  });
 });
 
 describe('getFulfilmentCancellation', () => {
@@ -175,5 +205,54 @@ describe('getFulfilmentCancellation', () => {
     await expect(
       getFulfilmentCancellation(VALID_API_KEY, { adviceId: VALID_ADVICE_ID })
     ).rejects.toThrow(FulfilmentCancellationNotFoundError);
+  });
+
+  test('getFulfilmentCancellation with only fulfilmentCancellationId and doc not found throws FulfilmentCancellationNotFoundError', async () => {
+    fakeCollection.findOne.mockResolvedValue(null);
+
+    await expect(
+      getFulfilmentCancellation(VALID_API_KEY, { fulfilmentCancellationId: VALID_FULFILMENT_ID })
+    ).rejects.toThrow(FulfilmentCancellationNotFoundError);
+  });
+
+  test('getFulfilmentCancellation with fulfilmentCancellationId and no cancellationXml uses id in error message', async () => {
+    const docWithNoXml = makeCancelledDespatchDoc({ fulfilmentCancellationXml: null });
+    fakeCollection.findOne.mockResolvedValue(docWithNoXml);
+
+    try {
+      await getFulfilmentCancellation(VALID_API_KEY, { fulfilmentCancellationId: VALID_FULFILMENT_ID });
+      throw new Error('Expected error not thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(FulfilmentCancellationNotFoundError);
+      expect(err.message).toContain(VALID_FULFILMENT_ID);
+    }
+  });
+});
+
+describe('FulfilmentCancellationNotFoundError default message', () => {
+  test('uses default message when none is provided', () => {
+    const err = new FulfilmentCancellationNotFoundError();
+    expect(err.message).toBe('Despatch advice not found');
+    expect(err.name).toBe('FulfilmentCancellationNotFoundError');
+    expect(err.statusCode).toBe(404);
+  });
+
+  test('uses provided message when supplied', () => {
+    const err = new FulfilmentCancellationNotFoundError('custom message');
+    expect(err.message).toBe('custom message');
+  });
+});
+
+describe('FulfilmentCancellationForbiddenError default message', () => {
+  test('uses default message when none is provided', () => {
+    const err = new FulfilmentCancellationForbiddenError();
+    expect(err.message).toBe('Unauthorised access');
+    expect(err.name).toBe('FulfilmentCancellationForbiddenError');
+    expect(err.statusCode).toBe(403);
+  });
+
+  test('uses provided message when supplied', () => {
+    const err = new FulfilmentCancellationForbiddenError('custom forbidden');
+    expect(err.message).toBe('custom forbidden');
   });
 });

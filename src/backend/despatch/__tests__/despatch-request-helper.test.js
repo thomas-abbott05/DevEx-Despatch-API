@@ -81,3 +81,29 @@ describe('validateXmlRequest', () => {
     expect(() => validateXmlRequest(req)).toThrow(RequestValidationError);
   });
 });
+
+describe('RequestValidationError', () => {
+  test('uses default message when none is provided', () => {
+    const err = new RequestValidationError();
+    expect(err.message).toBe('Request validation failed');
+    expect(err.name).toBe('RequestValidationError');
+    expect(err.statusCode).toBe(400);
+  });
+
+  test('uses provided message when supplied', () => {
+    const err = new RequestValidationError('custom error');
+    expect(err.message).toBe('custom error');
+  });
+});
+
+describe('buildRequestMetadata - null content-type', () => {
+  test('Missing content-type header → contentType: null', () => {
+    const req = {
+      headers: {},
+      ip: '127.0.0.1'
+    };
+    const metadata = buildRequestMetadata(req);
+    expect(metadata.contentType).toBeNull();
+    expect(metadata.userAgent).toBeNull();
+  });
+});
