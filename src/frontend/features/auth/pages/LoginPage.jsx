@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import './styles/LoginPage.css'
+import './styles/AuthShared.css'
 
 const UNVERIFIED_ACCOUNT_ERROR = 'Email address is not verified yet. Please verify your account before logging in.'
 

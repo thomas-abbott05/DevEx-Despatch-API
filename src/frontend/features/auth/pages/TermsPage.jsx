@@ -1,4 +1,4 @@
-import './styles/LegalPage.css'
+import './styles/AuthShared.css'
 import { Link } from 'react-router-dom'
 import SiteFooter from '@/components/layout/SiteFooter'
 

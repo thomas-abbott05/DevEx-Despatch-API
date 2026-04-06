@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 const AuthContext = createContext(null)
-const MIN_AUTH_LOADER_MS = 1200
+const MIN_AUTH_LOADER_MS = 800
 
 function wait(ms) {
   return new Promise((resolve) => {
