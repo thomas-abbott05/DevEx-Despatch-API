@@ -23,3 +23,13 @@ export async function deleteDespatch(uuid) {
   const payload = await deleteJson('/api/v2/user/despatch/' + encodeURIComponent(uuid), 'Unable to delete despatch advice.')
   return payload
 }
+
+export async function updateDespatchStatus(uuid, status) {
+  const responsePayload = await postJson(
+    '/api/v2/user/despatch/' + encodeURIComponent(uuid) + '/status',
+    { status },
+    'Unable to update despatch status.'
+  )
+
+  return responsePayload?.despatch || null
+}

@@ -68,6 +68,34 @@ describe('v2 user routes read endpoints', () => {
     expect(payload.invoices.length).toBe(0);
   });
 
+  test('returns buyer on home summary despatch and invoice cards', async () => {
+    const seeded = seedDefaultData();
+    seeded.despatch[0].buyer = '';
+    seeded.invoices.push({
+      _id: '8fe68770-f6b6-4c53-a98b-47397efdb81b',
+      userId: 'test-user',
+      displayId: 'INV-2026-003',
+      despatchDisplayId: 'DSP-2026-001',
+      despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+      buyer: '',
+      issueDate: '2026-04-06',
+      status: 'Issued',
+      total: 120,
+      updatedAt: new Date('2026-04-06T12:00:00.000Z')
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const response = await fetch(baseUrl + '/api/v2/user/home-summary', {
+      headers: { cookie: cookieHeader }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.despatch[0].buyer).toBe('Acme Corp');
+    expect(payload.invoices[0].buyer).toBe('Acme Corp');
+  });
+
   test('returns order detail for known UUID', async () => {
     const orderXml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
@@ -222,6 +250,34 @@ describe('v2 user routes read endpoints', () => {
     expect(invoicesPayload.invoices).toHaveLength(0);
   });
 
+  test('updates despatch status through status endpoint', async () => {
+    const seeded = seedDefaultData();
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const statusResponse = await fetch(baseUrl + '/api/v2/user/despatch/6b17c76a-87cd-4bff-83dc-1257536b6f14/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({ status: 'Received' })
+    });
+    const statusPayload = await statusResponse.json();
+
+    expect(statusResponse.status).toBe(200);
+    expect(statusPayload.success).toBe(true);
+    expect(statusPayload.despatch.status).toBe('Received');
+
+    const response = await fetch(baseUrl + '/api/v2/user/despatch', {
+      headers: { cookie: cookieHeader }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.despatch[0].status).toBe('Received');
+  });
+
   test('returns empty invoice list payload', async () => {
     const response = await fetch(baseUrl + '/api/v2/user/invoices', {
       headers: { cookie: cookieHeader }
@@ -232,5 +288,76 @@ describe('v2 user routes read endpoints', () => {
     expect(payload.success).toBe(true);
     expect(Array.isArray(payload.invoices)).toBe(true);
     expect(payload.invoices.length).toBe(0);
+  });
+
+  test('derives overdue invoice status when due date has passed', async () => {
+    const seeded = seedDefaultData();
+    seeded.invoices.push({
+      _id: '8f19cc49-73de-4ed2-b805-c4be9f59f1c1',
+      userId: 'test-user',
+      displayId: 'INV-2026-020',
+      despatchDisplayId: 'DSP-2026-001',
+      despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+      buyer: 'Acme Corp',
+      issueDate: '2026-01-01',
+      dueDate: '2000-01-01',
+      status: 'Issued',
+      statusManuallySet: false,
+      total: 120,
+      updatedAt: new Date('2026-04-06T12:00:00.000Z')
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const response = await fetch(baseUrl + '/api/v2/user/invoices', {
+      headers: { cookie: cookieHeader }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.invoices).toHaveLength(1);
+    expect(payload.invoices[0].status).toBe('Overdue');
+  });
+
+  test('updates invoice status through status endpoint', async () => {
+    const seeded = seedDefaultData();
+    seeded.invoices.push({
+      _id: '8f19cc49-73de-4ed2-b805-c4be9f59f1c1',
+      userId: 'test-user',
+      displayId: 'INV-2026-020',
+      despatchDisplayId: 'DSP-2026-001',
+      despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+      buyer: 'Acme Corp',
+      issueDate: '2026-04-01',
+      dueDate: '2026-04-06',
+      status: 'Issued',
+      statusManuallySet: false,
+      total: 120,
+      updatedAt: new Date('2026-04-06T12:00:00.000Z')
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const statusResponse = await fetch(baseUrl + '/api/v2/user/invoices/8f19cc49-73de-4ed2-b805-c4be9f59f1c1/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({ status: 'Paid' })
+    });
+    const statusPayload = await statusResponse.json();
+
+    expect(statusResponse.status).toBe(200);
+    expect(statusPayload.success).toBe(true);
+    expect(statusPayload.invoice.status).toBe('Paid');
+
+    const response = await fetch(baseUrl + '/api/v2/user/invoices', {
+      headers: { cookie: cookieHeader }
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.invoices[0].status).toBe('Paid');
   });
 });

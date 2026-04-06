@@ -91,6 +91,67 @@
   gap: 1rem;
 }
 
+.invoice-detail-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.95rem;
+  margin-bottom: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(20, 24, 32, 0.58);
+}
+
+.invoice-detail-hero-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #91a0b8;
+}
+
+.invoice-detail-hero-status-row {
+  margin-top: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.invoice-detail-hero-id {
+  font-size: 0.82rem;
+  color: #b8c4d8;
+  letter-spacing: 0.05em;
+}
+
+.invoice-detail-hero-text {
+  margin: 0.45rem 0 0;
+  font-size: 0.86rem;
+  color: #d2dced;
+}
+
+.invoice-detail-hero-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 0.7rem;
+  min-width: min(100%, 420px);
+}
+
+.invoice-detail-hero-meta span {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8d9ab0;
+}
+
+.invoice-detail-hero-meta strong {
+  display: block;
+  margin-top: 0.22rem;
+  font-size: 0.88rem;
+  color: #e6edf9;
+}
+
 .invoice-detail-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -130,12 +191,6 @@
   background: rgba(90, 102, 125, 0.32);
 }
 
-.invoice-detail-status-draft {
-  background: rgba(148, 163, 184, 0.12);
-  border-color: rgba(148, 163, 184, 0.3);
-  color: #d5deea;
-}
-
 .invoice-detail-status-issued,
 .invoice-detail-despatch-status-shipped {
   background: rgba(59, 130, 246, 0.12);
@@ -155,12 +210,6 @@
   background: rgba(150, 56, 56, 0.35);
   border-color: rgba(231, 109, 109, 0.54);
   color: #ffe0e0;
-}
-
-.invoice-detail-status-cancelled {
-  background: rgba(69, 85, 106, 0.34);
-  border-color: rgba(116, 139, 173, 0.42);
-  color: #d6e3f5;
 }
 
 .invoice-detail-despatch-status-pending {
@@ -343,5 +392,9 @@
 
   .invoice-detail-actions {
     justify-content: flex-end;
+  }
+
+  .invoice-detail-hero-meta {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 }

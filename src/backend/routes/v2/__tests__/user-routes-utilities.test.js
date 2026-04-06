@@ -1,12 +1,15 @@
 const {
   validateOrderCreateBody,
   validateDespatchCreateBody,
+  validateDespatchStatusUpdateBody,
   validateInvoiceCreateBody,
+  validateInvoiceStatusUpdateBody,
   buildChalksnifferOrderPayload,
   buildSelectedOrderXml,
   mapOrderDetail,
   deriveInvoiceLinesFromDespatch,
   calculateInvoiceTotals,
+  resolveInvoiceStatus,
   postChalksnifferOrderForXmlResponse
 } = require('../user/user-routes-utilities');
 const { parseOrderXml } = require('../../../despatch/order-parser-service');
@@ -139,9 +142,99 @@ describe('user route utilities', () => {
     });
 
     expect(validation.errors).toEqual([]);
+    expect(validation.baseDespatchUuid).toBe('34ec2376-a8c4-4a59-a307-e64f7aaf1150');
+    expect(validation.invoiceSourceType).toBe('despatch');
+    expect(validation.invoiceSourceDespatchUuid).toBe('34ec2376-a8c4-4a59-a307-e64f7aaf1150');
     expect(validation.currency).toBe('AUD');
     expect(validation.gstPercent).toBe(10);
     expect(validation.defaultUnitPrice).toBe(1);
+  });
+
+  test('validateInvoiceCreateBody validates manual invoice lines', () => {
+    const validation = validateInvoiceCreateBody({
+      baseDespatchUuid: '34ec2376-a8c4-4a59-a307-e64f7aaf1150',
+      invoiceSourceType: 'order',
+      manualLinesIncludeGst: true,
+      manualLines: [
+        {
+          lineId: 'LINE-001',
+          description: 'Game Card',
+          quantity: 2,
+          unitPrice: 35
+        }
+      ]
+    });
+
+    expect(validation.errors).toEqual([]);
+    expect(validation.invoiceSourceType).toBe('order');
+    expect(validation.manualLinesIncludeGst).toBe(true);
+    expect(validation.manualLines).toHaveLength(1);
+  });
+
+  test('validateInvoiceCreateBody accepts baseOrderUuid for whole-order invoicing', () => {
+    const validation = validateInvoiceCreateBody({
+      baseOrderUuid: '34ec2376-a8c4-4a59-a307-e64f7aaf1150',
+      invoiceSourceType: 'order'
+    });
+
+    expect(validation.errors).toEqual([]);
+    expect(validation.baseOrderUuid).toBe('34ec2376-a8c4-4a59-a307-e64f7aaf1150');
+    expect(validation.invoiceSourceType).toBe('order');
+  });
+
+  test('validateInvoiceStatusUpdateBody accepts valid local statuses', () => {
+    const validation = validateInvoiceStatusUpdateBody({ status: 'paid' });
+
+    expect(validation.errors).toEqual([]);
+    expect(validation.status).toBe('Paid');
+  });
+
+  test('validateInvoiceStatusUpdateBody rejects unsupported statuses', () => {
+    const validation = validateInvoiceStatusUpdateBody({ status: 'draft' });
+
+    expect(validation.errors.length).toBeGreaterThan(0);
+  });
+
+  test('validateDespatchStatusUpdateBody accepts shipped and received', () => {
+    const shippedValidation = validateDespatchStatusUpdateBody({ status: 'shipped' });
+    const receivedValidation = validateDespatchStatusUpdateBody({ status: 'Received' });
+
+    expect(shippedValidation.errors).toEqual([]);
+    expect(shippedValidation.status).toBe('Shipped');
+    expect(receivedValidation.errors).toEqual([]);
+    expect(receivedValidation.status).toBe('Received');
+  });
+
+  test('validateDespatchStatusUpdateBody rejects unsupported statuses', () => {
+    const validation = validateDespatchStatusUpdateBody({ status: 'pending' });
+
+    expect(validation.errors.length).toBeGreaterThan(0);
+  });
+
+  test('resolveInvoiceStatus derives overdue when due date has passed and no manual override exists', () => {
+    const resolvedStatus = resolveInvoiceStatus(
+      {
+        status: 'Issued',
+        dueDate: '2000-01-01',
+        statusManuallySet: false
+      },
+      new Date('2026-04-06T00:00:00.000Z')
+    );
+
+    expect(resolvedStatus).toBe('Overdue');
+  });
+
+  test('resolveInvoiceStatus preserves manual status override for overdue invoices', () => {
+    const resolvedStatus = resolveInvoiceStatus(
+      {
+        status: 'Issued',
+        dueDate: '2000-01-01',
+        statusManuallySet: true
+      },
+      new Date('2026-04-06T00:00:00.000Z')
+    );
+
+    expect(resolvedStatus).toBe('Issued');
   });
 
   test('buildSelectedOrderXml guards against duplicate line selections', () => {

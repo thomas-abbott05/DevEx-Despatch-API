@@ -174,7 +174,7 @@ export default function CreateOrderPage() {
 
       const unitPrice = Number(line.unitPrice)
       if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
-        return lineLabel + ': Price per unit must be greater than 0.'
+        return lineLabel + ': Price per unit (inc GST) must be greater than 0.'
       }
 
       if (!line.itemName.trim()) {
@@ -494,7 +494,7 @@ export default function CreateOrderPage() {
                         />
                       </div>
                       <div className="create-order-field">
-                        <Label htmlFor={'line-unit-price-' + line.key}>Price per unit</Label>
+                        <Label htmlFor={'line-unit-price-' + line.key}>Price per unit (inc GST)</Label>
                         <Input
                           id={'line-unit-price-' + line.key}
                           type="number"

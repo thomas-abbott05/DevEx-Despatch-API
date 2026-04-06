@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, ChevronRight, Download, Trash2 } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ChevronRight, Download, Trash2, X } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   AlertDialog,
@@ -17,16 +17,28 @@ import { Button } from '@/components/ui/button'
 import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
-import { deleteDespatch, fetchDespatchDetail } from '../api/despatch-api'
+import { deleteDespatch, fetchDespatchDetail, updateDespatchStatus } from '../api/despatch-api'
 import { fetchInvoiceSummaries } from '@/features/invoice/api/invoice-api'
 import './styles/DespatchDetailPage.css'
 
+const DESPATCH_STATUS_CLASS = {
+  Shipped: 'despatch-detail-status-shipped',
+  Received: 'despatch-detail-status-received',
+}
+
 const INVOICE_STATUS_CLASS = {
-  Draft: 'despatch-detail-status-draft',
   Issued: 'despatch-detail-status-issued',
   Paid: 'despatch-detail-status-paid',
   Overdue: 'despatch-detail-status-overdue',
-  Cancelled: 'despatch-detail-status-cancelled',
+}
+
+function normaliseDespatchStatus(value) {
+  const status = String(value || '').trim().toLowerCase()
+  if (status === 'received') {
+    return 'Received'
+  }
+
+  return 'Shipped'
 }
 
 function formatCurrencyValue(value) {
@@ -62,6 +74,7 @@ export default function DespatchDetailPage() {
   const [error, setError] = useState('')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeletingDespatch, setIsDeletingDespatch] = useState(false)
+  const [isUpdatingDespatchStatus, setIsUpdatingDespatchStatus] = useState(false)
 
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const breadcrumbs = [
@@ -70,6 +83,8 @@ export default function DespatchDetailPage() {
     { label: despatch?.displayId ? `Despatch Advice ${despatch.displayId}` : 'Despatch Advice' },
   ]
   const despatchLines = Array.isArray(despatch?.lines) ? despatch.lines : []
+  const currentDespatchStatus = normaliseDespatchStatus(despatch?.status)
+  const isDespatchReceived = currentDespatchStatus === 'Received'
   const createInvoicePrompt = '/invoice/create?despatchUuid=' + encodeURIComponent(uuid)
 
   const loadDespatch = useCallback(async () => {
@@ -144,6 +159,36 @@ export default function DespatchDetailPage() {
     }
   }
 
+  async function handleToggleDespatchReceival() {
+    if (!uuid || !despatch || isUpdatingDespatchStatus) {
+      return
+    }
+
+    const nextStatus = isDespatchReceived ? 'Shipped' : 'Received'
+
+    setError('')
+    setIsUpdatingDespatchStatus(true)
+
+    try {
+      const updatedDespatch = await updateDespatchStatus(uuid, nextStatus)
+      setDespatch((currentDespatch) => {
+        if (!currentDespatch) {
+          return updatedDespatch
+        }
+
+        return {
+          ...currentDespatch,
+          ...(updatedDespatch || {}),
+          status: normaliseDespatchStatus(updatedDespatch?.status || nextStatus),
+        }
+      })
+    } catch (updateError) {
+      setError(updateError.message || 'Unable to update despatch status.')
+    } finally {
+      setIsUpdatingDespatchStatus(false)
+    }
+  }
+
   return (
     <main className="home-screen despatch-detail-page">
       <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
@@ -165,6 +210,27 @@ export default function DespatchDetailPage() {
             >
               Download XML
               <Download className="size-4" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className={`despatch-detail-receive-btn ${isDespatchReceived ? 'despatch-detail-receive-btn-destructive' : ''}`}
+              onClick={handleToggleDespatchReceival}
+              disabled={
+                loading ||
+                isUpdatingDespatchStatus ||
+                !despatch
+              }
+            >
+              {isUpdatingDespatchStatus
+                ? 'Updating...'
+                : isDespatchReceived
+                  ? 'Cancel Receival'
+                  : 'Mark as Received'}
+              {isDespatchReceived
+                ? <X className="size-4" aria-hidden="true" />
+                : <CheckCircle2 className="size-4" aria-hidden="true" />}
             </Button>
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
@@ -235,7 +301,9 @@ export default function DespatchDetailPage() {
                 <div>
                   <dt>Status</dt>
                   <dd>
-                    <span className="despatch-detail-status-badge">{despatch.status}</span>
+                    <span className={`despatch-detail-status-badge ${DESPATCH_STATUS_CLASS[normaliseDespatchStatus(despatch.status)] ?? ''}`}>
+                      {currentDespatchStatus}
+                    </span>
                   </dd>
                 </div>
                 <div>

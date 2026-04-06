@@ -11,11 +11,9 @@ import { fetchDespatchDetail } from '@/features/despatch/api/despatch-api'
 import './styles/InvoiceDetailPage.css'
 
 const INVOICE_STATUS_CLASS = {
-  Draft: 'invoice-detail-status-draft',
   Issued: 'invoice-detail-status-issued',
   Paid: 'invoice-detail-status-paid',
   Overdue: 'invoice-detail-status-overdue',
-  Cancelled: 'invoice-detail-status-cancelled',
 }
 
 const DESPATCH_STATUS_CLASS = {
@@ -35,6 +33,16 @@ function formatCurrencyValue(value) {
   return amount.toFixed(2)
 }
 
+function buildStatusDescription(status) {
+  if (status === 'Paid') {
+    return 'Payment received and reconciled.'
+  }
+  if (status === 'Overdue') {
+    return 'Payment has not been recorded by the due date.'
+  }
+  return 'Invoice has been issued and is awaiting payment.'
+}
+
 export default function InvoiceDetailPage() {
   const navigate = useNavigate()
   const { uuid = '' } = useParams()
@@ -44,6 +52,9 @@ export default function InvoiceDetailPage() {
   const [relatedDespatchError, setRelatedDespatchError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const status = invoice?.status || 'Issued'
+  const statusDescription = buildStatusDescription(status)
+  const sourceLabel = invoice?.despatchUuid ? 'Despatch Advice' : 'Whole Order'
 
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const breadcrumbs = [
@@ -149,22 +160,37 @@ export default function InvoiceDetailPage() {
 
           {!loading && !error && invoice ? (
             <>
+              <section className="invoice-detail-hero" aria-label="Invoice status summary">
+                <div>
+                  <p className="invoice-detail-hero-label">Current State</p>
+                  <div className="invoice-detail-hero-status-row">
+                    <span className={`invoice-detail-status-badge ${INVOICE_STATUS_CLASS[status] ?? ''}`}>
+                      {status}
+                    </span>
+                    <span className="invoice-detail-hero-id">{invoice.displayId || uuid}</span>
+                  </div>
+                  <p className="invoice-detail-hero-text">{statusDescription}</p>
+                </div>
+                <div className="invoice-detail-hero-meta">
+                  <div>
+                    <span>Issue Date</span>
+                    <strong>{invoice.issueDate || '-'}</strong>
+                  </div>
+                  <div>
+                    <span>Due Date</span>
+                    <strong>{invoice.dueDate || '-'}</strong>
+                  </div>
+                  <div>
+                    <span>Source</span>
+                    <strong>{sourceLabel}</strong>
+                  </div>
+                </div>
+              </section>
+
               <dl className="invoice-detail-grid">
                 <div>
                   <dt>Invoice ID</dt>
                   <dd>{invoice.displayId}</dd>
-                </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>
-                    <span className={`invoice-detail-status-badge ${INVOICE_STATUS_CLASS[invoice.status] ?? ''}`}>
-                      {invoice.status}
-                    </span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Issue Date</dt>
-                  <dd>{invoice.issueDate}</dd>
                 </div>
                 <div>
                   <dt>Buyer</dt>
@@ -175,7 +201,19 @@ export default function InvoiceDetailPage() {
                   <dd className="invoice-detail-total-value">{formatCurrencyValue(invoice.total)}</dd>
                 </div>
                 <div>
-                  <dt>Despatch Reference</dt>
+                  <dt>Source</dt>
+                  <dd>{sourceLabel}</dd>
+                </div>
+                <div>
+                  <dt>Issue Date</dt>
+                  <dd>{invoice.issueDate || '-'}</dd>
+                </div>
+                <div>
+                  <dt>Due Date</dt>
+                  <dd>{invoice.dueDate || '-'}</dd>
+                </div>
+                <div>
+                  <dt>Linked Despatch</dt>
                   <dd>
                     {invoice.despatchUuid ? (
                       <Link className="invoice-detail-copy-link" to={`/despatch/${invoice.despatchUuid}`}>

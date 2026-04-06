@@ -727,6 +727,8 @@ function mapOrderDetail(orderDoc) {
 
   return {
     ...mapOrderSummary(orderDoc),
+    supplierAbn: readText(orderDoc && orderDoc.supplierAbn),
+    customerAbn: readText(orderDoc && orderDoc.customerAbn),
     xml: orderDoc.generatedOrderXml || orderDoc.xml || '',
     orderLines
   };
@@ -734,13 +736,18 @@ function mapOrderDetail(orderDoc) {
 
 function mapDespatchSummary(despatchDoc) {
   const lines = Array.isArray(despatchDoc && despatchDoc.lines) ? despatchDoc.lines : [];
+  const status =
+    normaliseDespatchStatus(despatchDoc && despatchDoc.status) ||
+    readText(despatchDoc && despatchDoc.status) ||
+    'Shipped';
 
   return {
     uuid: despatchDoc._id,
     displayId: despatchDoc.displayId || despatchDoc._id,
     orderDisplayId: despatchDoc.orderDisplayId || '',
     orderUuid: despatchDoc.orderUuid || '',
-    status: despatchDoc.status || 'Shipped',
+    buyer: despatchDoc.buyer || 'Unknown Buyer',
+    status,
     issueDate: despatchDoc.issueDate || '',
     lineItems: Number(despatchDoc.lineItems) || lines.length || 0,
     destination: summariseDespatchDestinations(despatchDoc),
@@ -756,16 +763,105 @@ function mapDespatchDetail(despatchDoc) {
   };
 }
 
+const LOCAL_INVOICE_STATUSES = new Set(['Issued', 'Paid', 'Overdue']);
+const LOCAL_DESPATCH_STATUSES = new Set(['Shipped', 'Received']);
+const INVOICE_SOURCE_TYPES = new Set(['despatch', 'order']);
+
+function normaliseInvoiceSourceType(value) {
+  const sourceType = readText(value).toLowerCase();
+  if (sourceType === 'order') {
+    return 'order';
+  }
+
+  return 'despatch';
+}
+
+function normaliseInvoiceStatus(value) {
+  const status = readText(value);
+  if (!status) {
+    return '';
+  }
+
+  const lowerCaseStatus = status.toLowerCase();
+  if (lowerCaseStatus === 'issued') {
+    return 'Issued';
+  }
+  if (lowerCaseStatus === 'paid') {
+    return 'Paid';
+  }
+  if (lowerCaseStatus === 'overdue') {
+    return 'Overdue';
+  }
+
+  return '';
+}
+
+function normaliseDespatchStatus(value) {
+  const status = readText(value);
+  if (!status) {
+    return '';
+  }
+
+  const lowerCaseStatus = status.toLowerCase();
+  if (lowerCaseStatus === 'shipped') {
+    return 'Shipped';
+  }
+  if (lowerCaseStatus === 'received') {
+    return 'Received';
+  }
+
+  return '';
+}
+
+function isPastIsoDate(isoDate, referenceDate = new Date()) {
+  if (!isIsoDate(isoDate)) {
+    return false;
+  }
+
+  const todayIso = referenceDate.toISOString().slice(0, 10);
+  return isoDate < todayIso;
+}
+
+function resolveInvoiceStatus(invoiceDoc, referenceDate = new Date()) {
+  const storedStatus = normaliseInvoiceStatus(invoiceDoc && invoiceDoc.status) || 'Issued';
+  const statusManuallySet = Boolean(invoiceDoc && invoiceDoc.statusManuallySet);
+
+  if (statusManuallySet) {
+    return storedStatus;
+  }
+
+  if (storedStatus === 'Paid') {
+    return 'Paid';
+  }
+
+  const dueDate = readText(invoiceDoc && invoiceDoc.dueDate);
+  if (isPastIsoDate(dueDate, referenceDate)) {
+    return 'Overdue';
+  }
+
+  return storedStatus === 'Overdue' ? 'Issued' : storedStatus;
+}
+
 function mapInvoiceSummary(invoiceDoc) {
+  const status = resolveInvoiceStatus(invoiceDoc);
+  const sourceType = normaliseInvoiceSourceType(invoiceDoc && invoiceDoc.sourceType);
+
   return {
     uuid: invoiceDoc._id,
     displayId: invoiceDoc.displayId || invoiceDoc._id,
+    sourceType,
+    sourceLabel: sourceType === 'order' ? 'Whole Order' : 'Despatch Advice',
+    orderDisplayId: invoiceDoc.orderDisplayId || '',
+    orderUuid: invoiceDoc.orderUuid || '',
+    baseDespatchDisplayId: invoiceDoc.baseDespatchDisplayId || '',
+    baseDespatchUuid: invoiceDoc.baseDespatchUuid || '',
     despatchDisplayId: invoiceDoc.despatchDisplayId || '',
     despatchUuid: invoiceDoc.despatchUuid || '',
     buyer: invoiceDoc.buyer || 'Unknown Buyer',
     total: Number(invoiceDoc.total) || 0,
     issueDate: invoiceDoc.issueDate || '',
-    status: invoiceDoc.status || 'Issued',
+    dueDate: invoiceDoc.dueDate || '',
+    status,
     updatedAt: toUnix(invoiceDoc.updatedAt || invoiceDoc.createdAt)
   };
 }
@@ -922,9 +1018,28 @@ function validateInvoiceCreateBody(body) {
     return { errors: ['Request body must be a JSON object.'] };
   }
 
-  const despatchUuid = readText(body.despatchUuid);
-  if (!despatchUuid || !isValidUuid(despatchUuid)) {
-    errors.push('despatchUuid must be a valid UUID.');
+  const baseOrderUuid = readText(body.baseOrderUuid);
+  if (baseOrderUuid && !isValidUuid(baseOrderUuid)) {
+    errors.push('baseOrderUuid must be a valid UUID when provided.');
+  }
+
+  const baseDespatchUuid = readText(body.baseDespatchUuid || body.despatchUuid);
+  if (baseDespatchUuid && !isValidUuid(baseDespatchUuid)) {
+    errors.push('baseDespatchUuid must be a valid UUID when provided.');
+  }
+
+  const invoiceSourceType = normaliseInvoiceSourceType(body.invoiceSourceType);
+  if (body.invoiceSourceType !== undefined && !INVOICE_SOURCE_TYPES.has(readText(body.invoiceSourceType).toLowerCase())) {
+    errors.push('invoiceSourceType must be either despatch or order when provided.');
+  }
+
+  const invoiceSourceDespatchUuid = readText(body.invoiceSourceDespatchUuid || body.despatchUuid || baseDespatchUuid);
+  if (invoiceSourceType === 'despatch' && (!invoiceSourceDespatchUuid || !isValidUuid(invoiceSourceDespatchUuid))) {
+    errors.push('invoiceSourceDespatchUuid must be a valid UUID when invoiceSourceType is despatch.');
+  }
+
+  if (invoiceSourceType === 'order' && !baseOrderUuid && !baseDespatchUuid) {
+    errors.push('baseOrderUuid or baseDespatchUuid must be provided when invoiceSourceType is order.');
   }
 
   const issueDate = readText(body.issueDate) || todayIsoDate();
@@ -960,18 +1075,90 @@ function validateInvoiceCreateBody(body) {
     errors.push('defaultUnitPrice must be a number greater than 0.');
   }
 
+  const manualLinesRaw = asArray(body.manualLines)
+    .map((line) => firstObject(line))
+    .filter(Boolean);
+
+  const manualLinesIncludeGst = Boolean(body.manualLinesIncludeGst);
+
+  const manualLines = manualLinesRaw.map((line, index) => {
+    const quantity = Number(line.quantity);
+    const unitPrice = Number(line.unitPrice);
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      errors.push('manualLines[' + index + '].quantity must be greater than 0.');
+    }
+
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      errors.push('manualLines[' + index + '].unitPrice must be greater than 0.');
+    }
+
+    return {
+      lineId: readText(line.lineId),
+      orderLineId: readText(line.orderLineId),
+      description: readText(line.description),
+      quantity,
+      unitPrice
+    };
+  });
+
+  if (body.manualLines !== undefined && !manualLines.length) {
+    errors.push('manualLines must include at least one line when provided.');
+  }
+
   return {
     errors,
-    despatchUuid,
+    baseOrderUuid,
+    baseDespatchUuid,
+    invoiceSourceType,
+    invoiceSourceDespatchUuid,
     issueDate,
     dueDate,
     currency,
     gstPercent,
     defaultUnitPrice,
+    manualLinesIncludeGst,
+    manualLines,
     supplierName: readText(body.supplierName),
     customerName: readText(body.customerName),
     supplierAbn: readText(body.supplierAbn),
     customerAbn: readText(body.customerAbn)
+  };
+}
+
+function validateInvoiceStatusUpdateBody(body) {
+  const errors = [];
+
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { errors: ['Request body must be a JSON object.'] };
+  }
+
+  const status = normaliseInvoiceStatus(body.status);
+  if (!status || !LOCAL_INVOICE_STATUSES.has(status)) {
+    errors.push('status must be one of Issued, Paid, or Overdue.');
+  }
+
+  return {
+    errors,
+    status
+  };
+}
+
+function validateDespatchStatusUpdateBody(body) {
+  const errors = [];
+
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return { errors: ['Request body must be a JSON object.'] };
+  }
+
+  const status = normaliseDespatchStatus(body.status);
+  if (!status || !LOCAL_DESPATCH_STATUSES.has(status)) {
+    errors.push('status must be one of Shipped or Received.');
+  }
+
+  return {
+    errors,
+    status
   };
 }
 
@@ -1598,9 +1785,14 @@ module.exports = {
   mapDespatchDetail,
   mapInvoiceSummary,
   mapInvoiceDetail,
+  normaliseDespatchStatus,
+  normaliseInvoiceStatus,
+  resolveInvoiceStatus,
   validateOrderCreateBody,
   validateDespatchCreateBody,
+  validateDespatchStatusUpdateBody,
   validateInvoiceCreateBody,
+  validateInvoiceStatusUpdateBody,
   buildChalksnifferOrderPayload,
   postJsonForXmlResponse,
   postChalksnifferOrderForXmlResponse,

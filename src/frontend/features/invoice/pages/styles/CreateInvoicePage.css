@@ -68,6 +68,16 @@
   color: #edf2fb;
 }
 
+.create-invoice-back-btn[data-slot='button'] {
+  padding-inline: 0.85rem;
+  text-decoration: none;
+}
+
+.create-invoice-back-btn[data-slot='button']:hover,
+.create-invoice-back-btn[data-slot='button']:focus-visible {
+  text-decoration: none;
+}
+
 .create-invoice-search-wrap {
   position: relative;
 }
@@ -174,11 +184,48 @@
   gap: 0.3rem;
 }
 
+.create-invoice-page .create-invoice-field [data-slot='input'] {
+  padding-left: 0.72rem;
+  padding-right: 0.95rem;
+}
+
 .create-invoice-field label {
   font-size: 0.74rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #8d9ab0;
+}
+
+.create-invoice-select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e6edf9;
+  min-height: 2.15rem;
+  padding: 0.42rem 0.5rem;
+}
+
+.create-invoice-source-note p {
+  margin: 0;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  padding: 0.5rem 0.6rem;
+  color: #c8d3e5;
+  background: rgba(8, 13, 20, 0.5);
+  font-size: 0.85rem;
+}
+
+.create-invoice-section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.create-invoice-section-heading-row .create-invoice-section-title {
+  margin-bottom: 0;
 }
 
 .create-invoice-detail-loading,
@@ -209,6 +256,17 @@
 
 .create-invoice-lines-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.create-invoice-lines-table td input[data-slot='input'] {
+  min-width: 120px;
+  padding-left: 0.72rem;
+  padding-right: 0.95rem;
+}
+
+.create-invoice-line-total-cell {
+  font-weight: 700;
+  color: #f2f6fc;
 }
 
 .create-invoice-totals {
@@ -252,9 +310,52 @@
   gap: 0.55rem;
 }
 
+.create-invoice-actions [data-slot='button'] {
+  padding-inline: 0.85rem;
+  text-decoration: none;
+}
+
+.create-invoice-nav-btn,
+.create-invoice-cancel-btn,
+.create-invoice-reset-btn {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.create-invoice-submit-btn {
+  border: 1px solid rgba(103, 216, 164, 0.4);
+  color: #67d8a4;
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+}
+
+.create-invoice-submit-btn:hover:not(:disabled) {
+  background: rgba(103, 216, 164, 0.12);
+  color: #8de6bb;
+}
+
+.create-invoice-actions [data-slot='button']:hover,
+.create-invoice-actions [data-slot='button']:focus-visible {
+  text-decoration: none;
+}
+
+.create-invoice-nav-btn:hover,
+.create-invoice-nav-btn:focus-visible,
+.create-invoice-cancel-btn:hover,
+.create-invoice-cancel-btn:focus-visible,
+.create-invoice-reset-btn:hover,
+.create-invoice-reset-btn:focus-visible {
+  text-decoration: none;
+}
+
 @media (max-width: 860px) {
   .create-invoice-grid-two {
     grid-template-columns: 1fr;
+  }
+
+  .create-invoice-section-heading-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .create-invoice-lines-table {

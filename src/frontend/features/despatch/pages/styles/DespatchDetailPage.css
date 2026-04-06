@@ -69,6 +69,36 @@
   text-decoration: none;
 }
 
+.despatch-detail-receive-btn[data-slot='button'] {
+  background: rgba(40, 122, 72, 0.82);
+  border-color: rgba(84, 198, 125, 0.6);
+  color: #f3fff7;
+  padding-left: 0.8rem;
+  padding-right: 0.6rem;
+  text-decoration: none;
+}
+
+.despatch-detail-receive-btn[data-slot='button']:hover {
+  background: rgba(40, 122, 72, 0.95);
+  border-color: rgba(110, 220, 150, 0.82);
+  text-decoration: none;
+}
+
+.despatch-detail-receive-btn[data-slot='button']:focus-visible {
+  text-decoration: none;
+}
+
+.despatch-detail-receive-btn-destructive[data-slot='button'] {
+  background: rgba(178, 34, 34, 0.8);
+  border-color: rgba(232, 87, 87, 0.6);
+  color: #f8fbff;
+}
+
+.despatch-detail-receive-btn-destructive[data-slot='button']:hover {
+  background: rgba(178, 34, 34, 0.95);
+  border-color: rgba(255, 120, 120, 0.8);
+}
+
 .despatch-detail-delete-btn {
   background: rgba(178, 34, 34, 0.8);
   border-color: rgba(232, 87, 87, 0.6);
@@ -202,6 +232,18 @@
   border: 1px solid rgba(76, 159, 240, 0.45);
   color: #e5ebf8;
   background: rgba(44, 112, 179, 0.3);
+}
+
+.despatch-detail-status-shipped {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.despatch-detail-status-received {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
 }
 
 .despatch-detail-copy-link,

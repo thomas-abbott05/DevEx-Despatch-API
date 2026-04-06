@@ -77,6 +77,74 @@
   border-color: rgba(160, 150, 255, 0.6);
 }
 
+.despatch-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(20, 24, 32, 0.45);
+}
+
+.despatch-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 200px;
+}
+
+.despatch-filter-group:first-child {
+  flex: 1 1 clamp(18rem, 42vw, 26rem);
+  min-width: clamp(18rem, 42vw, 26rem);
+}
+
+.despatch-filter-group-status {
+  min-width: 150px;
+}
+
+.despatch-filter-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #91a0b8;
+}
+
+.despatch-filter-input,
+.despatch-filter-select {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(19, 24, 31, 0.72);
+  color: #dbe5f3;
+  font-size: 0.84rem;
+  padding: 0 0.55rem;
+}
+
+.despatch-filter-input::placeholder {
+  color: #90a0b8;
+}
+
+.despatch-filter-input:focus-visible,
+.despatch-filter-select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 1px;
+}
+
+.despatch-toolbar-meta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.despatch-result-count {
+  font-size: 0.8rem;
+  color: #b8c4d8;
+}
+
 /* Table */
 .despatch-table-wrap {
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -90,7 +158,7 @@
 
 .despatch-table {
   width: 100%;
-  min-width: 860px;
+  min-width: 1040px;
   border-collapse: collapse;
   font-size: 0.9rem;
   color: #e2e8f4;
@@ -159,7 +227,16 @@
 }
 
 .despatch-ref-cell {
-  min-width: 12rem;
+  min-width: 7rem;
+}
+
+.despatch-receiver-cell {
+  min-width: 11rem;
+}
+
+.despatch-address-cell {
+  min-width: 16rem;
+  color: #c7d2e4;
 }
 
 .despatch-order-link {
@@ -239,6 +316,12 @@
   color: #60a5fa;
 }
 
+.status-received {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
 .status-transit {
   background: rgba(168, 85, 247, 0.12);
   border-color: rgba(168, 85, 247, 0.35);
@@ -287,7 +370,12 @@
 /* Responsive */
 @media (max-width: 760px) {
   .despatch-table {
-    min-width: 780px;
+    min-width: 960px;
+  }
+
+  .despatch-filter-group:first-child {
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .despatch-id-badge {
@@ -301,5 +389,9 @@
 
   .despatch-actions {
     justify-content: flex-end;
+  }
+
+  .despatch-toolbar-meta {
+    margin-left: 0;
   }
 }

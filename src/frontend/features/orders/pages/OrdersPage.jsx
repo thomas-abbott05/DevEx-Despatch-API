@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Upload, FileText } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -11,11 +11,12 @@ import './styles/OrdersPage.css'
 
 const STATUS_CLASS = {
   Pending: 'status-pending',
-  Confirmed: 'status-confirmed',
-  'In Transit': 'status-transit',
-  Delivered: 'status-delivered',
-  Cancelled: 'status-cancelled',
+  'In Progress': 'status-in-progress',
+  Despatched: 'status-despatched',
+  Completed: 'status-completed',
 }
+
+const STATUS_FILTER_OPTIONS = ['All', 'Pending', 'In Progress', 'Despatched', 'Completed']
 
 export default function OrdersPage() {
   const navigate = useNavigate()
@@ -23,6 +24,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const breadcrumbs = [
     { label: 'Home', to: '/' },
@@ -48,9 +51,41 @@ export default function OrdersPage() {
     loadOrders()
   }, [loadOrders])
 
+  const filteredOrders = useMemo(() => {
+    const normalizedTerm = searchTerm.trim().toLowerCase()
+
+    return orders.filter((orderDoc) => {
+      const status = String(orderDoc?.status || '')
+      if (statusFilter !== 'All' && status !== statusFilter) {
+        return false
+      }
+
+      if (!normalizedTerm) {
+        return true
+      }
+
+      const haystack = [
+        orderDoc?.displayId,
+        orderDoc?.buyer,
+        orderDoc?.supplier,
+        orderDoc?.issueDate,
+        status,
+      ]
+        .map((entry) => String(entry || '').toLowerCase())
+        .join(' ')
+
+      return haystack.includes(normalizedTerm)
+    })
+  }, [orders, searchTerm, statusFilter])
+
   async function handleLogout() {
     await logout()
     navigate('/login', { replace: true })
+  }
+
+  function clearFilters() {
+    setSearchTerm('')
+    setStatusFilter('All')
   }
 
   return (
@@ -79,6 +114,38 @@ export default function OrdersPage() {
           </div>
         </header>
 
+        <section className="orders-toolbar" aria-label="Order filters">
+          <div className="orders-filter-group">
+            <label className="orders-filter-label" htmlFor="orders-search">Search</label>
+            <input
+              id="orders-search"
+              className="orders-filter-input"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Order ID, buyer, supplier..."
+            />
+          </div>
+          <div className="orders-filter-group orders-filter-group-status">
+            <label className="orders-filter-label" htmlFor="orders-status-filter">Status</label>
+            <select
+              id="orders-status-filter"
+              className="orders-filter-select"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div className="orders-toolbar-meta">
+            <span className="orders-result-count">{filteredOrders.length} shown</span>
+            {(searchTerm.trim() || statusFilter !== 'All') ? (
+              <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+            ) : null}
+          </div>
+        </section>
+
         <div className="orders-table-wrap">
           {loading ? (
             <div className="orders-empty">
@@ -94,6 +161,12 @@ export default function OrdersPage() {
               <FileText className="orders-empty-icon" aria-hidden="true" />
               <p>No orders yet. Create or upload one to get started.</p>
             </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="orders-empty">
+              <FileText className="orders-empty-icon" aria-hidden="true" />
+              <p>No orders match the current filters.</p>
+              <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button>
+            </div>
           ) : (
             <table className="orders-table" aria-label="Orders list">
               <thead>
@@ -108,7 +181,7 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr key={order.uuid}>
                     <td className="orders-id-cell">
                       <span className="orders-id-badge">{order.displayId}</span>

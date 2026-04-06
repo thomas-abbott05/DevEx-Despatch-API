@@ -10,7 +10,21 @@ export async function fetchInvoiceDetail(uuid) {
   return payload?.invoice || null
 }
 
-export async function createInvoiceFromDespatch(payload) {
+export async function createInvoiceDocument(payload) {
   const responsePayload = await postJson('/api/v2/user/invoice/create', payload, 'Unable to create invoice document.')
+  return responsePayload?.invoice || null
+}
+
+export async function createInvoiceFromDespatch(payload) {
+  return createInvoiceDocument(payload)
+}
+
+export async function updateInvoiceStatus(uuid, status) {
+  const responsePayload = await postJson(
+    '/api/v2/user/invoices/' + encodeURIComponent(uuid) + '/status',
+    { status },
+    'Unable to update invoice status.'
+  )
+
   return responsePayload?.invoice || null
 }

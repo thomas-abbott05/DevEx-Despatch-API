@@ -98,9 +98,11 @@ describe('v2 user routes create endpoint validation', () => {
         cookie: cookieHeader
       },
       body: JSON.stringify({
-        despatchUuid: 'not-a-uuid',
+        baseDespatchUuid: 'not-a-uuid',
+        invoiceSourceType: 'unsupported',
         issueDate: 'bad-date',
         dueDate: 'worse-date',
+        manualLines: [],
         defaultUnitPrice: -1,
         gstPercent: -10
       })
@@ -111,5 +113,54 @@ describe('v2 user routes create endpoint validation', () => {
     expect(payload.success).toBe(false);
     expect(Array.isArray(payload.errors)).toBe(true);
     expect(payload.errors.length).toBeGreaterThan(0);
+  });
+
+  test('returns 400 for invalid invoice status update payload', async () => {
+    const seeded = seedDefaultData();
+    seeded.invoices.push({
+      _id: 'a5afefbf-9696-4272-82d4-3a6de85f0c5a',
+      userId: 'test-user',
+      displayId: 'INV-2026-001',
+      despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+      despatchDisplayId: 'DSP-2026-001',
+      issueDate: '2026-04-06',
+      dueDate: '2026-04-13',
+      status: 'Issued',
+      statusManuallySet: false,
+      total: 100
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const response = await fetch(baseUrl + '/api/v2/user/invoices/a5afefbf-9696-4272-82d4-3a6de85f0c5a/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({ status: 'Draft' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(Array.isArray(payload.errors)).toBe(true);
+    expect(payload.errors[0]).toMatch(/status/i);
+  });
+
+  test('returns 400 for invalid despatch status update payload', async () => {
+    const response = await fetch(baseUrl + '/api/v2/user/despatch/6b17c76a-87cd-4bff-83dc-1257536b6f14/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({ status: 'Pending' })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(Array.isArray(payload.errors)).toBe(true);
+    expect(payload.errors[0]).toMatch(/status/i);
   });
 });

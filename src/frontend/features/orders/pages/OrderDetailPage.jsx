@@ -22,18 +22,34 @@ import './styles/OrderDetailPage.css'
 
 const ORDER_STATUS_CLASS = {
   Pending: 'order-detail-order-status-pending',
-  Confirmed: 'order-detail-order-status-confirmed',
-  'In Transit': 'order-detail-order-status-transit',
-  Delivered: 'order-detail-order-status-delivered',
-  Cancelled: 'order-detail-order-status-cancelled',
+  'In Progress': 'order-detail-order-status-in-progress',
+  Despatched: 'order-detail-order-status-despatched',
+  Completed: 'order-detail-order-status-completed',
 }
 
 const DESPATCH_STATUS_CLASS = {
   Pending: 'order-detail-status-pending',
   Shipped: 'order-detail-status-shipped',
+  Received: 'order-detail-status-received',
   'In Transit': 'order-detail-status-transit',
   Delivered: 'order-detail-status-delivered',
   Cancelled: 'order-detail-status-cancelled',
+}
+
+function normaliseDespatchStatus(statusValue) {
+  const status = String(statusValue || '').trim().toLowerCase()
+
+  if (status === 'received') {
+    return 'Received'
+  }
+  if (status === 'shipped') {
+    return 'Shipped'
+  }
+  if (status === 'pending') {
+    return 'Pending'
+  }
+
+  return String(statusValue || '').trim() || '-'
 }
 
 function readLineUnitPrice(lineItem) {
@@ -264,6 +280,12 @@ export default function OrderDetailPage() {
                 <ChevronRight className="size-4" aria-hidden="true" />
               </Link>
             </Button>
+            <Button asChild variant="secondary" size="sm" className="order-detail-create-btn">
+              <Link to={`/invoice/create?orderUuid=${encodeURIComponent(uuid)}`}>
+                Create Invoice
+                <ChevronRight className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="order-detail-back-btn">
               <Link to="/order">Back to orders</Link>
             </Button>
@@ -439,8 +461,8 @@ export default function OrderDetailPage() {
                             <span className="order-detail-line-id-badge">{despatchDoc?.displayId || '-'}</span>
                           </td>
                           <td>
-                            <span className={`order-detail-status-badge order-detail-despatch-status-badge ${DESPATCH_STATUS_CLASS[despatchDoc?.status] ?? ''}`}>
-                              {despatchDoc?.status || '-'}
+                            <span className={`order-detail-status-badge order-detail-despatch-status-badge ${DESPATCH_STATUS_CLASS[normaliseDespatchStatus(despatchDoc?.status)] ?? ''}`}>
+                              {normaliseDespatchStatus(despatchDoc?.status)}
                             </span>
                           </td>
                           <td className="order-detail-line-center-cell">{Number(despatchDoc?.lineItems) || 0}</td>

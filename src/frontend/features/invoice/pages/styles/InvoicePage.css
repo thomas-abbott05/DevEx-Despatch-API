@@ -77,6 +77,74 @@
   border-color: rgba(160, 150, 255, 0.6);
 }
 
+.invoice-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(20, 24, 32, 0.45);
+}
+
+.invoice-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 200px;
+}
+
+.invoice-filter-group:first-child {
+  flex: 1 1 clamp(18rem, 42vw, 26rem);
+  min-width: clamp(18rem, 42vw, 26rem);
+}
+
+.invoice-filter-group-status {
+  min-width: 150px;
+}
+
+.invoice-filter-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #91a0b8;
+}
+
+.invoice-filter-input,
+.invoice-filter-select {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(19, 24, 31, 0.72);
+  color: #dbe5f3;
+  font-size: 0.84rem;
+  padding: 0 0.55rem;
+}
+
+.invoice-filter-input::placeholder {
+  color: #90a0b8;
+}
+
+.invoice-filter-input:focus-visible,
+.invoice-filter-select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 1px;
+}
+
+.invoice-toolbar-meta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.invoice-result-count {
+  font-size: 0.8rem;
+  color: #b8c4d8;
+}
+
 /* Table */
 .invoice-table-wrap {
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -90,7 +158,7 @@
 
 .invoice-table {
   width: 100%;
-  min-width: 860px;
+  min-width: 980px;
   border-collapse: collapse;
   font-size: 0.9rem;
   color: #e2e8f4;
@@ -128,6 +196,10 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+.invoice-row-updating {
+  background: rgba(59, 130, 246, 0.08);
+}
+
 .invoice-id-badge {
   display: inline-block;
   max-width: 13rem;
@@ -155,6 +227,11 @@
   align-items: center;
   color: #dbe5f3;
   text-decoration: none;
+  font-size: 0.84rem;
+}
+
+.invoice-ref-empty {
+  color: #9fb0c8;
   font-size: 0.84rem;
 }
 
@@ -210,10 +287,11 @@
   border: 1px solid transparent;
 }
 
-.status-draft {
-  background: rgba(148, 163, 184, 0.12);
-  border-color: rgba(148, 163, 184, 0.3);
-  color: #94a3b8;
+.invoice-status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .status-issued {
@@ -229,15 +307,31 @@
 }
 
 .status-overdue {
-  background: rgba(255, 0, 89, 0.1);
-  border-color: rgba(255, 0, 89, 0.3);
-  color: #ff6090;
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
 }
 
-.status-cancelled {
-  background: rgba(100, 116, 139, 0.1);
-  border-color: rgba(100, 116, 139, 0.3);
-  color: #64748b;
+.invoice-status-select {
+  height: 30px;
+  min-width: 96px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(19, 24, 31, 0.72);
+  color: #dbe5f3;
+  font-size: 0.78rem;
+  line-height: 1;
+  padding: 0.1rem 0.45rem;
+}
+
+.invoice-status-select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 1px;
+}
+
+.invoice-status-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .invoice-row-actions {
@@ -270,7 +364,12 @@
 /* Responsive */
 @media (max-width: 760px) {
   .invoice-table {
-    min-width: 780px;
+    min-width: 960px;
+  }
+
+  .invoice-filter-group:first-child {
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .invoice-id-badge {
@@ -284,5 +383,9 @@
 
   .invoice-actions {
     justify-content: flex-end;
+  }
+
+  .invoice-toolbar-meta {
+    margin-left: 0;
   }
 }

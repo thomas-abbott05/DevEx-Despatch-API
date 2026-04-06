@@ -42,6 +42,7 @@ async function initialiseIndexes() {
   await userInvoiceCollection.createIndex({ userId: 1, updatedAt: -1 });
   await userInvoiceCollection.createIndex({ userId: 1, despatchUuid: 1 });
   await userInvoiceCollection.createIndex({ userId: 1, displayId: 1 });
+  await userInvoiceCollection.createIndex({ userId: 1, status: 1, updatedAt: -1 });
 
   indexesInitialised = true;
 }

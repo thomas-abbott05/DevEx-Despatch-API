@@ -21,7 +21,10 @@ const {
   mapInvoiceDetail,
   validateOrderCreateBody,
   validateDespatchCreateBody,
+  validateDespatchStatusUpdateBody,
   validateInvoiceCreateBody,
+  validateInvoiceStatusUpdateBody,
+  resolveInvoiceStatus,
   buildChalksnifferOrderPayload,
   postJsonForXmlResponse,
   postChalksnifferOrderForXmlResponse,
@@ -51,6 +54,10 @@ function readQuantity(value) {
   return Number.isFinite(quantity) ? quantity : 0;
 }
 
+function roundCurrency(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
 function buildLineIdCandidates(lineIdValue) {
   const lineId = readText(lineIdValue);
   if (!lineId) {
@@ -78,6 +85,56 @@ function buildLineIdCandidates(lineIdValue) {
   }
 
   return Array.from(candidates);
+}
+
+function readOrderLineUnitPrice(orderLine, fallbackUnitPrice) {
+  const directUnitPrice = Number(orderLine && orderLine.unitPrice);
+  if (Number.isFinite(directUnitPrice) && directUnitPrice > 0) {
+    return roundCurrency(directUnitPrice);
+  }
+
+  const nestedUnitPrice = Number(
+    orderLine &&
+      orderLine.lineItem &&
+      orderLine.lineItem.price &&
+      orderLine.lineItem.price.priceAmount
+  );
+
+  if (Number.isFinite(nestedUnitPrice) && nestedUnitPrice > 0) {
+    return roundCurrency(nestedUnitPrice);
+  }
+
+  return roundCurrency(fallbackUnitPrice);
+}
+
+function deriveInvoiceLinesFromOrder(orderDoc, fallbackUnitPrice) {
+  const mappedOrder = mapOrderDetail(orderDoc);
+  const orderLines = Array.isArray(mappedOrder && mappedOrder.orderLines) ? mappedOrder.orderLines : [];
+
+  return orderLines
+    .map((line, index) => {
+      const quantity = readQuantity(line && line.requestedQuantity);
+      if (quantity <= 0) {
+        return null;
+      }
+
+      const lineId = readText(line && line.lineId) || String(index + 1);
+      const description =
+        readText(line && line.description) ||
+        readText(line && line.itemName) ||
+        'Line Item ' + String(index + 1);
+      const unitPrice = readOrderLineUnitPrice(line, fallbackUnitPrice);
+      const lineTotal = roundCurrency(quantity * unitPrice);
+
+      return {
+        lineId,
+        description,
+        quantity,
+        unitPrice,
+        lineTotal
+      };
+    })
+    .filter(Boolean);
 }
 
 function buildDestinationSummary(line, fallback = '-') {
@@ -177,6 +234,269 @@ function enrichOrderLinesWithDespatch(orderLines, despatchDocs) {
     enrichedOrderLines,
     pendingDespatchLines
   };
+}
+
+function hasLineCandidateMatch(leftCandidates, rightCandidates) {
+  if (!leftCandidates || !rightCandidates) {
+    return false;
+  }
+
+  return Array.from(leftCandidates).some((candidate) => rightCandidates.has(candidate));
+}
+
+function buildOrderLineStatusEntries(orderDoc) {
+  const mappedOrder = mapOrderDetail(orderDoc);
+  const orderLines = Array.isArray(mappedOrder && mappedOrder.orderLines) ? mappedOrder.orderLines : [];
+
+  return orderLines.map((line, index) => {
+    const lineId = readText(line && line.lineId) || 'LINE-' + String(index + 1).padStart(3, '0');
+
+    return {
+      lineId,
+      requestedQuantity: Math.max(readQuantity(line && line.requestedQuantity), 0),
+      despatchedQuantity: 0,
+      paidQuantity: 0,
+      candidates: new Set(buildLineIdCandidates(lineId))
+    };
+  });
+}
+
+function mapDespatchLinesToOrderLines(orderLineEntries, despatchDocs) {
+  const despatchLineLookupByDespatchUuid = new Map();
+
+  (Array.isArray(despatchDocs) ? despatchDocs : []).forEach((despatchDoc) => {
+    const despatchUuid = readText(despatchDoc && despatchDoc._id);
+    const despatchLines = Array.isArray(despatchDoc && despatchDoc.lines) ? despatchDoc.lines : [];
+    const mappedDespatchLines = [];
+
+    despatchLines.forEach((despatchLine) => {
+      const quantity = readQuantity(
+        despatchLine &&
+          (despatchLine.quantity || despatchLine.deliveredQuantity || despatchLine.fulfilmentQuantity)
+      );
+
+      if (quantity <= 0) {
+        return;
+      }
+
+      const lineCandidates = new Set([
+        ...buildLineIdCandidates(despatchLine && despatchLine.orderLineId),
+        ...buildLineIdCandidates(despatchLine && despatchLine.lineId)
+      ]);
+
+      if (lineCandidates.size === 0) {
+        return;
+      }
+
+      let matchedOrderLineId = '';
+      const matchedOrderLine = orderLineEntries.find((orderLineEntry) =>
+        hasLineCandidateMatch(orderLineEntry.candidates, lineCandidates)
+      );
+
+      if (matchedOrderLine) {
+        matchedOrderLine.despatchedQuantity += quantity;
+        matchedOrderLineId = matchedOrderLine.lineId;
+      }
+
+      mappedDespatchLines.push({
+        lineCandidates,
+        matchedOrderLineId
+      });
+    });
+
+    if (despatchUuid) {
+      despatchLineLookupByDespatchUuid.set(despatchUuid, mappedDespatchLines);
+    }
+  });
+
+  return despatchLineLookupByDespatchUuid;
+}
+
+function applyPaidInvoiceQuantities(orderLineEntries, despatchLineLookupByDespatchUuid, invoiceDocs) {
+  const orderLineById = new Map(
+    orderLineEntries.map((orderLineEntry) => [orderLineEntry.lineId, orderLineEntry])
+  );
+
+  (Array.isArray(invoiceDocs) ? invoiceDocs : []).forEach((invoiceDoc) => {
+    if (resolveInvoiceStatus(invoiceDoc) !== 'Paid') {
+      return;
+    }
+
+    const invoiceLines = Array.isArray(
+      invoiceDoc &&
+        invoiceDoc.invoicePayload &&
+        invoiceDoc.invoicePayload.InvoiceData &&
+        invoiceDoc.invoicePayload.InvoiceData.lines
+    )
+      ? invoiceDoc.invoicePayload.InvoiceData.lines
+      : [];
+
+    if (!invoiceLines.length) {
+      return;
+    }
+
+    const relatedDespatchLines =
+      despatchLineLookupByDespatchUuid.get(readText(invoiceDoc && invoiceDoc.despatchUuid)) || [];
+
+    invoiceLines.forEach((invoiceLine) => {
+      const quantity = readQuantity(invoiceLine && invoiceLine.quantity);
+      if (quantity <= 0) {
+        return;
+      }
+
+      const invoiceLineCandidates = new Set([
+        ...buildLineIdCandidates(invoiceLine && invoiceLine.lineId),
+        ...buildLineIdCandidates(invoiceLine && invoiceLine.orderLineId)
+      ]);
+
+      if (invoiceLineCandidates.size === 0) {
+        return;
+      }
+
+      let matchedOrderLineId = '';
+
+      const mappedDespatchLine = relatedDespatchLines.find(
+        (despatchLine) =>
+          despatchLine.matchedOrderLineId &&
+          hasLineCandidateMatch(despatchLine.lineCandidates, invoiceLineCandidates)
+      );
+
+      if (mappedDespatchLine) {
+        matchedOrderLineId = mappedDespatchLine.matchedOrderLineId;
+      }
+
+      if (!matchedOrderLineId) {
+        const matchedOrderLine = orderLineEntries.find((orderLineEntry) =>
+          hasLineCandidateMatch(orderLineEntry.candidates, invoiceLineCandidates)
+        );
+
+        if (matchedOrderLine) {
+          matchedOrderLineId = matchedOrderLine.lineId;
+        }
+      }
+
+      if (!matchedOrderLineId) {
+        return;
+      }
+
+      const targetOrderLine = orderLineById.get(matchedOrderLineId);
+      if (targetOrderLine) {
+        targetOrderLine.paidQuantity += quantity;
+      }
+    });
+  });
+}
+
+function resolveOrderLifecycleStatus(orderDoc, relatedDespatchDocs, relatedInvoiceDocs) {
+  const hasDespatchAdvice = Array.isArray(relatedDespatchDocs) && relatedDespatchDocs.length > 0;
+  const orderLineEntries = buildOrderLineStatusEntries(orderDoc);
+
+  if (!orderLineEntries.length) {
+    return hasDespatchAdvice ? 'In Progress' : 'Pending';
+  }
+
+  const despatchLineLookupByDespatchUuid = mapDespatchLinesToOrderLines(
+    orderLineEntries,
+    relatedDespatchDocs
+  );
+
+  applyPaidInvoiceQuantities(orderLineEntries, despatchLineLookupByDespatchUuid, relatedInvoiceDocs);
+
+  const requestedTotal = orderLineEntries.reduce(
+    (accumulator, line) => accumulator + line.requestedQuantity,
+    0
+  );
+  const despatchedTotal = orderLineEntries.reduce(
+    (accumulator, line) => accumulator + Math.min(line.despatchedQuantity, line.requestedQuantity),
+    0
+  );
+  const paidTotal = orderLineEntries.reduce(
+    (accumulator, line) => accumulator + Math.min(line.paidQuantity, line.requestedQuantity),
+    0
+  );
+
+  const quantityTolerance = 0.0001;
+  const allItemsDespatched =
+    requestedTotal > quantityTolerance && despatchedTotal >= requestedTotal - quantityTolerance;
+  const allItemsPaid = requestedTotal > quantityTolerance && paidTotal >= requestedTotal - quantityTolerance;
+
+  if (allItemsDespatched && allItemsPaid) {
+    return 'Completed';
+  }
+
+  if (allItemsDespatched) {
+    return 'Despatched';
+  }
+
+  if (hasDespatchAdvice || despatchedTotal > quantityTolerance) {
+    return 'In Progress';
+  }
+
+  return 'Pending';
+}
+
+function buildOrderStatusLookup(orderDocs, despatchDocs, invoiceDocs) {
+  const despatchByOrderUuid = new Map();
+  const invoicesByDespatchUuid = new Map();
+  const invoicesByOrderUuid = new Map();
+
+  (Array.isArray(despatchDocs) ? despatchDocs : []).forEach((despatchDoc) => {
+    const orderUuid = readText(despatchDoc && despatchDoc.orderUuid);
+    if (!orderUuid) {
+      return;
+    }
+
+    const relatedDespatchDocs = despatchByOrderUuid.get(orderUuid) || [];
+    relatedDespatchDocs.push(despatchDoc);
+    despatchByOrderUuid.set(orderUuid, relatedDespatchDocs);
+  });
+
+  (Array.isArray(invoiceDocs) ? invoiceDocs : []).forEach((invoiceDoc) => {
+    const despatchUuid = readText(invoiceDoc && invoiceDoc.despatchUuid);
+    const orderUuid = readText(invoiceDoc && invoiceDoc.orderUuid);
+
+    if (despatchUuid) {
+      const relatedInvoiceDocs = invoicesByDespatchUuid.get(despatchUuid) || [];
+      relatedInvoiceDocs.push(invoiceDoc);
+      invoicesByDespatchUuid.set(despatchUuid, relatedInvoiceDocs);
+    }
+
+    if (orderUuid) {
+      const relatedOrderInvoiceDocs = invoicesByOrderUuid.get(orderUuid) || [];
+      relatedOrderInvoiceDocs.push(invoiceDoc);
+      invoicesByOrderUuid.set(orderUuid, relatedOrderInvoiceDocs);
+    }
+  });
+
+  const statusesByOrderUuid = new Map();
+
+  (Array.isArray(orderDocs) ? orderDocs : []).forEach((orderDoc) => {
+    const orderUuid = readText(orderDoc && orderDoc._id);
+    if (!orderUuid) {
+      return;
+    }
+
+    const relatedDespatchDocs = despatchByOrderUuid.get(orderUuid) || [];
+    const despatchLinkedInvoiceDocs = relatedDespatchDocs.flatMap(
+      (despatchDoc) => invoicesByDespatchUuid.get(readText(despatchDoc && despatchDoc._id)) || []
+    );
+    const orderLinkedInvoiceDocs = invoicesByOrderUuid.get(orderUuid) || [];
+    const relatedInvoiceDocsById = new Map();
+
+    despatchLinkedInvoiceDocs.concat(orderLinkedInvoiceDocs).forEach((invoiceDoc) => {
+      const invoiceUuid = readText(invoiceDoc && invoiceDoc._id) || randomUUID();
+      if (!relatedInvoiceDocsById.has(invoiceUuid)) {
+        relatedInvoiceDocsById.set(invoiceUuid, invoiceDoc);
+      }
+    });
+
+    const relatedInvoiceDocs = Array.from(relatedInvoiceDocsById.values());
+
+    const derivedStatus = resolveOrderLifecycleStatus(orderDoc, relatedDespatchDocs, relatedInvoiceDocs);
+    statusesByOrderUuid.set(orderUuid, derivedStatus);
+  });
+
+  return statusesByOrderUuid;
 }
 
 router.use(requireSessionAuth);
@@ -345,16 +665,6 @@ router.post('/despatch/create', async (req, res) => {
       createdDespatches.push(mapDespatchSummary(despatchDoc));
     }
 
-    await db.collection(USER_ORDER_COLLECTION).updateOne(
-      { _id: orderDoc._id, userId },
-      {
-        $set: {
-          status: 'Confirmed',
-          updatedAt: new Date()
-        }
-      }
-    );
-
     return res.status(201).json({
       success: true,
       adviceIds: createdDespatches.map((despatch) => despatch.uuid),
@@ -374,10 +684,9 @@ router.post('/invoice/create', async (req, res) => {
       return sendError(res, 400, validation.errors);
     }
 
-    const gptlessApiToken = process.env.GPTLESS_API_TOKEN;
-    if (!gptlessApiToken) {
-      return sendError(res, 500, 'Missing GPTLESS_API_TOKEN environment variable.');
-    }
+    const invoiceApiToken = readText(
+      process.env.GPTLESS_API_TOKEN || process.env.CHALKSNIFFER_API_TOKEN
+    ).replace(/^Authorization\s*:\s*/i, '');
 
     const templateInvoice = process.env.GPTLESS_TEMPLATE_INVOICE_ID;
     if (!templateInvoice) {
@@ -387,28 +696,80 @@ router.post('/invoice/create', async (req, res) => {
     const db = getDb();
     const userId = req.session.userId;
 
-    const despatchDoc = await db.collection(USER_DESPATCH_COLLECTION).findOne({
-      _id: validation.despatchUuid,
-      userId
-    });
+    let linkedOrder = null;
+    if (validation.baseOrderUuid) {
+      linkedOrder = await db.collection(USER_ORDER_COLLECTION).findOne({
+        _id: validation.baseOrderUuid,
+        userId
+      });
 
-    if (!despatchDoc) {
-      return sendNotFound(res, 'despatch', validation.despatchUuid);
+      if (!linkedOrder) {
+        return sendNotFound(res, 'order', validation.baseOrderUuid);
+      }
     }
 
-    const linkedOrder = despatchDoc.orderUuid
-      ? await db.collection(USER_ORDER_COLLECTION).findOne({ _id: despatchDoc.orderUuid, userId })
+    const baseDespatchDoc = validation.baseDespatchUuid
+      ? await db.collection(USER_DESPATCH_COLLECTION).findOne({
+          _id: validation.baseDespatchUuid,
+          userId
+        })
       : null;
+
+    if (validation.baseDespatchUuid && !baseDespatchDoc) {
+      return sendNotFound(res, 'despatch', validation.baseDespatchUuid);
+    }
+
+    const sourceType = validation.invoiceSourceType;
+    const sourceDespatchUuid = sourceType === 'despatch'
+      ? validation.invoiceSourceDespatchUuid || validation.baseDespatchUuid
+      : '';
+
+    const sourceDespatchDoc = sourceType === 'despatch'
+      ? await db.collection(USER_DESPATCH_COLLECTION).findOne({ _id: sourceDespatchUuid, userId })
+      : null;
+
+    if (sourceType === 'despatch' && !sourceDespatchDoc) {
+      return sendNotFound(res, 'despatch', sourceDespatchUuid);
+    }
+
+    if (!linkedOrder) {
+      const sourceOrderUuid =
+        readText(baseDespatchDoc && baseDespatchDoc.orderUuid) ||
+        readText(sourceDespatchDoc && sourceDespatchDoc.orderUuid);
+
+      linkedOrder = sourceOrderUuid
+        ? await db.collection(USER_ORDER_COLLECTION).findOne({ _id: sourceOrderUuid, userId })
+        : null;
+    }
+
+    if (sourceType === 'order' && !linkedOrder) {
+      return sendError(
+        res,
+        400,
+        'Selected base order is unavailable for whole-order invoicing. Provide a valid baseOrderUuid or a baseDespatchUuid linked to an order.'
+      );
+    }
+
+    if (
+      sourceType === 'despatch' &&
+      linkedOrder &&
+      readText(sourceDespatchDoc && sourceDespatchDoc.orderUuid) &&
+      readText(sourceDespatchDoc && sourceDespatchDoc.orderUuid) !== linkedOrder._id
+    ) {
+      return sendError(res, 400, 'Selected despatch advice must belong to the same order as the base despatch advice.');
+    }
 
     const supplierName =
       validation.supplierName ||
-      despatchDoc.supplier ||
+      readText(sourceDespatchDoc && sourceDespatchDoc.supplier) ||
+      readText(baseDespatchDoc && baseDespatchDoc.supplier) ||
       (linkedOrder && linkedOrder.supplier) ||
       'Supplier';
 
     const customerName =
       validation.customerName ||
-      despatchDoc.buyer ||
+      readText(sourceDespatchDoc && sourceDespatchDoc.buyer) ||
+      readText(baseDespatchDoc && baseDespatchDoc.buyer) ||
       (linkedOrder && linkedOrder.buyer) ||
       'Customer';
 
@@ -423,9 +784,31 @@ router.post('/invoice/create', async (req, res) => {
       );
     }
 
-    const invoiceLines = deriveInvoiceLinesFromDespatch(despatchDoc, validation.defaultUnitPrice);
+    const generatedInvoiceLines = sourceType === 'order'
+      ? deriveInvoiceLinesFromOrder(linkedOrder, validation.defaultUnitPrice)
+      : deriveInvoiceLinesFromDespatch(sourceDespatchDoc, validation.defaultUnitPrice);
+
+    const invoiceLines = validation.manualLines.length
+      ? validation.manualLines.map((line, index) => {
+          const quantity = readQuantity(line && line.quantity);
+          const manualUnitPrice = roundCurrency(readQuantity(line && line.unitPrice));
+          const divisor = 1 + (validation.gstPercent / 100);
+          const unitPrice = validation.manualLinesIncludeGst && divisor > 0
+            ? roundCurrency(manualUnitPrice / divisor)
+            : manualUnitPrice;
+
+          return {
+            lineId: readText(line && line.lineId) || String(index + 1),
+            description: readText(line && line.description) || 'Line Item ' + String(index + 1),
+            quantity,
+            unitPrice,
+            lineTotal: roundCurrency(quantity * unitPrice)
+          };
+        })
+      : generatedInvoiceLines;
+
     if (!invoiceLines.length) {
-      return sendError(res, 400, 'Selected despatch has no deliverable lines for invoice generation.');
+      return sendError(res, 400, 'Selected invoice scope has no deliverable lines for invoice generation.');
     }
 
     const totals = calculateInvoiceTotals(invoiceLines, validation.gstPercent);
@@ -460,13 +843,13 @@ router.post('/invoice/create', async (req, res) => {
       }
     };
 
+    const invoiceRequestHeaders = invoiceApiToken ? { APItoken: invoiceApiToken } : {};
+
     const invoiceXml = await postJsonForXmlResponse(
       GPTLESS_INVOICE_URL,
       invoicePayload,
       'Invoice generation request',
-      {
-        APItoken: gptlessApiToken
-      }
+      invoiceRequestHeaders
     );
 
     let invoiceSummary;
@@ -486,12 +869,21 @@ router.post('/invoice/create', async (req, res) => {
       _id: randomUUID(),
       userId,
       displayId: invoiceSummary.displayId || 'INV-' + nowUnix(),
-      despatchUuid: despatchDoc._id,
-      despatchDisplayId: despatchDoc.displayId || despatchDoc._id,
+      sourceType,
+      orderUuid: (linkedOrder && linkedOrder._id) || '',
+      orderDisplayId:
+        (linkedOrder && linkedOrder.displayId) ||
+        readText(baseDespatchDoc && baseDespatchDoc.orderDisplayId),
+      baseDespatchUuid: readText(baseDespatchDoc && baseDespatchDoc._id),
+      baseDespatchDisplayId: readText(baseDespatchDoc && (baseDespatchDoc.displayId || baseDespatchDoc._id)),
+      despatchUuid: sourceType === 'despatch' ? sourceDespatchDoc._id : '',
+      despatchDisplayId: sourceType === 'despatch' ? (sourceDespatchDoc.displayId || sourceDespatchDoc._id) : '',
       buyer: invoiceSummary.buyer || customerName,
       total: Number.isFinite(invoiceSummary.total) ? invoiceSummary.total : totals.totalAmount,
       issueDate: invoiceSummary.issueDate || validation.issueDate,
+      dueDate: validation.dueDate,
       status: 'Issued',
+      statusManuallySet: false,
       updatedAt: now,
       createdAt: now,
       invoiceXml,
@@ -537,11 +929,88 @@ router.get('/home-summary', async (req, res) => {
         .toArray()
     ]);
 
+    const orderUuids = (Array.isArray(orders) ? orders : [])
+      .map((orderDoc) => readText(orderDoc && orderDoc._id))
+      .filter(Boolean);
+
+    let relatedOrderDespatchDocs = [];
+    let relatedOrderInvoiceDocs = [];
+
+    if (orderUuids.length > 0) {
+      relatedOrderDespatchDocs = await db
+        .collection(USER_DESPATCH_COLLECTION)
+        .find({ userId, orderUuid: { $in: orderUuids } })
+        .toArray();
+
+      const relatedDespatchUuids = (Array.isArray(relatedOrderDespatchDocs) ? relatedOrderDespatchDocs : [])
+        .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
+        .filter(Boolean);
+
+      if (relatedDespatchUuids.length > 0) {
+        relatedOrderInvoiceDocs = await db
+          .collection(USER_INVOICE_COLLECTION)
+          .find({ userId, despatchUuid: { $in: relatedDespatchUuids } })
+          .toArray();
+      }
+    }
+
+    const orderStatusLookup = buildOrderStatusLookup(
+      orders,
+      relatedOrderDespatchDocs,
+      relatedOrderInvoiceDocs
+    );
+
+    const orderBuyerByUuid = new Map(
+      (Array.isArray(orders) ? orders : []).map((orderDoc) => [
+        orderDoc && orderDoc._id,
+        readText(orderDoc && orderDoc.buyer)
+      ])
+    );
+
+    const despatchBuyerByUuid = new Map();
+
+    const mappedDespatch = (Array.isArray(despatch) ? despatch : []).map((despatchDoc) => {
+      const buyer =
+        readText(despatchDoc && despatchDoc.buyer) ||
+        readText(orderBuyerByUuid.get(despatchDoc && despatchDoc.orderUuid)) ||
+        'Unknown Buyer';
+
+      const mapped = {
+        ...mapDespatchSummary(despatchDoc),
+        buyer
+      };
+
+      if (despatchDoc && despatchDoc._id) {
+        despatchBuyerByUuid.set(despatchDoc._id, buyer);
+      }
+
+      return mapped;
+    });
+
+    const mappedInvoices = (Array.isArray(invoices) ? invoices : []).map((invoiceDoc) => {
+      const buyer =
+        readText(invoiceDoc && invoiceDoc.buyer) ||
+        readText(despatchBuyerByUuid.get(invoiceDoc && invoiceDoc.despatchUuid)) ||
+        'Unknown Buyer';
+
+      return {
+        ...mapInvoiceSummary(invoiceDoc),
+        buyer
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      orders: orders.map(mapOrderSummary),
-      despatch: despatch.map(mapDespatchSummary),
-      invoices: invoices.map(mapInvoiceSummary),
+      orders: orders.map((orderDoc) => {
+        const derivedStatus = orderStatusLookup.get(readText(orderDoc && orderDoc._id));
+
+        return mapOrderSummary({
+          ...orderDoc,
+          status: derivedStatus || readText(orderDoc && orderDoc.status) || 'Pending'
+        });
+      }),
+      despatch: mappedDespatch,
+      invoices: mappedInvoices,
       'executed-at': nowUnix()
     });
   } catch (error) {
@@ -561,9 +1030,30 @@ router.get('/orders', async (req, res) => {
       .sort({ updatedAt: -1 })
       .toArray();
 
+    const despatchDocs = await db.collection(USER_DESPATCH_COLLECTION).find({ userId }).toArray();
+    const despatchUuids = (Array.isArray(despatchDocs) ? despatchDocs : [])
+      .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
+      .filter(Boolean);
+
+    const invoiceDocs = despatchUuids.length
+      ? await db
+          .collection(USER_INVOICE_COLLECTION)
+          .find({ userId, despatchUuid: { $in: despatchUuids } })
+          .toArray()
+      : [];
+
+    const orderStatusLookup = buildOrderStatusLookup(orders, despatchDocs, invoiceDocs);
+
     return res.status(200).json({
       success: true,
-      orders: orders.map(mapOrderSummary),
+      orders: orders.map((orderDoc) => {
+        const derivedStatus = orderStatusLookup.get(readText(orderDoc && orderDoc._id));
+
+        return mapOrderSummary({
+          ...orderDoc,
+          status: derivedStatus || readText(orderDoc && orderDoc.status) || 'Pending'
+        });
+      }),
       'executed-at': nowUnix()
     });
   } catch (error) {
@@ -589,7 +1079,27 @@ router.get('/orders/:uuid', async (req, res) => {
       .sort({ updatedAt: -1 })
       .toArray();
 
-    const mappedOrder = mapOrderDetail(orderDoc);
+    const relatedDespatchUuids = (Array.isArray(relatedDespatchDocs) ? relatedDespatchDocs : [])
+      .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
+      .filter(Boolean);
+
+    const relatedInvoiceDocs = relatedDespatchUuids.length
+      ? await db
+          .collection(USER_INVOICE_COLLECTION)
+          .find({ userId, despatchUuid: { $in: relatedDespatchUuids } })
+          .toArray()
+      : [];
+
+    const derivedOrderStatus = resolveOrderLifecycleStatus(
+      orderDoc,
+      relatedDespatchDocs,
+      relatedInvoiceDocs
+    );
+
+    const mappedOrder = mapOrderDetail({
+      ...orderDoc,
+      status: derivedOrderStatus
+    });
     const { enrichedOrderLines, pendingDespatchLines } = enrichOrderLinesWithDespatch(
       mappedOrder.orderLines,
       relatedDespatchDocs
@@ -723,6 +1233,50 @@ router.delete('/despatch/:uuid', async (req, res) => {
   }
 });
 
+router.post('/despatch/:uuid/status', async (req, res) => {
+  try {
+    const validation = validateDespatchStatusUpdateBody(req.body);
+    if (validation.errors.length > 0) {
+      return sendError(res, 400, validation.errors);
+    }
+
+    const db = getDb();
+    const userId = req.session.userId;
+    const uuid = req.params.uuid;
+
+    const existingDespatch = await db.collection(USER_DESPATCH_COLLECTION).findOne({ _id: uuid, userId });
+    if (!existingDespatch) {
+      return sendNotFound(res, 'despatch', uuid);
+    }
+
+    const now = new Date();
+    await db.collection(USER_DESPATCH_COLLECTION).updateOne(
+      { _id: uuid, userId },
+      {
+        $set: {
+          status: validation.status,
+          updatedAt: now
+        }
+      }
+    );
+
+    const updatedDespatch = {
+      ...existingDespatch,
+      status: validation.status,
+      updatedAt: now
+    };
+
+    return res.status(200).json({
+      success: true,
+      despatch: mapDespatchDetail(updatedDespatch),
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error updating despatch status:', error);
+    return sendError(res, 500, error.message || 'Unable to update despatch status.');
+  }
+});
+
 router.get('/invoices', async (req, res) => {
   try {
     const db = getDb();
@@ -764,6 +1318,52 @@ router.get('/invoices/:uuid', async (req, res) => {
   } catch (error) {
     console.error('Error loading invoice detail:', error);
     return sendError(res, 500, error.message || 'Unable to load invoice detail.');
+  }
+});
+
+router.post('/invoices/:uuid/status', async (req, res) => {
+  try {
+    const validation = validateInvoiceStatusUpdateBody(req.body);
+    if (validation.errors.length > 0) {
+      return sendError(res, 400, validation.errors);
+    }
+
+    const db = getDb();
+    const userId = req.session.userId;
+    const uuid = req.params.uuid;
+
+    const existingInvoice = await db.collection(USER_INVOICE_COLLECTION).findOne({ _id: uuid, userId });
+    if (!existingInvoice) {
+      return sendNotFound(res, 'invoice', uuid);
+    }
+
+    const now = new Date();
+    await db.collection(USER_INVOICE_COLLECTION).updateOne(
+      { _id: uuid, userId },
+      {
+        $set: {
+          status: validation.status,
+          statusManuallySet: true,
+          updatedAt: now
+        }
+      }
+    );
+
+    const updatedInvoice = {
+      ...existingInvoice,
+      status: validation.status,
+      statusManuallySet: true,
+      updatedAt: now
+    };
+
+    return res.status(200).json({
+      success: true,
+      invoice: mapInvoiceDetail(updatedInvoice),
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error updating invoice status:', error);
+    return sendError(res, 500, error.message || 'Unable to update invoice status.');
   }
 });
 

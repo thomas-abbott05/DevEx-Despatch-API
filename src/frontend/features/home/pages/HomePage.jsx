@@ -23,6 +23,34 @@ const railIcons = {
   invoices: Receipt
 }
 
+const ORDER_STATUS_CLASS = {
+  Pending: 'home-order-status-pending',
+  'In Progress': 'home-order-status-in-progress',
+  Despatched: 'home-order-status-despatched',
+  Completed: 'home-order-status-completed',
+}
+
+const DESPATCH_STATUS_CLASS = {
+  Pending: 'home-despatch-status-pending',
+  Shipped: 'home-despatch-status-shipped',
+  Received: 'home-despatch-status-received',
+  'In Transit': 'home-despatch-status-transit',
+  Delivered: 'home-despatch-status-delivered',
+  Cancelled: 'home-despatch-status-cancelled',
+}
+
+function normaliseDespatchStatus(value) {
+  const status = String(value || '').trim().toLowerCase()
+  if (status === 'received') {
+    return 'Received'
+  }
+  if (status === 'shipped') {
+    return 'Shipped'
+  }
+
+  return String(value || 'Pending')
+}
+
 function resolveGreetingByHour() {
   const hour = new Date().getHours()
 
@@ -40,6 +68,7 @@ function ActivityRail({
   title,
   subtitle,
   viewAllTo,
+  viewAllLabel,
   detailBaseTo,
   items,
   Icon,
@@ -214,6 +243,11 @@ function ActivityRail({
                 const metaText = typeof resolveMetaText === 'function' ? resolveMetaText(item) : ''
                 const buyerName = item.buyer || 'Unknown Buyer'
                 const issuedText = `Issued ${item.issueDate || 'Unknown date'} for ${buyerName}`
+                const isOrderCard = String(documentType || '').toLowerCase() === 'order'
+                const isDespatchCard = String(documentType || '').toLowerCase() === 'despatch advice'
+                const statusClassName = isOrderCard ? ORDER_STATUS_CLASS[item.status] || '' : ''
+                const despatchStatus = normaliseDespatchStatus(item.status)
+                const despatchStatusClassName = isDespatchCard ? DESPATCH_STATUS_CLASS[despatchStatus] || '' : ''
 
                 return (
                   <Link key={item.uuid} className="home-rail-card-link" to={`${detailBaseTo}/${item.uuid}`}>
@@ -231,7 +265,17 @@ function ActivityRail({
                               <span title={cardId || item.displayId}>{cardId || item.displayId}</span>
                             </p>
                           </div>
-                          <p className="home-rail-card-summary">{item.status}</p>
+                            {isOrderCard ? (
+                              <p className="home-rail-card-summary">
+                                <span className={`home-order-status-badge ${statusClassName}`}>{item.status || 'Pending'}</span>
+                              </p>
+                            ) : isDespatchCard ? (
+                              <p className="home-rail-card-summary">
+                                <span className={`home-despatch-status-badge ${despatchStatusClassName}`}>{despatchStatus}</span>
+                              </p>
+                            ) : (
+                              <p className="home-rail-card-summary">{item.status}</p>
+                            )}
                           <p className="home-rail-card-updated" title={issuedText}>{issuedText}</p>
                           {metaText ? (
                             <p className="home-rail-card-meta-subtle">{metaText}</p>
@@ -247,7 +291,7 @@ function ActivityRail({
                 <Link className="home-rail-card-link" to={viewAllTo}>
                   <Card className="home-rail-card home-rail-card-view-all" size="sm">
                     <CardContent className="home-rail-card-content home-rail-card-view-all-content">
-                      <p className="home-rail-card-view-all-text">View All</p>
+                      <p className="home-rail-card-view-all-text">{viewAllLabel || 'View All'}</p>
                       <ArrowRight className="size-5" aria-hidden="true" />
                     </CardContent>
                   </Card>
@@ -314,6 +358,7 @@ export default function HomePage() {
             title="Recent Orders"
             subtitle="View, create or upload existing Order XML documents, or create Despatch Advice/Invoices from them."
             viewAllTo="/order"
+            viewAllLabel="View all orders"
             detailBaseTo="/order"
             items={homeData.orders}
             Icon={railIcons.orders}
@@ -329,6 +374,7 @@ export default function HomePage() {
             title="Recent Despatch Advice"
             subtitle="View, create, delete or upload existing Despatch Advice XML documents, or create Invoices from them."
             viewAllTo="/despatch"
+            viewAllLabel="View all despatch advice"
             detailBaseTo="/despatch"
             items={homeData.despatch}
             Icon={railIcons.despatchAdvice}
@@ -346,6 +392,7 @@ export default function HomePage() {
             title="Recent Invoices"
             subtitle="View existing invoices, or upload/create new ones from existing XML/Despatch Advice."
             viewAllTo="/invoice"
+            viewAllLabel="View all invoices"
             detailBaseTo="/invoice"
             items={homeData.invoices}
             Icon={railIcons.invoices}

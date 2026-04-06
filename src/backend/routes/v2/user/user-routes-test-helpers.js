@@ -47,6 +47,20 @@ function createDbMock({ orders = [], despatch = [], invoices = [] } = {}) {
           findOne: jest.fn(async (query) =>
             despatch.find((record) => record._id === query._id && record.userId === query.userId) || null
           ),
+          updateOne: jest.fn(async (query, update) => {
+            const index = despatch.findIndex((record) => record._id === query._id && record.userId === query.userId);
+            if (index === -1) {
+              return { matchedCount: 0, modifiedCount: 0 };
+            }
+
+            const setUpdate = update && update.$set ? update.$set : {};
+            despatch[index] = {
+              ...despatch[index],
+              ...setUpdate
+            };
+
+            return { matchedCount: 1, modifiedCount: 1 };
+          }),
           deleteOne: jest.fn(async (query) => {
             const index = despatch.findIndex((record) => record._id === query._id && record.userId === query.userId);
             if (index === -1) {
@@ -75,6 +89,20 @@ function createDbMock({ orders = [], despatch = [], invoices = [] } = {}) {
           findOne: jest.fn(async (query) =>
             invoices.find((record) => record._id === query._id && record.userId === query.userId) || null
           ),
+          updateOne: jest.fn(async (query, update) => {
+            const index = invoices.findIndex((record) => record._id === query._id && record.userId === query.userId);
+            if (index === -1) {
+              return { matchedCount: 0, modifiedCount: 0 };
+            }
+
+            const setUpdate = update && update.$set ? update.$set : {};
+            invoices[index] = {
+              ...invoices[index],
+              ...setUpdate
+            };
+
+            return { matchedCount: 1, modifiedCount: 1 };
+          }),
           deleteMany: jest.fn(async (query) => {
             const beforeCount = invoices.length;
             const filtered = invoices.filter(
@@ -132,6 +160,7 @@ function seedDefaultData() {
 
 function startServer() {
   const app = express();
+  app.use(express.json());
   app.use(session({
     secret: 'test-secret',
     resave: false,

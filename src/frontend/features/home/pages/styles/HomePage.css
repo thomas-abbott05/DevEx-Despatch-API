@@ -425,6 +425,89 @@ a.home-rail-card-link:focus-visible {
   color: #ccd6e5;
 }
 
+
+.home-order-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.17rem 0.58rem;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.home-order-status-pending {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fbbf24;
+}
+
+.home-order-status-in-progress {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.home-order-status-despatched {
+  background: rgba(21, 128, 61, 0.2);
+  border-color: rgba(21, 128, 61, 0.45);
+  color: #4ade80;
+}
+
+.home-order-status-completed {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-despatch-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid transparent;
+}
+
+.home-despatch-status-pending {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fbbf24;
+}
+
+.home-despatch-status-shipped {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.home-despatch-status-received {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-despatch-status-transit {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.home-despatch-status-delivered {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-despatch-status-cancelled {
+  background: rgba(255, 0, 89, 0.1);
+  border-color: rgba(255, 0, 89, 0.3);
+  color: #ff6090;
+}
+
 .home-rail-card-updated {
   font-size: 0.76rem;
   color: rgba(214, 224, 239, 0.74);
