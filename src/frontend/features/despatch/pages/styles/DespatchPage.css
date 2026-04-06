@@ -51,6 +51,7 @@
 .despatch-action-btn[data-slot='button'] {
   border-color: rgba(255, 255, 255, 0.24);
   background: rgba(255, 255, 255, 0.09);
+  text-decoration: none;
   padding-left: 0.5rem;
   padding-right: 0.7rem;
   color: #dbe5f3;
@@ -62,6 +63,7 @@
   background: rgba(255, 255, 255, 0.16);
   border-color: rgba(255, 255, 255, 0.4);
   color: #fff;
+  text-decoration: none;
 }
 
 .despatch-action-primary[data-slot='button'] {
