@@ -1,91 +1,54 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import {ProtectedRoute, PublicOnlyRoute} from '../features/auth/ProtectedRoute'
-import HomePage from '../features/home/pages/HomePage'
-import LoginPage from '../features/auth/pages/LoginPage'
-import RegisterPage from '../features/auth/pages/RegisterPage'
-import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage'
-import VerifyCodePage from '../features/auth/pages/VerifyCodePage'
-import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage'
-import TermsPage from '../features/auth/pages/TermsPage'
-import PrivacyPage from '../features/auth/pages/PrivacyPage'
-import NotFoundPage from '../features/auth/pages/NotFoundPage'
-import OrdersPage from '../features/orders/pages/OrdersPage'
-import DespatchPage from '../features/despatch/pages/DespatchPage'
-import InvoicePage from '../features/invoice/pages/InvoicePage'
-import UploadOrderPage from '../features/orders/pages/UploadOrderPage'
-import UploadDespatchPage from '../features/despatch/pages/UploadDespatchPage'
-import UploadInvoicePage from '../features/invoice/pages/UploadInvoicePage'
+import {ProtectedRoute, PublicOnlyRoute} from './features/auth/ProtectedRoute'
+import HomePage from './features/home/pages/HomePage'
+import LoginPage from './features/auth/pages/LoginPage'
+import RegisterPage from './features/auth/pages/RegisterPage'
+import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage'
+import VerifyCodePage from './features/auth/pages/VerifyCodePage'
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
+import TermsPage from './features/auth/pages/TermsPage'
+import PrivacyPage from './features/auth/pages/PrivacyPage'
+import NotFoundPage from './features/auth/pages/NotFoundPage'
+import OrdersPage from './features/orders/pages/OrdersPage'
+import DespatchPage from './features/despatch/pages/DespatchPage'
+import InvoicePage from './features/invoice/pages/InvoicePage'
+import UploadOrderPage from './features/orders/pages/UploadOrderPage'
+import UploadDespatchPage from './features/despatch/pages/UploadDespatchPage'
+import UploadInvoicePage from './features/invoice/pages/UploadInvoicePage'
+
+const ROUTE_TITLES = {
+  '/': 'DevEx - Home',
+  '/home': 'DevEx - Home',
+  '/login': 'DevEx - Login',
+  '/register': 'DevEx - Register',
+  '/forgot-password': 'DevEx - Forgot Password',
+  '/verify': 'DevEx - Verify Code',
+  '/reset-password': 'DevEx - Reset Password',
+  '/order': 'DevEx - Orders',
+  '/order/upload': 'DevEx - Upload Orders',
+  '/despatch': 'DevEx - Despatch Advice',
+  '/despatch/upload': 'DevEx - Upload Despatch Advice',
+  '/invoice': 'DevEx - Invoices',
+  '/invoice/upload': 'DevEx - Upload Invoices',
+  '/terms': 'DevEx - Terms',
+  '/privacy': 'DevEx - Privacy',
+}
 
 function resolvePageTitle(pathname) {
-  if (pathname === '/' || pathname === '/home') {
-    return 'DevEx - Home'
+  if (ROUTE_TITLES[pathname]) {
+    return ROUTE_TITLES[pathname]
   }
-
-  if (pathname === '/login') {
-    return 'DevEx - Login'
-  }
-
-  if (pathname === '/register') {
-    return 'DevEx - Register'
-  }
-
-  if (pathname === '/forgot-password') {
-    return 'DevEx - Forgot Password'
-  }
-
-  if (pathname === '/verify') {
-    return 'DevEx - Verify Code'
-  }
-
-  if (pathname === '/reset-password') {
-    return 'DevEx - Reset Password'
-  }
-
-  if (pathname === '/order') {
-    return 'DevEx - Orders'
-  }
-
-  if (pathname === '/order/upload') {
-    return 'DevEx - Upload Orders'
-  }
-
+  
   if (pathname.startsWith('/order/')) {
     return 'DevEx - Order Details'
   }
-
-  if (pathname === '/despatch') {
-    return 'DevEx - Despatch Advice'
-  }
-
-  if (pathname === '/despatch/upload') {
-    return 'DevEx - Upload Despatch Advice'
-  }
-
   if (pathname.startsWith('/despatch/')) {
     return 'DevEx - Despatch Details'
   }
-
-  if (pathname === '/invoice') {
-    return 'DevEx - Invoices'
-  }
-
-  if (pathname === '/invoice/upload') {
-    return 'DevEx - Upload Invoices'
-  }
-
   if (pathname.startsWith('/invoice/')) {
     return 'DevEx - Invoice Details'
   }
-
-  if (pathname === '/terms') {
-    return 'DevEx - Terms'
-  }
-
-  if (pathname === '/privacy') {
-    return 'DevEx - Privacy'
-  }
-
   return 'DevEx - Not Found'
 }
 

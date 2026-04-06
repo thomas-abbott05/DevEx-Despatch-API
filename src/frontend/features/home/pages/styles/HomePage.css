@@ -154,20 +154,54 @@
 .home-rail-card {
   flex: 0 0 clamp(220px, 24vw, 276px);
   border-radius: 13px;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(160deg, rgba(42, 51, 64, 0.82) 0%, rgba(26, 30, 36, 0.88) 100%);
   box-shadow: none;
 }
 
 .home-rail-card-content {
-  display: grid;
-  gap: 0.42rem;
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
   padding-top: 0;
   padding-bottom: 0;
 }
 
+.home-rail-card-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-left: 0.4rem;
+}
+
+.home-rail-card-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  color: #d9e3f1;
+}
+
+.home-rail-card-body {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.home-rail-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .home-rail-card-id {
   display: inline-flex;
+  flex: 0 0 auto;
   width: fit-content;
   font-size: 0.66rem;
   letter-spacing: 0.1em;
@@ -183,6 +217,7 @@
   line-height: 1.3;
   font-weight: 700;
   color: #f4f8ff;
+  min-width: 0;
 }
 
 .home-rail-card-summary {
@@ -256,5 +291,24 @@
 
   .home-rail-card {
     flex-basis: min(84vw, 260px);
+  }
+
+  .home-rail-card-content {
+    gap: 0.8rem;
+  }
+
+  .home-rail-card-icon-wrap {
+    width: 1.85rem;
+    height: 1.85rem;
+    margin-left: 0.1rem;
+  }
+
+  .home-rail-card-title-row {
+    gap: 0.38rem;
+  }
+
+  .home-rail-card-icon {
+    width: 1.2rem;
+    height: 1.2rem;
   }
 }

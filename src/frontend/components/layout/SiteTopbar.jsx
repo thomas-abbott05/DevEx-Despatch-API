@@ -123,7 +123,7 @@ function TopbarUtilityMenu({ isOpen, onToggle, onClose, onLogout }) {
   const { isMounted, isVisible } = useMenuTransition(isOpen)
 
   return (
-    <div className="home-user-menu-wrap">
+    <div className="home-user-menu-wrap" style={{ translate: '0 -1px'}}>
       <button
         type="button"
         className={`home-menu-button${isOpen ? ' is-open' : ''}`}

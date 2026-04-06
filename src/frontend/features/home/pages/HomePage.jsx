@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, Receipt, Truck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,29 +17,35 @@ const subtitleOptions = [
 
 const railData = {
   orders: [
-    { id: 'ord-001', title: 'Order ORD-001', summary: 'Recently modified', updated: '8 minutes ago' },
-    { id: 'ord-002', title: 'Order ORD-002', summary: 'Created today', updated: '26 minutes ago' },
-    { id: 'ord-003', title: 'Order ORD-003', summary: 'Awaiting review', updated: '39 minutes ago' },
-    { id: 'ord-004', title: 'Order ORD-004', summary: 'Draft updated', updated: '1 hour ago' },
-    { id: 'ord-005', title: 'Order ORD-005', summary: 'Line items amended', updated: '2 hours ago' },
-    { id: 'ord-006', title: 'Order ORD-006', summary: 'Pending submission', updated: '3 hours ago' }
+    { id: 'ord-001', summary: 'Recently modified', updated: '8 minutes ago' },
+    { id: 'ord-002', summary: 'Created today', updated: '26 minutes ago' },
+    { id: 'ord-003', summary: 'Cancelled - order cancellation', updated: '39 minutes ago' },
+    { id: 'ord-004', summary: 'Shipped', updated: '1 hour ago' },
+    { id: 'ord-005', summary: 'Order changed', updated: '2 hours ago' },
+    { id: 'ord-006', summary: 'Draft created', updated: '3 hours ago' }
   ],
   despatchAdvice: [
-    { id: 'dsp-001', title: 'Despatch DSP-001', summary: 'Status changed', updated: '11 minutes ago' },
-    { id: 'dsp-002', title: 'Despatch DSP-002', summary: 'Recently uploaded', updated: '31 minutes ago' },
-    { id: 'dsp-003', title: 'Despatch DSP-003', summary: 'Validation complete', updated: '55 minutes ago' },
-    { id: 'dsp-004', title: 'Despatch DSP-004', summary: 'Carrier details added', updated: '1 hour ago' },
-    { id: 'dsp-005', title: 'Despatch DSP-005', summary: 'Address corrected', updated: '2 hours ago' },
-    { id: 'dsp-006', title: 'Despatch DSP-006', summary: 'Ready to send', updated: '4 hours ago' }
+    { id: 'dsp-001', summary: 'Receipt Status changed', updated: '11 minutes ago' },
+    { id: 'dsp-002', summary: 'Recently created', updated: '31 minutes ago' },
+    { id: 'dsp-003', summary: 'Cancelled - fulfilment issue', updated: '55 minutes ago' },
+    { id: 'dsp-004', summary: 'Fulfilled', updated: '1 hour ago' },
+    { id: 'dsp-005', summary: 'Partially fulfilled', updated: '2 hours ago' },
+    { id: 'dsp-006', summary: 'Awaiting receipt', updated: '4 hours ago' }
   ],
   invoices: [
-    { id: 'inv-001', title: 'Invoice INV-001', summary: 'Recently updated', updated: '14 minutes ago' },
-    { id: 'inv-002', title: 'Invoice INV-002', summary: 'Draft finalized', updated: '41 minutes ago' },
-    { id: 'inv-003', title: 'Invoice INV-003', summary: 'Payment terms changed', updated: '58 minutes ago' },
-    { id: 'inv-004', title: 'Invoice INV-004', summary: 'Amount adjusted', updated: '1 hour ago' },
-    { id: 'inv-005', title: 'Invoice INV-005', summary: 'Reference updated', updated: '2 hours ago' },
-    { id: 'inv-006', title: 'Invoice INV-006', summary: 'Ready for export', updated: '5 hours ago' }
+    { id: 'inv-001', summary: 'Recently updated', updated: '14 minutes ago' },
+    { id: 'inv-002', summary: 'Draft finalized', updated: '41 minutes ago' },
+    { id: 'inv-003', summary: 'Payment terms changed', updated: '58 minutes ago' },
+    { id: 'inv-004', summary: 'Amount adjusted', updated: '1 hour ago' },
+    { id: 'inv-005', summary: 'Reference updated', updated: '2 hours ago' },
+    { id: 'inv-006', summary: 'Ready for export', updated: '5 hours ago' }
   ]
+}
+
+const railIcons = {
+  orders: FileText,
+  despatchAdvice: Truck,
+  invoices: Receipt
 }
 
 function resolveGreetingByHour() {
@@ -55,7 +61,7 @@ function resolveGreetingByHour() {
   return 'Good evening'
 }
 
-function ActivityRail({ title, subtitle, viewAllTo, items }) {
+function ActivityRail({ title, subtitle, viewAllTo, items, Icon, documentType }) {
   const viewportRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(items.length > 0)
@@ -167,10 +173,18 @@ function ActivityRail({ title, subtitle, viewAllTo, items }) {
             {items.map((item) => (
               <Card key={item.id} className="home-rail-card" size="sm">
                 <CardContent className="home-rail-card-content">
-                  <p className="home-rail-card-id">{item.id.toUpperCase()}</p>
-                  <h3 className="home-rail-card-title">{item.title}</h3>
-                  <p className="home-rail-card-summary">{item.summary}</p>
-                  <p className="home-rail-card-updated">Updated {item.updated}</p>
+                  <div className="home-rail-card-icon-wrap" aria-hidden="true">
+                    <Icon className="home-rail-card-icon" />
+                  </div>
+
+                  <div className="home-rail-card-body">
+                    <div className="home-rail-card-title-row">
+                      <h3 className="home-rail-card-title">{documentType}</h3>
+                      <p className="home-rail-card-id">{item.id.toUpperCase()}</p>
+                    </div>
+                    <p className="home-rail-card-summary">{item.summary}</p>
+                    <p className="home-rail-card-updated">Updated {item.updated}</p>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -213,18 +227,24 @@ export default function HomePage() {
             subtitle="View, create or upload existing Order XML documents, or create Despatch Advice/Invoices from them."
             viewAllTo="/order"
             items={railData.orders}
+            Icon={railIcons.orders}
+            documentType="Order"
           />
           <ActivityRail
             title="Despatch Advice"
             subtitle="View, create, delete or upload existing Despatch Advice XML documents, or create Invoices from them."
             viewAllTo="/despatch"
             items={railData.despatchAdvice}
+            Icon={railIcons.despatchAdvice}
+            documentType="Despatch Advice"
           />
           <ActivityRail
             title="Invoices"
             subtitle="View existing invoices, or upload/create new ones from existing XML/Despatch Advice."
             viewAllTo="/invoice"
             items={railData.invoices}
+            Icon={railIcons.invoices}
+            documentType="Invoice"
           />
         </div>
 
