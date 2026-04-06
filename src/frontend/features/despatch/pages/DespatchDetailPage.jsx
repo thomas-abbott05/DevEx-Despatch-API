@@ -196,7 +196,7 @@ export default function DespatchDetailPage() {
       <section className="home-content despatch-detail-content">
         <header className="despatch-detail-header">
           <div>
-            <h1 className="despatch-detail-title">Despatch Advice Detail</h1>
+            <h1 className="despatch-detail-title">Despatch Advice Details</h1>
             <p className="despatch-detail-subtitle">UUID: {uuid}</p>
           </div>
           <div className="despatch-detail-actions">

@@ -648,6 +648,38 @@ function parseInvoiceSummaryFromXml(invoiceXml) {
   };
 }
 
+function overwriteInvoiceXmlDocumentId(invoiceXml, invoiceId) {
+  const xmlText = readText(invoiceXml);
+  const localInvoiceId = readText(invoiceId);
+
+  if (!xmlText || !localInvoiceId) {
+    return xmlText;
+  }
+
+  try {
+    const parser = createXmlParser(['Invoice.cac:InvoiceLine']);
+    const parsedTree = parser.parse(xmlText);
+    const root = firstObject(parsedTree && parsedTree.Invoice);
+
+    if (!root) {
+      return xmlText;
+    }
+
+    root['cbc:ID'] = localInvoiceId;
+
+    if (root['cbc:UUID'] !== undefined) {
+      root['cbc:UUID'] = localInvoiceId;
+    }
+
+    parsedTree.Invoice = root;
+
+    const builder = createOrderXmlBuilder();
+    return builder.build(parsedTree);
+  } catch (_error) {
+    return xmlText;
+  }
+}
+
 function summariseDespatchDestinations(despatchDoc) {
   const labels = new Set();
   const lines = Array.isArray(despatchDoc && despatchDoc.lines) ? despatchDoc.lines : [];
@@ -1341,6 +1373,83 @@ async function postJsonForXmlResponse(url, payload, requestLabel, requestHeaders
   return responseText;
 }
 
+async function postLastMinutePushInvoiceForXmlResponse(baseUrl, payload, requestLabel, apiTokenValue) {
+  const normalisedApiToken = normaliseAuthHeaderValue(apiTokenValue);
+  if (!normalisedApiToken) {
+    throw new Error(requestLabel + ' failed: missing LASTMINUTEPUSH_API_TOKEN.');
+  }
+
+  const createUrl = resolveUrl(baseUrl, '/v1/invoices');
+  if (!createUrl) {
+    throw new Error(requestLabel + ' failed: invalid LastMinutePush base URL.');
+  }
+
+  const createResponse = await fetch(createUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': normalisedApiToken
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const createResponseText = await createResponse.text();
+
+  if (!createResponse.ok) {
+    const errorSuffix = createResponseText ? ': ' + createResponseText.slice(0, 400) : '';
+    throw new Error(requestLabel + ' failed with status ' + createResponse.status + errorSuffix);
+  }
+
+  const createPayload = parseJsonSafe(createResponseText);
+  if (!createPayload) {
+    throw new Error(requestLabel + ' failed: unable to parse JSON create response.');
+  }
+
+  const invoiceNode = firstObject(createPayload && createPayload.invoice);
+  if (!invoiceNode) {
+    throw new Error(requestLabel + ' failed: create response did not include invoice data.');
+  }
+
+  const invoiceId =
+    readText(invoiceNode && invoiceNode.invoice_id) ||
+    readText(invoiceNode && invoiceNode.invoiceId) ||
+    readText(invoiceNode && invoiceNode.id);
+
+  if (!invoiceId) {
+    throw new Error(requestLabel + ' failed: create response did not include invoice_id.');
+  }
+
+  const invoiceXmlUrl = resolveUrl(baseUrl, '/v1/invoices/' + encodeURIComponent(invoiceId));
+  if (!invoiceXmlUrl) {
+    throw new Error(requestLabel + ' failed: could not resolve XML URL for invoice ' + invoiceId + '.');
+  }
+
+  const invoiceXmlResponse = await fetch(invoiceXmlUrl, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/xml',
+      'X-API-Key': normalisedApiToken
+    }
+  });
+
+  const invoiceXmlText = await invoiceXmlResponse.text();
+
+  if (!invoiceXmlResponse.ok) {
+    const errorSuffix = invoiceXmlText ? ': ' + invoiceXmlText.slice(0, 400) : '';
+    throw new Error(requestLabel + ' XML fetch failed with status ' + invoiceXmlResponse.status + errorSuffix);
+  }
+
+  const trimmedInvoiceXml = readText(invoiceXmlText);
+  if (!trimmedInvoiceXml || !trimmedInvoiceXml.startsWith('<')) {
+    throw new Error(requestLabel + ' XML fetch returned a non-XML payload.');
+  }
+
+  return {
+    invoice: invoiceNode,
+    invoiceXml: invoiceXmlText
+  };
+}
+
 function resolveUrl(baseUrl, urlValue) {
   const rawUrl = readText(urlValue);
   if (!rawUrl) {
@@ -1392,12 +1501,12 @@ function parseJsonSafe(textValue) {
   }
 }
 
-function normalizeAuthHeaderValue(value) {
+function normaliseAuthHeaderValue(value) {
   const trimmed = readText(value).replace(/^Authorization\s*:\s*/i, '').trim();
   return trimmed;
 }
 
-function normalizeChalksnifferUrl(urlValue) {
+function normaliseChalksnifferUrl(urlValue) {
   const rawUrl = readText(urlValue);
   if (!rawUrl) {
     return '';
@@ -1415,18 +1524,18 @@ function normalizeChalksnifferUrl(urlValue) {
 }
 
 async function postChalksnifferOrderForXmlResponse(url, payload, requestLabel, apiTokenValue) {
-  const normalizedCreateUrl = normalizeChalksnifferUrl(url);
-  const normalizedApiToken = normalizeAuthHeaderValue(apiTokenValue);
+  const normalisedCreateUrl = normaliseChalksnifferUrl(url);
+  const normalisedApiToken = normaliseAuthHeaderValue(apiTokenValue);
 
   const headers = {
     'Content-Type': 'application/json'
   };
 
-  if (normalizedApiToken) {
-    headers.Authorization = normalizedApiToken;
+  if (normalisedApiToken) {
+    headers.Authorization = normalisedApiToken;
   }
 
-  const createResponse = await fetch(normalizedCreateUrl, {
+  const createResponse = await fetch(normalisedCreateUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload)
@@ -1463,14 +1572,14 @@ async function postChalksnifferOrderForXmlResponse(url, payload, requestLabel, a
     throw new Error(requestLabel + ' failed: response did not include xmlUrl.');
   }
 
-  const resolvedXmlUrl = normalizeChalksnifferUrl(resolveUrl(normalizedCreateUrl, xmlUrl));
+  const resolvedXmlUrl = normaliseChalksnifferUrl(resolveUrl(normalisedCreateUrl, xmlUrl));
   if (!resolvedXmlUrl) {
     throw new Error(requestLabel + ' failed: could not resolve xmlUrl ' + xmlUrl + '.');
   }
 
   const xmlHeaders = {};
-  if (normalizedApiToken) {
-    xmlHeaders.Authorization = normalizedApiToken;
+  if (normalisedApiToken) {
+    xmlHeaders.Authorization = normalisedApiToken;
   }
 
   const xmlResponse = await fetch(resolvedXmlUrl, {
@@ -1795,12 +1904,14 @@ module.exports = {
   validateInvoiceStatusUpdateBody,
   buildChalksnifferOrderPayload,
   postJsonForXmlResponse,
+  postLastMinutePushInvoiceForXmlResponse,
   postChalksnifferOrderForXmlResponse,
   buildOrderSnapshotFromXml,
   buildPayloadLineSnapshots,
   buildSelectedOrderXml,
   parseDespatchSummaryFromXml,
   parseInvoiceSummaryFromXml,
+  overwriteInvoiceXmlDocumentId,
   deriveInvoiceLinesFromDespatch,
   calculateInvoiceTotals
 };

@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Download } from 'lucide-react'
+import { Download, Info, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
-import { fetchInvoiceDetail } from '../api/invoice-api'
+import { deleteInvoice, fetchInvoiceDetail, updateInvoiceStatus } from '../api/invoice-api'
 import { fetchDespatchDetail } from '@/features/despatch/api/despatch-api'
 import './styles/InvoiceDetailPage.css'
 
@@ -22,6 +33,20 @@ const DESPATCH_STATUS_CLASS = {
   'In Transit': 'invoice-detail-despatch-status-transit',
   Delivered: 'invoice-detail-despatch-status-delivered',
   Cancelled: 'invoice-detail-despatch-status-cancelled',
+}
+
+const STATUS_OPTIONS = ['Issued', 'Overdue', 'Paid']
+
+function normaliseInvoiceStatus(value) {
+  const status = String(value || '').trim().toLowerCase()
+  if (status === 'paid') {
+    return 'Paid'
+  }
+  if (status === 'overdue') {
+    return 'Overdue'
+  }
+
+  return 'Issued'
 }
 
 function formatCurrencyValue(value) {
@@ -52,9 +77,17 @@ export default function InvoiceDetailPage() {
   const [relatedDespatchError, setRelatedDespatchError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const status = invoice?.status || 'Issued'
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false)
+  const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false)
+  const status = normaliseInvoiceStatus(invoice?.status)
   const statusDescription = buildStatusDescription(status)
   const sourceLabel = invoice?.despatchUuid ? 'Despatch Advice' : 'Whole Order'
+  const linkedOrderUuid = invoice?.orderUuid || relatedDespatch?.orderUuid || ''
+  const linkedOrderDisplayId =
+    invoice?.orderDisplayId ||
+    relatedDespatch?.orderDisplayId ||
+    linkedOrderUuid
 
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const breadcrumbs = [
@@ -121,6 +154,67 @@ export default function InvoiceDetailPage() {
     URL.revokeObjectURL(objectUrl)
   }
 
+  async function handleStatusChange(nextStatus) {
+    const normalizedStatus = normaliseInvoiceStatus(nextStatus)
+
+    if (!uuid || !invoice || isUpdatingInvoiceStatus || normalizedStatus === status) {
+      return
+    }
+
+    const previousInvoice = invoice
+
+    setError('')
+    setIsUpdatingInvoiceStatus(true)
+    setInvoice((currentInvoice) =>
+      currentInvoice
+        ? {
+            ...currentInvoice,
+            status: normalizedStatus,
+          }
+        : currentInvoice
+    )
+
+    try {
+      const updatedInvoice = await updateInvoiceStatus(uuid, normalizedStatus)
+      const updatedStatus = normaliseInvoiceStatus(updatedInvoice?.status || normalizedStatus)
+
+      setInvoice((currentInvoice) =>
+        currentInvoice
+          ? {
+              ...currentInvoice,
+              ...(updatedInvoice || {}),
+              status: updatedStatus,
+            }
+          : currentInvoice
+      )
+    } catch (updateError) {
+      setInvoice(previousInvoice)
+      setError(updateError.message || 'Unable to update invoice status.')
+    } finally {
+      setIsUpdatingInvoiceStatus(false)
+    }
+  }
+
+  async function handleDeleteInvoice() {
+    if (!uuid || isDeletingInvoice) {
+      return
+    }
+
+    setIsDeletingInvoice(true)
+    setError('')
+
+    try {
+      await deleteInvoice(uuid)
+      setIsDeleteDialogOpen(false)
+      navigate('/invoice', { replace: true })
+    } catch (deleteError) {
+      setError(deleteError.message || 'Unable to delete invoice detail.')
+      setIsDeleteDialogOpen(false)
+    } finally {
+      setIsDeletingInvoice(false)
+    }
+  }
+
   return (
     <main className="home-screen invoice-detail-page">
       <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
@@ -128,7 +222,7 @@ export default function InvoiceDetailPage() {
       <section className="home-content invoice-detail-content">
         <header className="invoice-detail-header">
           <div>
-            <h1 className="invoice-detail-title">Invoice Detail</h1>
+            <h1 className="invoice-detail-title">Invoice Details</h1>
             <p className="invoice-detail-subtitle">UUID: {uuid}</p>
           </div>
           <div className="invoice-detail-actions">
@@ -143,6 +237,40 @@ export default function InvoiceDetailPage() {
               Download XML
               <Download className="size-4" aria-hidden="true" />
             </Button>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="invoice-detail-delete-btn"
+                  disabled={loading || isDeletingInvoice || !invoice}
+                >
+                  Delete Invoice
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="invoice-detail-delete-dialog-content">
+                <div className="invoice-detail-delete-dialog-panel">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this invoice?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This permanently removes invoice {invoice?.displayId || uuid} and cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeletingInvoice}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="invoice-detail-delete-confirm-btn"
+                      onClick={handleDeleteInvoice}
+                      disabled={isDeletingInvoice}
+                    >
+                      {isDeletingInvoice ? 'Deleting...' : 'Delete Invoice'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </div>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button asChild variant="outline" size="sm" className="invoice-detail-back-btn">
               <Link to="/invoice">Back to invoices</Link>
             </Button>
@@ -167,7 +295,7 @@ export default function InvoiceDetailPage() {
                     <span className={`invoice-detail-status-badge ${INVOICE_STATUS_CLASS[status] ?? ''}`}>
                       {status}
                     </span>
-                    <span className="invoice-detail-hero-id">{invoice.displayId || uuid}</span>
+                    <span className="invoice-detail-hero-id" title={invoice.displayId || uuid}>{invoice.displayId || uuid}</span>
                   </div>
                   <p className="invoice-detail-hero-text">{statusDescription}</p>
                 </div>
@@ -184,13 +312,27 @@ export default function InvoiceDetailPage() {
                     <span>Source</span>
                     <strong>{sourceLabel}</strong>
                   </div>
+                  <div>
+                    <label htmlFor="invoice-detail-status-select">Status</label>
+                    <select
+                      id="invoice-detail-status-select"
+                      className="invoice-detail-status-select"
+                      value={status}
+                      onChange={(event) => handleStatusChange(event.target.value)}
+                      disabled={loading || isUpdatingInvoiceStatus || !invoice}
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </section>
 
               <dl className="invoice-detail-grid">
                 <div>
                   <dt>Invoice ID</dt>
-                  <dd>{invoice.displayId}</dd>
+                  <dd className="invoice-detail-id-value" title={invoice.displayId || '-'}>{invoice.displayId || '-'}</dd>
                 </div>
                 <div>
                   <dt>Buyer</dt>
@@ -211,6 +353,18 @@ export default function InvoiceDetailPage() {
                 <div>
                   <dt>Due Date</dt>
                   <dd>{invoice.dueDate || '-'}</dd>
+                </div>
+                <div>
+                  <dt>Linked Order</dt>
+                  <dd>
+                    {linkedOrderUuid ? (
+                      <Link className="invoice-detail-copy-link" to={`/order/${linkedOrderUuid}`}>
+                        <span>{linkedOrderDisplayId}</span>
+                      </Link>
+                    ) : (
+                      '-'
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt>Linked Despatch</dt>
@@ -267,11 +421,16 @@ export default function InvoiceDetailPage() {
                   </table>
                 ) : (
                   <div className="invoice-detail-empty-state">
-                    <p className="invoice-detail-empty-text">
-                      {invoice?.despatchUuid
-                        ? relatedDespatchError || 'Linked despatch advice details are currently unavailable.'
-                        : 'No linked despatch advice is available for this invoice.'}
-                    </p>
+                    {invoice?.despatchUuid ? (
+                      <p className="invoice-detail-empty-text">
+                        {relatedDespatchError || 'Linked despatch advice details are currently unavailable.'}
+                      </p>
+                    ) : (
+                      <p className="invoice-detail-empty-text invoice-detail-empty-info">
+                        <Info className="size-4 invoice-detail-empty-info-icon" aria-hidden="true" />
+                        <span>This invoice pays for the whole order.</span>
+                      </p>
+                    )}
                     {invoice?.despatchUuid ? (
                       <p className="invoice-detail-empty-subtitle">
                         Open linked document:

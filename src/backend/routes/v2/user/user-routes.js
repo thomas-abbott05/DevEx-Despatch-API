@@ -26,13 +26,14 @@ const {
   validateInvoiceStatusUpdateBody,
   resolveInvoiceStatus,
   buildChalksnifferOrderPayload,
-  postJsonForXmlResponse,
+  postLastMinutePushInvoiceForXmlResponse,
   postChalksnifferOrderForXmlResponse,
   buildOrderSnapshotFromXml,
   buildPayloadLineSnapshots,
   buildSelectedOrderXml,
   parseDespatchSummaryFromXml,
   parseInvoiceSummaryFromXml,
+  overwriteInvoiceXmlDocumentId,
   deriveInvoiceLinesFromDespatch,
   calculateInvoiceTotals
 } = require('./user-routes-utilities');
@@ -41,7 +42,7 @@ const router = express.Router();
 
 const CHALKSNIFFER_ORDER_CREATE_URL =
   process.env.CHALKSNIFFER_ORDER_CREATE_URL || 'https://www.chalksniffer.com/orders';
-const GPTLESS_INVOICE_URL = process.env.GPTLESS_INVOICE_URL || 'https://api.gptless.au/v2/invoices/generate';
+const LASTMINUTEPUSH_BASE_URL = 'https://lastminutepush.one';
 
 const USER_ORDER_COLLECTION = 'user-orders';
 const USER_DESPATCH_COLLECTION = 'user-despatch-advice';
@@ -56,6 +57,80 @@ function readQuantity(value) {
 
 function roundCurrency(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+function buildProviderIdentifier(rawValue, fallbackPrefix) {
+  const sanitized = readText(rawValue).replace(/[^A-Za-z0-9\-_]/g, '');
+  if (sanitized) {
+    return sanitized;
+  }
+
+  return fallbackPrefix + '-' + nowUnix();
+}
+
+function mapLastMinutePushInvoiceStatus(value) {
+  const normalized = readText(value).toLowerCase();
+
+  if (normalized === 'paid') {
+    return 'Paid';
+  }
+
+  if (normalized === 'overdue') {
+    return 'Overdue';
+  }
+
+  return 'Issued';
+}
+
+function deriveOrderPaymentSummary(invoiceSummaries) {
+  const invoices = Array.isArray(invoiceSummaries) ? invoiceSummaries : [];
+  const invoiceCount = invoices.length;
+  const paidInvoiceCount = invoices.filter(
+    (invoiceSummary) => readText(invoiceSummary && invoiceSummary.status) === 'Paid'
+  ).length;
+  const outstandingInvoiceCount = Math.max(invoiceCount - paidInvoiceCount, 0);
+
+  if (!invoiceCount) {
+    return {
+      status: 'Not Paid',
+      paidInFull: false,
+      hasInvoices: false,
+      invoiceCount,
+      paidInvoiceCount,
+      outstandingInvoiceCount
+    };
+  }
+
+  if (!outstandingInvoiceCount) {
+    return {
+      status: 'Paid',
+      paidInFull: true,
+      hasInvoices: true,
+      invoiceCount,
+      paidInvoiceCount,
+      outstandingInvoiceCount
+    };
+  }
+
+  if (paidInvoiceCount > 0) {
+    return {
+      status: 'Partially Paid',
+      paidInFull: false,
+      hasInvoices: true,
+      invoiceCount,
+      paidInvoiceCount,
+      outstandingInvoiceCount
+    };
+  }
+
+  return {
+    status: 'Not Paid',
+    paidInFull: false,
+    hasInvoices: true,
+    invoiceCount,
+    paidInvoiceCount,
+    outstandingInvoiceCount
+  };
 }
 
 function buildLineIdCandidates(lineIdValue) {
@@ -299,6 +374,7 @@ function mapDespatchLinesToOrderLines(orderLineEntries, despatchDocs) {
       }
 
       mappedDespatchLines.push({
+        quantity,
         lineCandidates,
         matchedOrderLineId
       });
@@ -322,6 +398,20 @@ function applyPaidInvoiceQuantities(orderLineEntries, despatchLineLookupByDespat
       return;
     }
 
+    const sourceType = readText(invoiceDoc && invoiceDoc.sourceType).toLowerCase();
+    if (sourceType === 'order') {
+      orderLineEntries.forEach((orderLineEntry) => {
+        orderLineEntry.paidQuantity = Math.max(
+          orderLineEntry.paidQuantity,
+          orderLineEntry.requestedQuantity
+        );
+      });
+      return;
+    }
+
+    const relatedDespatchLines =
+      despatchLineLookupByDespatchUuid.get(readText(invoiceDoc && invoiceDoc.despatchUuid)) || [];
+
     const invoiceLines = Array.isArray(
       invoiceDoc &&
         invoiceDoc.invoicePayload &&
@@ -332,11 +422,21 @@ function applyPaidInvoiceQuantities(orderLineEntries, despatchLineLookupByDespat
       : [];
 
     if (!invoiceLines.length) {
+      if (sourceType === 'despatch' && relatedDespatchLines.length) {
+        relatedDespatchLines.forEach((despatchLine) => {
+          if (!despatchLine.matchedOrderLineId) {
+            return;
+          }
+
+          const targetOrderLine = orderLineById.get(despatchLine.matchedOrderLineId);
+          if (targetOrderLine) {
+            targetOrderLine.paidQuantity += readQuantity(despatchLine.quantity);
+          }
+        });
+      }
+
       return;
     }
-
-    const relatedDespatchLines =
-      despatchLineLookupByDespatchUuid.get(readText(invoiceDoc && invoiceDoc.despatchUuid)) || [];
 
     invoiceLines.forEach((invoiceLine) => {
       const quantity = readQuantity(invoiceLine && invoiceLine.quantity);
@@ -684,13 +784,13 @@ router.post('/invoice/create', async (req, res) => {
       return sendError(res, 400, validation.errors);
     }
 
-    const invoiceApiToken = readText(
-      process.env.GPTLESS_API_TOKEN || process.env.CHALKSNIFFER_API_TOKEN
-    ).replace(/^Authorization\s*:\s*/i, '');
+    const invoiceApiToken = readText(process.env.LASTMINUTEPUSH_API_TOKEN).replace(
+      /^Authorization\s*:\s*/i,
+      ''
+    );
 
-    const templateInvoice = process.env.GPTLESS_TEMPLATE_INVOICE_ID;
-    if (!templateInvoice) {
-      return sendError(res, 500, 'Missing GPTLESS_TEMPLATE_INVOICE_ID environment variable.');
+    if (!invoiceApiToken) {
+      return sendError(res, 500, 'Missing LASTMINUTEPUSH_API_TOKEN environment variable.');
     }
 
     const db = getDb();
@@ -776,14 +876,6 @@ router.post('/invoice/create', async (req, res) => {
     const supplierAbn = validation.supplierAbn || (linkedOrder && linkedOrder.supplierAbn) || '';
     const customerAbn = validation.customerAbn || (linkedOrder && linkedOrder.customerAbn) || '';
 
-    if (!supplierAbn) {
-      return sendError(
-        res,
-        400,
-        'Supplier ABN is required for invoice generation. Provide supplierAbn or store it on the base order.'
-      );
-    }
-
     const generatedInvoiceLines = sourceType === 'order'
       ? deriveInvoiceLinesFromOrder(linkedOrder, validation.defaultUnitPrice)
       : deriveInvoiceLinesFromDespatch(sourceDespatchDoc, validation.defaultUnitPrice);
@@ -813,62 +905,89 @@ router.post('/invoice/create', async (req, res) => {
 
     const totals = calculateInvoiceTotals(invoiceLines, validation.gstPercent);
 
-    const customerParty = {
-      name: customerName
-    };
-    if (customerAbn) {
-      customerParty.ABN = customerAbn;
-    }
+    const orderReference =
+      readText((linkedOrder && linkedOrder.displayId) || (linkedOrder && linkedOrder._id)) ||
+      readText((sourceDespatchDoc && sourceDespatchDoc.displayId) || (sourceDespatchDoc && sourceDespatchDoc._id)) ||
+      'ORD-' + nowUnix();
+    const supplierIdentifier = buildProviderIdentifier(
+      supplierAbn || (linkedOrder && linkedOrder.supplierAbn),
+      'SUPPLIER'
+    );
+    const customerIdentifier = buildProviderIdentifier(
+      customerAbn || (linkedOrder && linkedOrder.customerAbn),
+      'CUSTOMER'
+    );
 
     const invoicePayload = {
-      templateInvoice,
-      InvoiceData: {
-        supplier: {
-          name: supplierName,
-          ABN: supplierAbn
-        },
-        customer: customerParty,
-        issueDate: validation.issueDate,
-        dueDate: validation.dueDate,
-        totalAmount: totals.totalAmount,
-        currency: validation.currency,
-        lines: invoiceLines.map((line, index) => ({
-          lineId: line.lineId || String(index + 1),
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          lineTotal: line.lineTotal
-        })),
-        gstPercent: validation.gstPercent
-      }
+      order_reference: orderReference,
+      customer_id: customerIdentifier,
+      issue_date: validation.issueDate,
+      due_date: validation.dueDate,
+      currency: validation.currency,
+      supplier: {
+        name: supplierName,
+        identifier: supplierIdentifier
+      },
+      customer: {
+        name: customerName,
+        identifier: customerIdentifier
+      },
+      items: invoiceLines.map((line, index) => ({
+        name: readText(line.description) || 'Line Item ' + String(index + 1),
+        description: readText(line.description) || 'Line Item ' + String(index + 1),
+        quantity: line.quantity,
+        unit_price: roundCurrency(line.unitPrice),
+        unit_code: 'EA'
+      }))
     };
 
-    const invoiceRequestHeaders = invoiceApiToken ? { APItoken: invoiceApiToken } : {};
-
-    const invoiceXml = await postJsonForXmlResponse(
-      GPTLESS_INVOICE_URL,
+    const generatedInvoice = await postLastMinutePushInvoiceForXmlResponse(
+      LASTMINUTEPUSH_BASE_URL,
       invoicePayload,
       'Invoice generation request',
-      invoiceRequestHeaders
+      invoiceApiToken
     );
+
+    const invoiceUuid = randomUUID();
+    const externalInvoice = generatedInvoice.invoice;
+    const externalInvoiceId =
+      readText(externalInvoice && externalInvoice.invoice_id) ||
+      readText(externalInvoice && externalInvoice.invoiceId) ||
+      readText(externalInvoice && externalInvoice.id);
+    const externalStatus = readText(externalInvoice && externalInvoice.status);
+    const externalIssueDate =
+      readText(externalInvoice && (externalInvoice.issue_date || externalInvoice.issueDate)) ||
+      validation.issueDate;
+    const externalDueDate =
+      readText(externalInvoice && (externalInvoice.due_date || externalInvoice.dueDate)) || validation.dueDate;
+    const externalTotal = Number(
+      (externalInvoice &&
+        (externalInvoice.payable_amount ||
+          externalInvoice.payableAmount ||
+          externalInvoice.tax_inclusive_amount ||
+          externalInvoice.taxInclusiveAmount ||
+          externalInvoice.subtotal)) ||
+        NaN
+    );
+    const invoiceXml = overwriteInvoiceXmlDocumentId(generatedInvoice.invoiceXml, invoiceUuid);
 
     let invoiceSummary;
     try {
       invoiceSummary = parseInvoiceSummaryFromXml(invoiceXml);
     } catch (parseError) {
       invoiceSummary = {
-        displayId: '',
-        issueDate: validation.issueDate,
+        displayId: externalInvoiceId,
+        issueDate: externalIssueDate,
         buyer: customerName,
-        total: totals.totalAmount
+        total: Number.isFinite(externalTotal) ? externalTotal : totals.totalAmount
       };
     }
 
     const now = new Date();
     const invoiceDoc = {
-      _id: randomUUID(),
+      _id: invoiceUuid,
       userId,
-      displayId: invoiceSummary.displayId || 'INV-' + nowUnix(),
+      displayId: invoiceUuid,
       sourceType,
       orderUuid: (linkedOrder && linkedOrder._id) || '',
       orderDisplayId:
@@ -879,11 +998,19 @@ router.post('/invoice/create', async (req, res) => {
       despatchUuid: sourceType === 'despatch' ? sourceDespatchDoc._id : '',
       despatchDisplayId: sourceType === 'despatch' ? (sourceDespatchDoc.displayId || sourceDespatchDoc._id) : '',
       buyer: invoiceSummary.buyer || customerName,
-      total: Number.isFinite(invoiceSummary.total) ? invoiceSummary.total : totals.totalAmount,
-      issueDate: invoiceSummary.issueDate || validation.issueDate,
-      dueDate: validation.dueDate,
-      status: 'Issued',
+      total: Number.isFinite(invoiceSummary.total)
+        ? invoiceSummary.total
+        : Number.isFinite(externalTotal)
+          ? externalTotal
+          : totals.totalAmount,
+      issueDate: invoiceSummary.issueDate || externalIssueDate,
+      dueDate: externalDueDate,
+      status: mapLastMinutePushInvoiceStatus(externalStatus),
       statusManuallySet: false,
+      provider: 'LastMinutePush',
+      providerInvoiceId: externalInvoiceId,
+      providerInvoiceStatus: externalStatus,
+      providerInvoice: externalInvoice,
       updatedAt: now,
       createdAt: now,
       invoiceXml,
@@ -946,12 +1073,10 @@ router.get('/home-summary', async (req, res) => {
         .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
         .filter(Boolean);
 
-      if (relatedDespatchUuids.length > 0) {
-        relatedOrderInvoiceDocs = await db
-          .collection(USER_INVOICE_COLLECTION)
-          .find({ userId, despatchUuid: { $in: relatedDespatchUuids } })
-          .toArray();
-      }
+      relatedOrderInvoiceDocs = await db
+        .collection(USER_INVOICE_COLLECTION)
+        .find({ userId })
+        .toArray();
     }
 
     const orderStatusLookup = buildOrderStatusLookup(
@@ -1031,16 +1156,10 @@ router.get('/orders', async (req, res) => {
       .toArray();
 
     const despatchDocs = await db.collection(USER_DESPATCH_COLLECTION).find({ userId }).toArray();
-    const despatchUuids = (Array.isArray(despatchDocs) ? despatchDocs : [])
-      .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
-      .filter(Boolean);
-
-    const invoiceDocs = despatchUuids.length
-      ? await db
-          .collection(USER_INVOICE_COLLECTION)
-          .find({ userId, despatchUuid: { $in: despatchUuids } })
-          .toArray()
-      : [];
+    const invoiceDocs = await db
+      .collection(USER_INVOICE_COLLECTION)
+      .find({ userId })
+      .toArray();
 
     const orderStatusLookup = buildOrderStatusLookup(orders, despatchDocs, invoiceDocs);
 
@@ -1083,12 +1202,37 @@ router.get('/orders/:uuid', async (req, res) => {
       .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
       .filter(Boolean);
 
-    const relatedInvoiceDocs = relatedDespatchUuids.length
-      ? await db
-          .collection(USER_INVOICE_COLLECTION)
-          .find({ userId, despatchUuid: { $in: relatedDespatchUuids } })
-          .toArray()
-      : [];
+    const relatedDespatchUuidSet = new Set(relatedDespatchUuids);
+
+    const candidateInvoiceDocs = await db
+      .collection(USER_INVOICE_COLLECTION)
+      .find({ userId })
+      .sort({ updatedAt: -1 })
+      .toArray();
+
+    const relatedInvoiceDocsById = new Map();
+
+    (Array.isArray(candidateInvoiceDocs) ? candidateInvoiceDocs : []).forEach((invoiceDoc) => {
+      const orderUuid = readText(invoiceDoc && invoiceDoc.orderUuid);
+      const despatchUuid = readText(invoiceDoc && invoiceDoc.despatchUuid);
+      const baseDespatchUuid = readText(invoiceDoc && invoiceDoc.baseDespatchUuid);
+
+      const isRelated =
+        orderUuid === uuid ||
+        relatedDespatchUuidSet.has(despatchUuid) ||
+        relatedDespatchUuidSet.has(baseDespatchUuid);
+
+      if (!isRelated) {
+        return;
+      }
+
+      const invoiceUuid = readText(invoiceDoc && invoiceDoc._id) || randomUUID();
+      if (!relatedInvoiceDocsById.has(invoiceUuid)) {
+        relatedInvoiceDocsById.set(invoiceUuid, invoiceDoc);
+      }
+    });
+
+    const relatedInvoiceDocs = Array.from(relatedInvoiceDocsById.values());
 
     const derivedOrderStatus = resolveOrderLifecycleStatus(
       orderDoc,
@@ -1125,13 +1269,21 @@ router.get('/orders/:uuid', async (req, res) => {
       return mappedDespatch;
     });
 
+    const invoiceDocuments = relatedInvoiceDocs
+      .map((invoiceDoc) => mapInvoiceSummary(invoiceDoc))
+      .sort((left, right) => Number(right && right.updatedAt) - Number(left && left.updatedAt));
+
+    const payment = deriveOrderPaymentSummary(invoiceDocuments);
+
     return res.status(200).json({
       success: true,
       order: {
         ...mappedOrder,
         orderLines: enrichedOrderLines,
         pendingDespatchLines,
-        despatchAdvice
+        despatchAdvice,
+        invoiceDocuments,
+        payment
       },
       'executed-at': nowUnix()
     });
@@ -1318,6 +1470,28 @@ router.get('/invoices/:uuid', async (req, res) => {
   } catch (error) {
     console.error('Error loading invoice detail:', error);
     return sendError(res, 500, error.message || 'Unable to load invoice detail.');
+  }
+});
+
+router.delete('/invoices/:uuid', async (req, res) => {
+  try {
+    const db = getDb();
+    const userId = req.session.userId;
+    const uuid = req.params.uuid;
+
+    const deleteResult = await db.collection(USER_INVOICE_COLLECTION).deleteOne({ _id: uuid, userId });
+    if (!deleteResult.deletedCount) {
+      return sendNotFound(res, 'invoice', uuid);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Invoice deleted successfully.',
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error deleting invoice detail:', error);
+    return sendError(res, 500, error.message || 'Unable to delete invoice detail.');
   }
 });
 

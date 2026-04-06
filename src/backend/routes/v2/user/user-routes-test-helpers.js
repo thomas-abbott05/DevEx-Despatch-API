@@ -103,6 +103,15 @@ function createDbMock({ orders = [], despatch = [], invoices = [] } = {}) {
 
             return { matchedCount: 1, modifiedCount: 1 };
           }),
+          deleteOne: jest.fn(async (query) => {
+            const index = invoices.findIndex((record) => record._id === query._id && record.userId === query.userId);
+            if (index === -1) {
+              return { deletedCount: 0 };
+            }
+
+            invoices.splice(index, 1);
+            return { deletedCount: 1 };
+          }),
           deleteMany: jest.fn(async (query) => {
             const beforeCount = invoices.length;
             const filtered = invoices.filter(

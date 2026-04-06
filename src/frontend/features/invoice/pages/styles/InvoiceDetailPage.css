@@ -50,6 +50,65 @@
   text-decoration: none;
 }
 
+.invoice-detail-delete-btn {
+  background: rgba(178, 34, 34, 0.8);
+  border-color: rgba(232, 87, 87, 0.6);
+  color: #f8fbff;
+  padding-left: 0.8rem;
+  padding-right: 0.6rem;
+  text-decoration: none;
+}
+
+.invoice-detail-delete-btn:hover {
+  background: rgba(178, 34, 34, 0.95);
+  border-color: rgba(255, 120, 120, 0.8);
+  text-decoration: none;
+}
+
+.invoice-detail-delete-btn:focus-visible {
+  text-decoration: none;
+}
+
+.invoice-detail-delete-dialog-content[data-slot='alert-dialog-content'] {
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  min-height: 100vh;
+  padding: 1.25rem;
+}
+
+.invoice-detail-delete-dialog-panel {
+  width: min(620px, 96vw);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(35, 19, 24, 0.95) 0%, rgba(17, 11, 14, 0.97) 100%);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+  padding: 1.25rem;
+}
+
+.invoice-detail-delete-dialog-panel [data-slot='alert-dialog-title'] {
+  color: #ffd8d8;
+}
+
+.invoice-detail-delete-dialog-panel [data-slot='alert-dialog-description'] {
+  color: #ffbcbc;
+}
+
+.invoice-detail-delete-confirm-btn[data-slot='alert-dialog-action'] {
+  background: rgba(178, 34, 34, 0.92);
+  border-color: rgba(232, 87, 87, 0.72);
+  color: #fff3f3;
+}
+
+.invoice-detail-delete-confirm-btn[data-slot='alert-dialog-action']:hover {
+  background: rgba(178, 34, 34, 1);
+  border-color: rgba(255, 120, 120, 0.9);
+}
+
+.invoice-detail-delete-confirm-btn[data-slot='alert-dialog-action']:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 119, 119, 0.35);
+}
+
 .invoice-detail-back-btn[data-slot='button'] {
   padding-inline: 0.85rem;
   text-decoration: none;
@@ -119,6 +178,11 @@
 }
 
 .invoice-detail-hero-id {
+  display: inline-block;
+  max-width: min(50vw, 320px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.82rem;
   color: #b8c4d8;
   letter-spacing: 0.05em;
@@ -132,7 +196,7 @@
 
 .invoice-detail-hero-meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 0.7rem;
   min-width: min(100%, 420px);
 }
@@ -152,6 +216,37 @@
   color: #e6edf9;
 }
 
+.invoice-detail-hero-meta label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8d9ab0;
+}
+
+.invoice-detail-status-select {
+  margin-top: 0.22rem;
+  height: 30px;
+  min-width: 96px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(19, 24, 31, 0.72);
+  color: #dbe5f3;
+  font-size: 0.78rem;
+  line-height: 1;
+  padding: 0.1rem 0.45rem;
+}
+
+.invoice-detail-status-select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 1px;
+}
+
+.invoice-detail-status-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .invoice-detail-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -166,9 +261,16 @@
 }
 
 .invoice-detail-grid dd {
+  min-width: 0;
   margin-top: 0.25rem;
   color: #e2e8f4;
   font-size: 0.96rem;
+}
+
+.invoice-detail-id-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .invoice-detail-total-value {
@@ -229,6 +331,8 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 0.28rem;
+  max-width: 100%;
   color: #dbe5f3;
   text-decoration: none;
 }
@@ -350,6 +454,18 @@
   font-weight: 600;
   color: #d5deec;
   text-align: center;
+}
+
+.invoice-detail-empty-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+}
+
+.invoice-detail-empty-info-icon {
+  color: #9cc8ff;
+  flex-shrink: 0;
 }
 
 .invoice-detail-empty-subtitle {

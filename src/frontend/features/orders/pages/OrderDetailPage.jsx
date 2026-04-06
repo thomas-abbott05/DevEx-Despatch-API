@@ -36,6 +36,18 @@ const DESPATCH_STATUS_CLASS = {
   Cancelled: 'order-detail-status-cancelled',
 }
 
+const INVOICE_STATUS_CLASS = {
+  Issued: 'order-detail-invoice-status-issued',
+  Paid: 'order-detail-invoice-status-paid',
+  Overdue: 'order-detail-invoice-status-overdue',
+}
+
+const PAYMENT_STATUS_CLASS = {
+  Paid: 'order-detail-payment-status-paid',
+  'Partially Paid': 'order-detail-payment-status-partial',
+  'Not Paid': 'order-detail-payment-status-unpaid',
+}
+
 function normaliseDespatchStatus(statusValue) {
   const status = String(statusValue || '').trim().toLowerCase()
 
@@ -50,6 +62,22 @@ function normaliseDespatchStatus(statusValue) {
   }
 
   return String(statusValue || '').trim() || '-'
+}
+
+function normaliseInvoiceStatus(statusValue) {
+  const status = String(statusValue || '').trim().toLowerCase()
+
+  if (status === 'paid') {
+    return 'Paid'
+  }
+  if (status === 'overdue') {
+    return 'Overdue'
+  }
+  if (status === 'issued') {
+    return 'Issued'
+  }
+
+  return 'Issued'
 }
 
 function readLineUnitPrice(lineItem) {
@@ -101,6 +129,57 @@ function formatQuantityValue(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(2)
 }
 
+function deriveOrderPaymentFallback(invoiceDocuments) {
+  const invoices = Array.isArray(invoiceDocuments) ? invoiceDocuments : []
+  const invoiceCount = invoices.length
+  const paidInvoiceCount = invoices.filter(
+    (invoiceDoc) => normaliseInvoiceStatus(invoiceDoc?.status) === 'Paid'
+  ).length
+  const outstandingInvoiceCount = Math.max(invoiceCount - paidInvoiceCount, 0)
+
+  if (!invoiceCount) {
+    return {
+      status: 'Not Paid',
+      paidInFull: false,
+      hasInvoices: false,
+      invoiceCount,
+      paidInvoiceCount,
+      outstandingInvoiceCount,
+    }
+  }
+
+  if (!outstandingInvoiceCount) {
+    return {
+      status: 'Paid',
+      paidInFull: true,
+      hasInvoices: true,
+      invoiceCount,
+      paidInvoiceCount,
+      outstandingInvoiceCount,
+    }
+  }
+
+  if (paidInvoiceCount > 0) {
+    return {
+      status: 'Partially Paid',
+      paidInFull: false,
+      hasInvoices: true,
+      invoiceCount,
+      paidInvoiceCount,
+      outstandingInvoiceCount,
+    }
+  }
+
+  return {
+    status: 'Not Paid',
+    paidInFull: false,
+    hasInvoices: true,
+    invoiceCount,
+    paidInvoiceCount,
+    outstandingInvoiceCount,
+  }
+}
+
 export default function OrderDetailPage() {
   const navigate = useNavigate()
   const { uuid = '' } = useParams()
@@ -119,6 +198,10 @@ export default function OrderDetailPage() {
   ]
   const lineItems = Array.isArray(order?.orderLines) ? order.orderLines : []
   const despatchAdviceDocuments = Array.isArray(order?.despatchAdvice) ? order.despatchAdvice : []
+  const invoiceDocuments = Array.isArray(order?.invoiceDocuments) ? order.invoiceDocuments : []
+  const paymentSummary = order?.payment && typeof order.payment === 'object'
+    ? order.payment
+    : deriveOrderPaymentFallback(invoiceDocuments)
   const pendingDespatchLines = Array.isArray(order?.pendingDespatchLines)
     ? order.pendingDespatchLines
     : lineItems
@@ -145,6 +228,7 @@ export default function OrderDetailPage() {
         .filter((lineItem) => Number.isFinite(lineItem.quantityPending) && lineItem.quantityPending > 0)
   const pendingDespatchCount = pendingDespatchLines.length
   const despatchAdviceEmptyPrompt = '/despatch/create?orderUuid=' + encodeURIComponent(uuid)
+  const invoiceDocumentsEmptyPrompt = '/invoice/create?orderUuid=' + encodeURIComponent(uuid)
   const orderTotal = lineItems.reduce((sum, lineItem) => {
     const quantity = Number(lineItem?.requestedQuantity)
     const unitPrice = readLineUnitPrice(lineItem)
@@ -225,7 +309,7 @@ export default function OrderDetailPage() {
       <section className="home-content order-detail-content">
         <header className="order-detail-header">
           <div>
-            <h1 className="order-detail-title">Order Detail</h1>
+            <h1 className="order-detail-title">Order Details</h1>
             <p className="order-detail-subtitle">UUID: {uuid}</p>
           </div>
           <div className="order-detail-actions">
@@ -479,6 +563,70 @@ export default function OrderDetailPage() {
                       Create one to get started:
                       <Link className="order-detail-empty-link" to={despatchAdviceEmptyPrompt}>
                         <span>Create Despatch Advice</span>
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                      </Link>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <h2 className="order-detail-section-title">Invoice Documents</h2>
+              <div className="order-detail-payment-summary" role="status" aria-live="polite">
+                <span className={`order-detail-status-badge order-detail-payment-status-badge ${PAYMENT_STATUS_CLASS[paymentSummary?.status] ?? ''}`}>
+                  {paymentSummary?.status || 'Not Paid'}
+                </span>
+                <span className="order-detail-payment-meta">
+                  {paymentSummary?.hasInvoices
+                    ? `${Number(paymentSummary?.paidInvoiceCount) || 0} of ${Number(paymentSummary?.invoiceCount) || invoiceDocuments.length} invoices paid`
+                    : 'No invoices created yet for this order.'}
+                </span>
+              </div>
+
+              <div className="order-detail-lines-table-wrap">
+                {invoiceDocuments.length > 0 ? (
+                  <table className="order-detail-lines-table order-detail-invoice-lines-table" aria-label="Invoice documents for this order">
+                    <thead>
+                      <tr>
+                        <th>Invoice ID</th>
+                        <th>Status</th>
+                        <th>Source</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Total</th>
+                        <th><span className="sr-only">Actions</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoiceDocuments.map((invoiceDoc, index) => {
+                        const invoiceStatus = normaliseInvoiceStatus(invoiceDoc?.status)
+
+                        return (
+                          <tr key={invoiceDoc?.uuid || `invoice-${index}`}>
+                            <td className="order-detail-line-id-cell">
+                              <span className="order-detail-line-id-badge">{invoiceDoc?.displayId || '-'}</span>
+                            </td>
+                            <td>
+                              <span className={`order-detail-status-badge order-detail-invoice-status-badge ${INVOICE_STATUS_CLASS[invoiceStatus] ?? ''}`}>
+                                {invoiceStatus}
+                              </span>
+                            </td>
+                            <td>{invoiceDoc?.sourceLabel || '-'}</td>
+                            <td className="order-detail-line-center-cell">{invoiceDoc?.issueDate || '-'}</td>
+                            <td className="order-detail-line-center-cell">{invoiceDoc?.dueDate || '-'}</td>
+                            <td className="order-detail-line-center-cell">{formatCurrencyValue(Number(invoiceDoc?.total))}</td>
+                            <td>{invoiceDoc?.uuid ? <Link to={`/invoice/${invoiceDoc.uuid}`}>View</Link> : '-'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="order-detail-empty-state">
+                    <p className="order-detail-empty-text">No invoice documents found yet.</p>
+                    <p className="order-detail-empty-subtitle">
+                      Create one to get started:
+                      <Link className="order-detail-empty-link" to={invoiceDocumentsEmptyPrompt}>
+                        <span>Create Invoice</span>
                         <ArrowRight className="size-4" aria-hidden="true" />
                       </Link>
                     </p>

@@ -496,6 +496,67 @@
   color: #ffe0e0;
 }
 
+.order-detail-payment-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.order-detail-payment-status-badge {
+  min-width: 116px;
+}
+
+.order-detail-payment-status-paid {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.order-detail-payment-status-partial {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.order-detail-payment-status-unpaid {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fbbf24;
+}
+
+.order-detail-payment-meta {
+  color: #c7d1df;
+  font-size: 0.86rem;
+}
+
+.order-detail-invoice-lines-table {
+  min-width: 940px;
+}
+
+.order-detail-invoice-status-badge {
+  min-width: 88px;
+}
+
+.order-detail-invoice-status-issued {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.order-detail-invoice-status-paid {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.order-detail-invoice-status-overdue {
+  background: rgba(150, 56, 56, 0.35);
+  border-color: rgba(231, 109, 109, 0.54);
+  color: #ffe0e0;
+}
+
 .order-detail-empty-lines {
   padding: 1rem;
   color: #8d9ab0;

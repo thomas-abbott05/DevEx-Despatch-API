@@ -11,10 +11,11 @@ import { fetchHomeSummary } from '../api/home-api'
 import './styles/HomePage.css'
 
 const subtitleOptions = [
-  "Let's get started :D",
-  'Ready to get stuff done?? WOOOOOOOOO YEAHHHHHHH',
-  'LET\'S GET READY TO RUMBLEEEEEEE!!!!!!',
-  'Ducks: in a row. Ordered. Immaculate. Like your XML documents.'
+  "Let's get started :)",
+  'Ready to get some stuff done?',
+  'What are we working on today?',
+  'Ducks: in a row. Ordered. Immaculate. Like your XML documents.',
+  '196 page UBL spec document? No worries!!'
 ]
 
 const railIcons = {
@@ -39,6 +40,12 @@ const DESPATCH_STATUS_CLASS = {
   Cancelled: 'home-despatch-status-cancelled',
 }
 
+const INVOICE_STATUS_CLASS = {
+  Issued: 'home-invoice-status-issued',
+  Paid: 'home-invoice-status-paid',
+  Overdue: 'home-invoice-status-overdue',
+}
+
 function normaliseDespatchStatus(value) {
   const status = String(value || '').trim().toLowerCase()
   if (status === 'received') {
@@ -49,6 +56,18 @@ function normaliseDespatchStatus(value) {
   }
 
   return String(value || 'Pending')
+}
+
+function normaliseInvoiceStatus(value) {
+  const status = String(value || '').trim().toLowerCase()
+  if (status === 'paid') {
+    return 'Paid'
+  }
+  if (status === 'overdue') {
+    return 'Overdue'
+  }
+
+  return 'Issued'
 }
 
 function resolveGreetingByHour() {
@@ -245,9 +264,12 @@ function ActivityRail({
                 const issuedText = `Issued ${item.issueDate || 'Unknown date'} for ${buyerName}`
                 const isOrderCard = String(documentType || '').toLowerCase() === 'order'
                 const isDespatchCard = String(documentType || '').toLowerCase() === 'despatch advice'
+                const isInvoiceCard = String(documentType || '').toLowerCase() === 'invoice'
                 const statusClassName = isOrderCard ? ORDER_STATUS_CLASS[item.status] || '' : ''
                 const despatchStatus = normaliseDespatchStatus(item.status)
                 const despatchStatusClassName = isDespatchCard ? DESPATCH_STATUS_CLASS[despatchStatus] || '' : ''
+                const invoiceStatus = normaliseInvoiceStatus(item.status)
+                const invoiceStatusClassName = isInvoiceCard ? INVOICE_STATUS_CLASS[invoiceStatus] || '' : ''
 
                 return (
                   <Link key={item.uuid} className="home-rail-card-link" to={`${detailBaseTo}/${item.uuid}`}>
@@ -272,6 +294,10 @@ function ActivityRail({
                             ) : isDespatchCard ? (
                               <p className="home-rail-card-summary">
                                 <span className={`home-despatch-status-badge ${despatchStatusClassName}`}>{despatchStatus}</span>
+                              </p>
+                            ) : isInvoiceCard ? (
+                              <p className="home-rail-card-summary">
+                                <span className={`home-invoice-status-badge ${invoiceStatusClassName}`}>{invoiceStatus}</span>
                               </p>
                             ) : (
                               <p className="home-rail-card-summary">{item.status}</p>
@@ -400,6 +426,7 @@ export default function HomePage() {
             loading={loading}
             error={error}
             onRetry={loadHomeSummary}
+            resolveMetaText={(item) => `Order: ${item.orderDisplayId || item.orderUuid || 'Unknown'}`}
             emptyMessage="Nothing here, yet!"
             emptyCtaTo="/invoice/create"
             emptyCtaLabel="Create Invoice"

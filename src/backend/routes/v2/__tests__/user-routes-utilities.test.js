@@ -10,6 +10,8 @@ const {
   deriveInvoiceLinesFromDespatch,
   calculateInvoiceTotals,
   resolveInvoiceStatus,
+  postLastMinutePushInvoiceForXmlResponse,
+  overwriteInvoiceXmlDocumentId,
   postChalksnifferOrderForXmlResponse
 } = require('../user/user-routes-utilities');
 const { parseOrderXml } = require('../../../despatch/order-parser-service');
@@ -618,5 +620,116 @@ describe('user route utilities', () => {
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  test('postLastMinutePushInvoiceForXmlResponse creates invoice then fetches XML with X-API-Key', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        text: async () =>
+          JSON.stringify({
+            message: 'Invoice created',
+            invoice: {
+              invoice_id: 'INV-20260316-ABC12345',
+              status: 'draft',
+              order_reference: 'ORD-1001',
+              customer_id: 'CUST-2001',
+              issue_date: '2026-03-16',
+              due_date: '2026-03-23',
+              payable_amount: 99.99
+            }
+          })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => '<Invoice><cbc:ID>INV-20260316-ABC12345</cbc:ID></Invoice>'
+      });
+
+    global.fetch = fetchMock;
+
+    try {
+      const result = await postLastMinutePushInvoiceForXmlResponse(
+        'https://lastminutepush.one',
+        {
+          order_reference: 'ORD-1001',
+          customer_id: 'CUST-2001',
+          issue_date: '2026-03-16',
+          due_date: '2026-03-23',
+          currency: 'AUD',
+          supplier: {
+            name: 'Supplier',
+            identifier: 'SUP-1'
+          },
+          customer: {
+            name: 'Customer',
+            identifier: 'CUST-2001'
+          },
+          items: [
+            {
+              name: 'Consulting Service',
+              description: 'Business consulting engagement',
+              quantity: 1,
+              unit_price: 99.99,
+              unit_code: 'EA'
+            }
+          ]
+        },
+        'Invoice generation request',
+        'lmp-token-123'
+      );
+
+      expect(result.invoice.invoice_id).toBe('INV-20260316-ABC12345');
+      expect(result.invoiceXml).toContain('<Invoice>');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        'https://lastminutepush.one/v1/invoices',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'X-API-Key': 'lmp-token-123'
+          })
+        })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        'https://lastminutepush.one/v1/invoices/INV-20260316-ABC12345',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            Accept: 'application/xml',
+            'X-API-Key': 'lmp-token-123'
+          })
+        })
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('overwriteInvoiceXmlDocumentId rewrites root invoice ID without touching line IDs', () => {
+    const sourceXml = [
+      '<Invoice>',
+      '  <cbc:ID>INV-20260316-ABC12345</cbc:ID>',
+      '  <cbc:IssueDate>2026-03-16</cbc:IssueDate>',
+      '  <cac:InvoiceLine>',
+      '    <cbc:ID>LINE-001</cbc:ID>',
+      '  </cac:InvoiceLine>',
+      '</Invoice>'
+    ].join('\n');
+
+    const rewrittenXml = overwriteInvoiceXmlDocumentId(
+      sourceXml,
+      '70e5af6d-00fd-4469-842d-e4f6af89989a'
+    );
+
+    expect(rewrittenXml).toContain('<cbc:ID>70e5af6d-00fd-4469-842d-e4f6af89989a</cbc:ID>');
+    expect(rewrittenXml).toContain('<cbc:ID>LINE-001</cbc:ID>');
+    expect(rewrittenXml).not.toContain('<cbc:ID>INV-20260316-ABC12345</cbc:ID>');
   });
 });

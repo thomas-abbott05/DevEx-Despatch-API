@@ -1,4 +1,4 @@
-import { getJson, postJson } from '@/lib/api-client'
+import { deleteJson, getJson, postJson } from '@/lib/api-client'
 
 export async function fetchInvoiceSummaries() {
   const payload = await getJson('/api/v2/user/invoices', 'Unable to load invoices.')
@@ -27,4 +27,13 @@ export async function updateInvoiceStatus(uuid, status) {
   )
 
   return responsePayload?.invoice || null
+}
+
+export async function deleteInvoice(uuid) {
+  const payload = await deleteJson(
+    '/api/v2/user/invoices/' + encodeURIComponent(uuid),
+    'Unable to delete invoice.'
+  )
+
+  return payload
 }

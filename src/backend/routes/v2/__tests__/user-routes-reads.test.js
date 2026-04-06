@@ -178,6 +178,79 @@ describe('v2 user routes read endpoints', () => {
     expect(detailPayload.order.despatchAdvice[0].displayId).toBe('DSP-2026-001');
   });
 
+  test('marks order as Completed when fully despatched and paid via order-level invoice', async () => {
+    const orderXml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<Order xmlns="urn:oasis:names:specification:ubl:schema:xsd:Order-2">',
+      '  <OrderLine>',
+      '    <lineItem>',
+      '      <id>LINE-001</id>',
+      '      <quantity>100</quantity>',
+      '      <item>',
+      '        <name>Valorant Points</name>',
+      '        <description>test</description>',
+      '      </item>',
+      '      <price>',
+      '        <priceAmount>50</priceAmount>',
+      '      </price>',
+      '    </lineItem>',
+      '  </OrderLine>',
+      '</Order>'
+    ].join('\n');
+
+    const seeded = seedDefaultData();
+    seeded.orders[0].generatedOrderXml = orderXml;
+    seeded.orders[0].orderLines = [
+      {
+        lineId: 'LINE-001',
+        requestedQuantity: 100,
+        itemName: 'Valorant Points',
+        description: 'test',
+        destinationOptions: []
+      }
+    ];
+    seeded.despatch[0].lines = [
+      {
+        lineId: 'DSP-LINE-001',
+        orderLineId: 'LINE-001',
+        quantity: 100
+      }
+    ];
+    seeded.invoices.push({
+      _id: '4d0db863-d763-4a38-8274-f07ad31ef7e8',
+      userId: 'test-user',
+      displayId: 'INV-2026-900',
+      sourceType: 'order',
+      orderUuid: '34ec2376-a8c4-4a59-a307-e64f7aaf1150',
+      despatchUuid: '',
+      issueDate: '2026-04-06',
+      dueDate: '2026-04-13',
+      status: 'Paid',
+      statusManuallySet: true,
+      total: 5000,
+      updatedAt: new Date('2026-04-06T12:00:00.000Z')
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const detailResponse = await fetch(baseUrl + '/api/v2/user/orders/34ec2376-a8c4-4a59-a307-e64f7aaf1150', {
+      headers: { cookie: cookieHeader }
+    });
+    const detailPayload = await detailResponse.json();
+
+    expect(detailResponse.status).toBe(200);
+    expect(detailPayload.success).toBe(true);
+    expect(detailPayload.order.status).toBe('Completed');
+
+    const ordersResponse = await fetch(baseUrl + '/api/v2/user/orders', {
+      headers: { cookie: cookieHeader }
+    });
+    const ordersPayload = await ordersResponse.json();
+
+    expect(ordersResponse.status).toBe(200);
+    expect(ordersPayload.success).toBe(true);
+    expect(ordersPayload.orders[0].status).toBe('Completed');
+  });
+
   test('deletes a known order UUID', async () => {
     const seeded = seedDefaultData();
     mockGetDb.mockReturnValue(createDbMock(seeded));
@@ -359,5 +432,39 @@ describe('v2 user routes read endpoints', () => {
     expect(response.status).toBe(200);
     expect(payload.success).toBe(true);
     expect(payload.invoices[0].status).toBe('Paid');
+  });
+
+  test('deletes a known invoice UUID', async () => {
+    const seeded = seedDefaultData();
+    seeded.invoices.push({
+      _id: '8f19cc49-73de-4ed2-b805-c4be9f59f1c1',
+      userId: 'test-user',
+      displayId: 'INV-2026-020',
+      despatchDisplayId: 'DSP-2026-001',
+      despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+      buyer: 'Acme Corp',
+      issueDate: '2026-04-01',
+      dueDate: '2026-04-06',
+      status: 'Issued',
+      statusManuallySet: false,
+      total: 120,
+      updatedAt: new Date('2026-04-06T12:00:00.000Z')
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const deleteResponse = await fetch(baseUrl + '/api/v2/user/invoices/8f19cc49-73de-4ed2-b805-c4be9f59f1c1', {
+      method: 'DELETE',
+      headers: { cookie: cookieHeader }
+    });
+    const deletePayload = await deleteResponse.json();
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deletePayload.success).toBe(true);
+
+    const detailResponse = await fetch(baseUrl + '/api/v2/user/invoices/8f19cc49-73de-4ed2-b805-c4be9f59f1c1', {
+      headers: { cookie: cookieHeader }
+    });
+
+    expect(detailResponse.status).toBe(404);
   });
 });
