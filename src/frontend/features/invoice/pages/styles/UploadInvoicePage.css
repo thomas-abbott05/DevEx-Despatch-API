@@ -1,0 +1,137 @@
+.invoice-upload-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.invoice-upload-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.invoice-upload-content .home-footer {
+  margin-top: auto;
+}
+
+.invoice-upload-header {
+  margin-bottom: 1.2rem;
+}
+
+.invoice-upload-title {
+  font-size: clamp(1.8rem, 4.1vw, 2.85rem);
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  font-family: 'Arial Black', 'Segoe UI', sans-serif;
+  color: #f2f6fc;
+}
+
+.invoice-upload-subtitle {
+  margin-top: 0.45rem;
+  font-family: Consolas, 'Courier New', monospace;
+  color: #c4cedd;
+  font-size: 0.95rem;
+}
+
+.invoice-upload-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(21, 25, 32, 0.62);
+  backdrop-filter: blur(7px);
+  padding: 1rem;
+}
+
+.invoice-upload-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.invoice-upload-label {
+  font-size: 0.82rem;
+  color: #dbe5f3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invoice-upload-dropzone {
+  border: 1px dashed rgba(163, 174, 193, 0.52);
+  border-radius: 12px;
+  background: rgba(17, 22, 30, 0.58);
+  padding: 1rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.invoice-upload-dropzone.is-dragging {
+  border-color: rgba(151, 163, 255, 0.9);
+  background: rgba(50, 57, 78, 0.45);
+  box-shadow: 0 0 0 3px rgba(151, 163, 255, 0.16);
+}
+
+.invoice-upload-drop-content {
+  display: grid;
+  justify-items: center;
+  gap: 0.42rem;
+  text-align: center;
+}
+
+.invoice-upload-input-icon {
+  width: 1.28rem;
+  height: 1.28rem;
+  color: #bdc8da;
+}
+
+.invoice-upload-drop-prompt {
+  color: #dbe5f3;
+  font-size: 0.9rem;
+}
+
+.invoice-upload-drop-subtext {
+  color: #95a3b8;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.invoice-upload-input {
+  display: none;
+}
+
+.invoice-upload-file-status {
+  color: #95a3b8;
+  font-size: 0.84rem;
+}
+
+.invoice-upload-file-list {
+  list-style: none;
+  display: grid;
+  gap: 0.38rem;
+  margin: -0.1rem 0 0;
+  padding: 0;
+}
+
+.invoice-upload-file-item {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(16, 21, 28, 0.72);
+  border-radius: 8px;
+  padding: 0.38rem 0.55rem;
+  color: #c8d4e5;
+  font-size: 0.82rem;
+  font-family: Consolas, 'Courier New', monospace;
+}
+
+.invoice-upload-success {
+  border: 1px solid rgba(103, 216, 164, 0.4);
+  background: rgba(103, 216, 164, 0.12);
+  color: #67d8a4;
+  border-radius: 10px;
+  padding: 0.55rem 0.62rem;
+  font-size: 0.84rem;
+}
+
+.invoice-upload-actions {
+  display: inline-flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
