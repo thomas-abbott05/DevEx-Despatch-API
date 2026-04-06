@@ -111,7 +111,7 @@ export default function InvoicePage() {
               <tbody>
                 {invoices.map((inv) => (
                   <tr key={inv.uuid}>
-                    <td>
+                    <td className="invoice-id-cell">
                       <span className="invoice-id-badge">{inv.displayId}</span>
                     </td>
                     <td>
@@ -127,7 +127,7 @@ export default function InvoicePage() {
                     <td className="invoice-date-cell">{inv.issueDate}</td>
                     <td className="invoice-row-actions">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/invoice/${inv.uuid}`}>View</Link>
+                        <Link className="invoice-view-link" to={`/invoice/${inv.uuid}`}>View</Link>
                       </Button>
                     </td>
                   </tr>

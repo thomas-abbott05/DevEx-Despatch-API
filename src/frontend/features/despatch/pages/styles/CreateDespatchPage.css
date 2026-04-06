@@ -187,6 +187,11 @@
   background: rgba(14, 19, 27, 0.55);
 }
 
+.create-despatch-line-card-pending {
+  border-color: rgba(234, 179, 8, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(234, 179, 8, 0.14);
+}
+
 .create-despatch-line-heading {
   display: flex;
   align-items: baseline;
@@ -211,6 +216,14 @@
   color: #9caec8;
 }
 
+.create-despatch-pending-highlight {
+  margin-top: 0.35rem;
+  font-size: 0.79rem;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  color: #f8d776;
+}
+
 .create-despatch-line-grid {
   margin-top: 0.7rem;
   display: grid;
@@ -222,6 +235,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+
+.create-despatch-page .create-despatch-field [data-slot='input'] {
+  padding-left: 0.72rem;
+  padding-right: 0.95rem;
 }
 
 .create-despatch-field label {
@@ -274,8 +292,33 @@
   text-decoration: none;
 }
 
+.create-despatch-nav-btn,
+.create-despatch-cancel-btn {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.create-despatch-submit-btn {
+  border: 1px solid rgba(103, 216, 164, 0.4);
+  color: #67d8a4;
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+}
+
+.create-despatch-submit-btn:hover:not(:disabled) {
+  background: rgba(103, 216, 164, 0.12);
+  color: #8de6bb;
+}
+
 .create-despatch-actions [data-slot='button']:hover,
 .create-despatch-actions [data-slot='button']:focus-visible {
+  text-decoration: none;
+}
+
+.create-despatch-nav-btn:hover,
+.create-despatch-nav-btn:focus-visible,
+.create-despatch-cancel-btn:hover,
+.create-despatch-cancel-btn:focus-visible {
   text-decoration: none;
 }
 

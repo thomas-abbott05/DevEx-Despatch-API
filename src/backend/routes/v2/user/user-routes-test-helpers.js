@@ -47,6 +47,15 @@ function createDbMock({ orders = [], despatch = [], invoices = [] } = {}) {
           findOne: jest.fn(async (query) =>
             despatch.find((record) => record._id === query._id && record.userId === query.userId) || null
           ),
+          deleteOne: jest.fn(async (query) => {
+            const index = despatch.findIndex((record) => record._id === query._id && record.userId === query.userId);
+            if (index === -1) {
+              return { deletedCount: 0 };
+            }
+
+            despatch.splice(index, 1);
+            return { deletedCount: 1 };
+          }),
           deleteMany: jest.fn(async (query) => {
             const beforeCount = despatch.length;
             const filtered = despatch.filter(
@@ -66,6 +75,15 @@ function createDbMock({ orders = [], despatch = [], invoices = [] } = {}) {
           findOne: jest.fn(async (query) =>
             invoices.find((record) => record._id === query._id && record.userId === query.userId) || null
           ),
+          deleteMany: jest.fn(async (query) => {
+            const beforeCount = invoices.length;
+            const filtered = invoices.filter(
+              (record) => !(record.userId === query.userId && record.despatchUuid === query.despatchUuid)
+            );
+
+            invoices.splice(0, invoices.length, ...filtered);
+            return { deletedCount: beforeCount - invoices.length };
+          }),
           insertOne: jest.fn()
         };
       }
@@ -101,8 +119,6 @@ function seedDefaultData() {
         displayId: 'DSP-2026-001',
         orderDisplayId: 'ORD-2026-001',
         orderUuid: '34ec2376-a8c4-4a59-a307-e64f7aaf1150',
-        carrier: 'FedEx',
-        trackingNo: 'FX-10293847',
         status: 'Shipped',
         issueDate: '2026-04-06',
         updatedAt: now,

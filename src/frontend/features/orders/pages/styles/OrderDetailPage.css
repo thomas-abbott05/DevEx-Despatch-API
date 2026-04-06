@@ -200,7 +200,7 @@
 
 .order-detail-lines-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1040px;
   border-collapse: collapse;
   font-size: 0.9rem;
   color: #e2e8f4;
@@ -236,6 +236,58 @@
 
 .order-detail-lines-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.order-detail-warning-wrap {
+  margin-top: 0.9rem;
+}
+
+.order-detail-warning-title {
+  margin: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffe08a;
+}
+
+.order-detail-warning-table-wrap {
+  border-color: rgba(234, 179, 8, 0.42);
+  background: linear-gradient(180deg, rgba(66, 52, 20, 0.7) 0%, rgba(39, 31, 13, 0.72) 100%);
+}
+
+.order-detail-warning-table {
+  min-width: 1120px;
+}
+
+.order-detail-warning-table thead tr {
+  border-bottom: 1px solid rgba(234, 179, 8, 0.38);
+}
+
+.order-detail-warning-table th {
+  color: #f8d776;
+}
+
+.order-detail-warning-table tbody tr {
+  border-bottom: 1px solid rgba(234, 179, 8, 0.22);
+}
+
+.order-detail-warning-table tbody tr:hover {
+  background: rgba(255, 215, 96, 0.1);
+}
+
+.order-detail-warning-table td {
+  color: #fff1c4;
+}
+
+.order-detail-warning-action-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.order-detail-warning-action-btn[data-slot='button'] {
+  padding-left: 0.75rem;
+  padding-right: 0.56rem;
 }
 
 .order-detail-line-id-cell {
@@ -373,6 +425,40 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #e5ebf8;
   background: rgba(90, 102, 125, 0.32);
+}
+
+.order-detail-order-status-badge {
+  min-width: 108px;
+}
+
+.order-detail-order-status-pending {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fbbf24;
+}
+
+.order-detail-order-status-confirmed {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.order-detail-order-status-transit {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.order-detail-order-status-delivered {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.order-detail-order-status-cancelled {
+  background: rgba(255, 0, 89, 0.1);
+  border-color: rgba(255, 0, 89, 0.3);
+  color: #ff6090;
 }
 
 .order-detail-despatch-status-badge {

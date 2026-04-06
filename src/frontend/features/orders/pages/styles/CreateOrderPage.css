@@ -91,6 +91,11 @@
   gap: 0.35rem;
 }
 
+.create-order-page .create-order-field [data-slot='input'] {
+  padding-left: 0.72rem;
+  padding-right: 0.95rem;
+}
+
 .create-order-field-full {
   grid-column: 1 / -1;
 }
@@ -142,6 +147,15 @@
   gap: 0.7rem;
 }
 
+.create-order-add-line-wrap {
+  margin-top: 0.7rem;
+}
+
+.create-order-add-line-btn {
+  padding-left: 0.9rem;
+  padding-right: 0.9rem;
+}
+
 .create-order-line-card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -165,6 +179,18 @@
 
 .create-order-remove-line[data-slot='button'] {
   color: #ffb1c7;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+}
+
+.create-order-page #issue-date {
+  color-scheme: dark;
+}
+
+.create-order-page #issue-date::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+  cursor: pointer;
 }
 
 .create-order-error {
@@ -180,6 +206,31 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.55rem;
+}
+
+.create-order-nav-btn,
+.create-order-cancel-btn {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.create-order-nav-btn:hover,
+.create-order-nav-btn:focus-visible,
+.create-order-cancel-btn:hover,
+.create-order-cancel-btn:focus-visible {
+  text-decoration: none;
+}
+
+.create-order-submit-btn {
+  border: 1px solid rgba(103, 216, 164, 0.4);
+  color: #67d8a4;
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+}
+
+.create-order-submit-btn:hover:not(:disabled) {
+  background: rgba(103, 216, 164, 0.12);
+  color: #8de6bb;
 }
 
 @media (max-width: 860px) {

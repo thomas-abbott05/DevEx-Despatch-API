@@ -46,6 +46,139 @@ const USER_INVOICE_COLLECTION = 'user-invoices';
 
 const HOME_SUMMARY_LIMIT = 8;
 
+function readQuantity(value) {
+  const quantity = Number(value);
+  return Number.isFinite(quantity) ? quantity : 0;
+}
+
+function buildLineIdCandidates(lineIdValue) {
+  const lineId = readText(lineIdValue);
+  if (!lineId) {
+    return [];
+  }
+
+  const candidates = new Set([lineId]);
+  const linePrefixMatch = /^LINE-(\d+)$/i.exec(lineId);
+
+  if (linePrefixMatch) {
+    const numericPart = linePrefixMatch[1];
+    const normalizedNumber = String(Number(numericPart));
+
+    candidates.add(numericPart);
+    candidates.add(normalizedNumber);
+    candidates.add('LINE-' + normalizedNumber.padStart(3, '0'));
+  }
+
+  const numericMatch = /^\d+$/.exec(lineId);
+  if (numericMatch) {
+    const normalizedNumber = String(Number(lineId));
+
+    candidates.add(normalizedNumber);
+    candidates.add('LINE-' + normalizedNumber.padStart(3, '0'));
+  }
+
+  return Array.from(candidates);
+}
+
+function buildDestinationSummary(line, fallback = '-') {
+  const destinationLabels = Array.from(
+    new Set(
+      (Array.isArray(line && line.destinationOptions) ? line.destinationOptions : [])
+        .map((option) => readText(option && (option.label || option.key)))
+        .filter(Boolean)
+    )
+  );
+
+  if (destinationLabels.length > 0) {
+    return destinationLabels.join(', ');
+  }
+
+  const inlineDestination = readText(line && line.destination);
+  return inlineDestination || fallback;
+}
+
+function enrichOrderLinesWithDespatch(orderLines, despatchDocs) {
+  const despatchLineEntries = [];
+
+  (Array.isArray(despatchDocs) ? despatchDocs : []).forEach((despatchDoc) => {
+    const despatchLines = Array.isArray(despatchDoc && despatchDoc.lines) ? despatchDoc.lines : [];
+
+    despatchLines.forEach((despatchLine) => {
+      const quantity = readQuantity(
+        despatchLine &&
+          (despatchLine.quantity || despatchLine.deliveredQuantity || despatchLine.fulfilmentQuantity)
+      );
+
+      if (quantity <= 0) {
+        return;
+      }
+
+      const lineCandidates = new Set([
+        ...buildLineIdCandidates(despatchLine && despatchLine.orderLineId),
+        ...buildLineIdCandidates(despatchLine && despatchLine.lineId)
+      ]);
+
+      if (lineCandidates.size === 0) {
+        return;
+      }
+
+      despatchLineEntries.push({
+        quantity,
+        lineCandidates,
+        destination: buildDestinationSummary(despatchLine, '')
+      });
+    });
+  });
+
+  const enrichedOrderLines = (Array.isArray(orderLines) ? orderLines : []).map((line, index) => {
+    const lineId = readText(line && line.lineId) || 'LINE-' + String(index + 1).padStart(3, '0');
+    const requestedQuantity = readQuantity(line && line.requestedQuantity);
+    const lineCandidates = buildLineIdCandidates(lineId);
+    const matchedDespatchLines = despatchLineEntries.filter((entry) =>
+      lineCandidates.some((candidate) => entry.lineCandidates.has(candidate))
+    );
+
+    const despatchedQuantity = matchedDespatchLines.reduce(
+      (accumulator, entry) => accumulator + entry.quantity,
+      0
+    );
+
+    const pendingQuantity = Math.max(requestedQuantity - despatchedQuantity, 0);
+    let destination = buildDestinationSummary(line);
+
+    if ((!destination || destination === '-') && matchedDespatchLines.length > 0) {
+      const despatchDestinations = Array.from(
+        new Set(matchedDespatchLines.map((entry) => readText(entry.destination)).filter(Boolean))
+      );
+      destination = despatchDestinations.length > 0 ? despatchDestinations.join(', ') : '-';
+    }
+
+    return {
+      ...line,
+      lineId,
+      requestedQuantity,
+      despatchedQuantity,
+      pendingQuantity,
+      destination
+    };
+  });
+
+  const pendingDespatchLines = enrichedOrderLines
+    .filter((line) => line.pendingQuantity > 0)
+    .map((line) => ({
+      lineId: line.lineId,
+      quantityOrdered: line.requestedQuantity,
+      quantityPending: line.pendingQuantity,
+      quantityDespatched: line.despatchedQuantity,
+      destination: buildDestinationSummary(line)
+    }));
+
+  return {
+    enrichedOrderLines,
+    pendingDespatchLines
+  };
+}
+
 router.use(requireSessionAuth);
 
 router.post('/order/create', async (req, res) => {
@@ -195,8 +328,6 @@ router.post('/despatch/create', async (req, res) => {
         displayId: xmlSummary.displayId || adviceId,
         orderUuid: orderDoc._id,
         orderDisplayId: orderDoc.displayId,
-        carrier: xmlSummary.carrier || 'Unassigned',
-        trackingNo: xmlSummary.trackingNo || '-',
         status: 'Shipped',
         issueDate: xmlSummary.issueDate || todayIsoDate(),
         buyer: xmlSummary.buyer || orderDoc.buyer || '',
@@ -459,8 +590,12 @@ router.get('/orders/:uuid', async (req, res) => {
       .toArray();
 
     const mappedOrder = mapOrderDetail(orderDoc);
+    const { enrichedOrderLines, pendingDespatchLines } = enrichOrderLinesWithDespatch(
+      mappedOrder.orderLines,
+      relatedDespatchDocs
+    );
     const orderDestinationLabels = Array.from(new Set(
-      (Array.isArray(mappedOrder.orderLines) ? mappedOrder.orderLines : [])
+      (Array.isArray(enrichedOrderLines) ? enrichedOrderLines : [])
         .flatMap((line) => (Array.isArray(line?.destinationOptions) ? line.destinationOptions : []))
         .map((option) => option?.label || option?.key)
         .filter(Boolean)
@@ -484,6 +619,8 @@ router.get('/orders/:uuid', async (req, res) => {
       success: true,
       order: {
         ...mappedOrder,
+        orderLines: enrichedOrderLines,
+        pendingDespatchLines,
         despatchAdvice
       },
       'executed-at': nowUnix()
@@ -559,6 +696,30 @@ router.get('/despatch/:uuid', async (req, res) => {
   } catch (error) {
     console.error('Error loading despatch detail:', error);
     return sendError(res, 500, error.message || 'Unable to load despatch detail.');
+  }
+});
+
+router.delete('/despatch/:uuid', async (req, res) => {
+  try {
+    const db = getDb();
+    const userId = req.session.userId;
+    const uuid = req.params.uuid;
+
+    const deleteResult = await db.collection(USER_DESPATCH_COLLECTION).deleteOne({ _id: uuid, userId });
+    if (!deleteResult.deletedCount) {
+      return sendNotFound(res, 'despatch', uuid);
+    }
+
+    await db.collection(USER_INVOICE_COLLECTION).deleteMany({ userId, despatchUuid: uuid });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Despatch advice and associated invoices deleted successfully.',
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error deleting despatch detail:', error);
+    return sendError(res, 500, error.message || 'Unable to delete despatch detail.');
   }
 });
 

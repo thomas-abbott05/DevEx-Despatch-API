@@ -24,6 +24,42 @@
   margin-bottom: 1rem;
 }
 
+.invoice-detail-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.invoice-detail-download-btn[data-slot='button'] {
+  background: rgba(34, 141, 68, 0.85);
+  border-color: rgba(72, 183, 108, 0.65);
+  color: #f3fff7;
+  padding-left: 0.8rem;
+  padding-right: 0.6rem;
+  text-decoration: none;
+}
+
+.invoice-detail-download-btn[data-slot='button']:hover {
+  background: rgba(34, 141, 68, 0.96);
+  border-color: rgba(98, 210, 136, 0.82);
+  text-decoration: none;
+}
+
+.invoice-detail-download-btn[data-slot='button']:focus-visible {
+  text-decoration: none;
+}
+
+.invoice-detail-back-btn[data-slot='button'] {
+  padding-inline: 0.85rem;
+  text-decoration: none;
+}
+
+.invoice-detail-back-btn[data-slot='button']:hover,
+.invoice-detail-back-btn[data-slot='button']:focus-visible {
+  text-decoration: none;
+}
+
 .invoice-detail-title {
   font-size: clamp(1.6rem, 3.7vw, 2.4rem);
   line-height: 1.1;
@@ -74,10 +110,210 @@
   font-size: 0.96rem;
 }
 
-.invoice-detail-grid a {
-  color: #9ec7ff;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.invoice-detail-total-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.invoice-detail-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 94px;
+  border-radius: 999px;
+  padding: 0.2rem 0.56rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e5ebf8;
+  background: rgba(90, 102, 125, 0.32);
+}
+
+.invoice-detail-status-draft {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #d5deea;
+}
+
+.invoice-detail-status-issued,
+.invoice-detail-despatch-status-shipped {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #dbeafe;
+}
+
+.invoice-detail-status-paid,
+.invoice-detail-despatch-status-delivered {
+  background: rgba(40, 122, 72, 0.32);
+  border-color: rgba(84, 198, 125, 0.5);
+  color: #dcfbe8;
+}
+
+.invoice-detail-status-overdue,
+.invoice-detail-despatch-status-cancelled {
+  background: rgba(150, 56, 56, 0.35);
+  border-color: rgba(231, 109, 109, 0.54);
+  color: #ffe0e0;
+}
+
+.invoice-detail-status-cancelled {
+  background: rgba(69, 85, 106, 0.34);
+  border-color: rgba(116, 139, 173, 0.42);
+  color: #d6e3f5;
+}
+
+.invoice-detail-despatch-status-pending {
+  background: rgba(133, 112, 54, 0.28);
+  border-color: rgba(211, 178, 88, 0.45);
+  color: #f7eecf;
+}
+
+.invoice-detail-despatch-status-transit {
+  background: rgba(79, 74, 172, 0.3);
+  border-color: rgba(118, 111, 228, 0.54);
+  color: #e4e2ff;
+}
+
+.invoice-detail-copy-link,
+.invoice-detail-empty-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: #dbe5f3;
+  text-decoration: none;
+}
+
+.invoice-detail-copy-link::after,
+.invoice-detail-empty-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.18rem;
+  width: 100%;
+  height: 1px;
+  background: #ffffff;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.invoice-detail-copy-link span,
+.invoice-detail-empty-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-detail-copy-link:hover,
+.invoice-detail-copy-link:focus-visible,
+.invoice-detail-empty-link:hover,
+.invoice-detail-empty-link:focus-visible {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.invoice-detail-copy-link:hover::after,
+.invoice-detail-copy-link:focus-visible::after,
+.invoice-detail-empty-link:hover::after,
+.invoice-detail-empty-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.invoice-detail-lines-table-wrap {
+  margin-top: 0.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(21, 25, 32, 0.62);
+  backdrop-filter: blur(7px);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.invoice-detail-lines-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  color: #e2e8f4;
+}
+
+.invoice-detail-lines-table thead tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.invoice-detail-lines-table th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8d9ab0;
+}
+
+.invoice-detail-lines-table td {
+  padding: 0.82rem 1rem;
+  vertical-align: middle;
+}
+
+.invoice-detail-lines-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.12s ease;
+}
+
+.invoice-detail-lines-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.invoice-detail-lines-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.invoice-detail-line-id-cell {
+  white-space: nowrap;
+}
+
+.invoice-detail-line-id-badge {
+  display: inline-flex;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cad4e5;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 0.16rem 0.5rem;
+  font-weight: 500;
+}
+
+.invoice-detail-empty-state {
+  min-height: var(--home-rail-card-min-height, 6.75rem);
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.invoice-detail-empty-text {
+  margin: 0;
+  margin-top: 1rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #d5deec;
+  text-align: center;
+}
+
+.invoice-detail-empty-subtitle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #c7d1df;
+  text-align: center;
+  flex-wrap: wrap;
 }
 
 .invoice-detail-section-title {
@@ -97,4 +333,15 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(10, 14, 20, 0.5);
   line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .invoice-detail-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invoice-detail-actions {
+    justify-content: flex-end;
+  }
 }

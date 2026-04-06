@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChevronRight, Download, Trash2 } from 'lucide-react'
+import { ArrowRight, ChevronRight, Download, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   AlertDialog,
@@ -19,7 +19,14 @@ import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
 import { deleteOrder, fetchOrderDetail } from '../api/orders-api'
 import './styles/OrderDetailPage.css'
-import { ArrowRight } from 'lucide-react'
+
+const ORDER_STATUS_CLASS = {
+  Pending: 'order-detail-order-status-pending',
+  Confirmed: 'order-detail-order-status-confirmed',
+  'In Transit': 'order-detail-order-status-transit',
+  Delivered: 'order-detail-order-status-delivered',
+  Cancelled: 'order-detail-order-status-cancelled',
+}
 
 const DESPATCH_STATUS_CLASS = {
   Pending: 'order-detail-status-pending',
@@ -51,6 +58,33 @@ function formatCurrencyValue(value) {
   return value.toFixed(2)
 }
 
+function readLineDespatchedQuantity(lineItem) {
+  const directDespatchedQuantity = Number(lineItem?.despatchedQuantity)
+  if (Number.isFinite(directDespatchedQuantity)) {
+    return directDespatchedQuantity
+  }
+
+  const shippedQuantity = Number(lineItem?.shippedQuantity)
+  if (Number.isFinite(shippedQuantity)) {
+    return shippedQuantity
+  }
+
+  const fulfilledQuantity = Number(lineItem?.fulfilledQuantity)
+  if (Number.isFinite(fulfilledQuantity)) {
+    return fulfilledQuantity
+  }
+
+  return 0
+}
+
+function formatQuantityValue(value) {
+  if (!Number.isFinite(value)) {
+    return '-'
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(2)
+}
+
 export default function OrderDetailPage() {
   const navigate = useNavigate()
   const { uuid = '' } = useParams()
@@ -69,6 +103,31 @@ export default function OrderDetailPage() {
   ]
   const lineItems = Array.isArray(order?.orderLines) ? order.orderLines : []
   const despatchAdviceDocuments = Array.isArray(order?.despatchAdvice) ? order.despatchAdvice : []
+  const pendingDespatchLines = Array.isArray(order?.pendingDespatchLines)
+    ? order.pendingDespatchLines
+    : lineItems
+        .map((lineItem, index) => {
+          const requestedQuantity = Number(lineItem?.requestedQuantity)
+          const quantityDespatched = readLineDespatchedQuantity(lineItem)
+          const quantityPending = Number.isFinite(requestedQuantity)
+            ? Math.max(requestedQuantity - quantityDespatched, 0)
+            : NaN
+          const destinationLabels = Array.isArray(lineItem?.destinationOptions)
+            ? lineItem.destinationOptions
+                .map((option) => option?.label || option?.key)
+                .filter(Boolean)
+            : []
+
+          return {
+            lineId: lineItem?.lineId || `LINE-${index + 1}`,
+            quantityOrdered: requestedQuantity,
+            quantityPending,
+            quantityDespatched,
+            destination: destinationLabels.length > 0 ? destinationLabels.join(', ') : '-',
+          }
+        })
+        .filter((lineItem) => Number.isFinite(lineItem.quantityPending) && lineItem.quantityPending > 0)
+  const pendingDespatchCount = pendingDespatchLines.length
   const despatchAdviceEmptyPrompt = '/despatch/create?orderUuid=' + encodeURIComponent(uuid)
   const orderTotal = lineItems.reduce((sum, lineItem) => {
     const quantity = Number(lineItem?.requestedQuantity)
@@ -233,7 +292,11 @@ export default function OrderDetailPage() {
                 </div>
                 <div>
                   <dt>Status</dt>
-                  <dd>{order.status}</dd>
+                  <dd>
+                    <span className={`order-detail-status-badge order-detail-order-status-badge ${ORDER_STATUS_CLASS[order.status] ?? ''}`}>
+                      {order.status || '-'}
+                    </span>
+                  </dd>
                 </div>
                 <div>
                   <dt>Issue Date</dt>
@@ -262,6 +325,7 @@ export default function OrderDetailPage() {
                         <th>Line ID</th>
                         <th>Item Name</th>
                         <th>Quantity</th>
+                        <th>Shipped</th>
                         <th>Unit Price</th>
                         <th>Description</th>
                         <th>Destination</th>
@@ -271,6 +335,7 @@ export default function OrderDetailPage() {
                     <tbody>
                       {lineItems.map((lineItem, index) => {
                         const quantity = Number(lineItem?.requestedQuantity)
+                        const despatchedQuantity = readLineDespatchedQuantity(lineItem)
                         const unitPrice = readLineUnitPrice(lineItem)
                         const lineTotal = Number.isFinite(quantity) && Number.isFinite(unitPrice)
                           ? quantity * unitPrice
@@ -288,10 +353,9 @@ export default function OrderDetailPage() {
                             </td>
                             <td>{lineItem?.itemName || '-'}</td>
                             <td className="order-detail-line-center-cell">
-                              {Number.isFinite(quantity)
-                                ? quantity
-                                : '-'}
+                              {formatQuantityValue(quantity)}
                             </td>
+                            <td className="order-detail-line-center-cell">{formatQuantityValue(despatchedQuantity)}</td>
                             <td className="order-detail-line-center-cell">{formatCurrencyValue(unitPrice)}</td>
                             <td>{lineItem?.description || '-'}</td>
                             <td>
@@ -302,7 +366,7 @@ export default function OrderDetailPage() {
                         )
                       })}
                       <tr className="order-detail-total-row">
-                        <td colSpan={6}>Order Total</td>
+                        <td colSpan={7}>Order Total</td>
                         <td className="order-detail-line-center-cell">{formatCurrencyValue(orderTotal)}</td>
                       </tr>
                     </tbody>
@@ -311,6 +375,49 @@ export default function OrderDetailPage() {
                   <div className="order-detail-empty-lines">No line items available for this order.</div>
                 )}
               </div>
+
+              {pendingDespatchCount > 0 ? (
+                <div className="order-detail-warning-wrap" role="status" aria-live="polite">
+                  <p className="order-detail-warning-title">{pendingDespatchCount} item lines are pending full despatch:</p>
+                  <div className="order-detail-lines-table-wrap order-detail-warning-table-wrap">
+                    <table className="order-detail-lines-table order-detail-warning-table" aria-label="Order lines pending full despatch">
+                      <thead>
+                        <tr>
+                          <th>Line ID</th>
+                          <th>Quantity Ordered</th>
+                          <th>Quantity Despatched</th>
+                          <th>Quantity Pending Despatch</th>
+                          <th>Destination</th>
+                          <th><span className="sr-only">Actions</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingDespatchLines.map((lineItem, index) => (
+                          <tr key={`${lineItem?.lineId || 'pending-line'}-${index}`}>
+                            <td className="order-detail-line-id-cell">
+                              <span className="order-detail-line-id-badge">{lineItem?.lineId || `LINE-${index + 1}`}</span>
+                            </td>
+                            <td className="order-detail-line-center-cell">
+                              {formatQuantityValue(Number(lineItem?.quantityOrdered ?? (Number(lineItem?.quantityPending) + Number(lineItem?.quantityDespatched))))}
+                            </td>
+                            <td className="order-detail-line-center-cell">{formatQuantityValue(Number(lineItem?.quantityDespatched))}</td>
+                            <td className="order-detail-line-center-cell">{formatQuantityValue(Number(lineItem?.quantityPending))}</td>
+                            <td>{lineItem?.destination || '-'}</td>
+                            <td className="order-detail-warning-action-cell">
+                              <Button asChild variant="secondary" size="sm" className="order-detail-create-btn order-detail-warning-action-btn">
+                                <Link to={`/despatch/create?orderUuid=${encodeURIComponent(uuid)}`}>
+                                  Create Despatch Advice
+                                  <ChevronRight className="size-4" aria-hidden="true" />
+                                </Link>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
 
               <h2 className="order-detail-section-title">Despatch Advice Documents</h2>
               <div className="order-detail-lines-table-wrap">

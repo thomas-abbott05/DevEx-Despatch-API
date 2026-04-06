@@ -571,8 +571,6 @@ function parseDespatchSummaryFromXml(despatchXml) {
 
   const shipmentNode = firstObject(getObjectValueLoose(root, ['cac:Shipment', 'Shipment', 'shipment'])) || {};
   const shipmentDeliveryNode = firstObject(getObjectValueLoose(shipmentNode, ['cac:Delivery', 'Delivery', 'delivery'])) || {};
-  const consignmentNode = firstObject(getObjectValueLoose(shipmentNode, ['cac:Consignment', 'Consignment', 'consignment'])) || {};
-  const carrierParty = firstObject(getObjectValueLoose(consignmentNode, ['cac:CarrierParty', 'CarrierParty', 'carrierParty'])) || {};
 
   const lines = asArray(getObjectValueLoose(root, ['cac:DespatchLine', 'DespatchLine', 'despatchLine'])).map((lineNode, index) => {
     const itemNode = firstObject(getObjectValueLoose(lineNode, ['cac:Item', 'Item', 'item'])) || {};
@@ -628,8 +626,6 @@ function parseDespatchSummaryFromXml(despatchXml) {
         ['cbc:ID', 'ID', 'id']
       )
     ),
-    carrier: extractXmlPartyName(carrierParty) || 'Unassigned',
-    trackingNo: readText(getObjectValueLoose(consignmentNode, ['cbc:ID', 'ID', 'id'])) || '-',
     supplier: extractXmlPartyName(getObjectValueLoose(root, ['cac:DespatchSupplierParty', 'DespatchSupplierParty', 'despatchSupplierParty'])),
     buyer: extractXmlPartyName(getObjectValueLoose(root, ['cac:DeliveryCustomerParty', 'DeliveryCustomerParty', 'deliveryCustomerParty'])),
     lines
@@ -744,8 +740,6 @@ function mapDespatchSummary(despatchDoc) {
     displayId: despatchDoc.displayId || despatchDoc._id,
     orderDisplayId: despatchDoc.orderDisplayId || '',
     orderUuid: despatchDoc.orderUuid || '',
-    carrier: despatchDoc.carrier || 'Unassigned',
-    trackingNo: despatchDoc.trackingNo || '-',
     status: despatchDoc.status || 'Shipped',
     issueDate: despatchDoc.issueDate || '',
     lineItems: Number(despatchDoc.lineItems) || lines.length || 0,

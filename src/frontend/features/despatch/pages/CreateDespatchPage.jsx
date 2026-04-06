@@ -16,12 +16,57 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : NaN
 }
 
+function formatQuantity(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return '-'
+  }
+
+  return Number.isInteger(parsed) ? String(parsed) : parsed.toFixed(2)
+}
+
+function readLineDespatchedQuantity(line) {
+  const directDespatchedQuantity = toNumber(line?.despatchedQuantity)
+  if (Number.isFinite(directDespatchedQuantity)) {
+    return Math.max(directDespatchedQuantity, 0)
+  }
+
+  const shippedQuantity = toNumber(line?.shippedQuantity)
+  if (Number.isFinite(shippedQuantity)) {
+    return Math.max(shippedQuantity, 0)
+  }
+
+  const fulfilledQuantity = toNumber(line?.fulfilledQuantity)
+  if (Number.isFinite(fulfilledQuantity)) {
+    return Math.max(fulfilledQuantity, 0)
+  }
+
+  return 0
+}
+
+function readLinePendingQuantity(line, requestedQuantity, despatchedQuantity) {
+  const directPendingQuantity = toNumber(line?.pendingQuantity)
+  if (Number.isFinite(directPendingQuantity)) {
+    return Math.max(directPendingQuantity, 0)
+  }
+
+  return Math.max(requestedQuantity - despatchedQuantity, 0)
+}
+
 function buildLineSelections(orderDetail) {
   const lines = Array.isArray(orderDetail?.orderLines) ? orderDetail.orderLines : []
 
-  return lines.map((line, index) => {
+  return lines
+    .map((line, index) => {
     const requestedQuantityRaw = toNumber(line.requestedQuantity)
     const requestedQuantity = Number.isFinite(requestedQuantityRaw) ? requestedQuantityRaw : 0
+    const despatchedQuantity = readLineDespatchedQuantity(line)
+    const pendingQuantity = readLinePendingQuantity(line, requestedQuantity, despatchedQuantity)
+
+    if (!(pendingQuantity > 0)) {
+      return null
+    }
+
     const destinationOptions = Array.isArray(line.destinationOptions) ? line.destinationOptions : []
     const firstDestination = destinationOptions[0] || null
 
@@ -30,12 +75,15 @@ function buildLineSelections(orderDetail) {
       itemName: line.itemName || 'Line Item ' + String(index + 1),
       description: line.description || '',
       requestedQuantity,
-      fulfilmentQuantity: requestedQuantity > 0 ? String(requestedQuantity) : '1',
+      despatchedQuantity,
+      pendingQuantity,
+      fulfilmentQuantity: String(pendingQuantity),
       destinationOptions,
       destinationKey: firstDestination?.key || '',
       destinationAddress: firstDestination?.address || null
     }
-  })
+    })
+    .filter(Boolean)
 }
 
 export default function CreateDespatchPage() {
@@ -234,8 +282,8 @@ export default function CreateDespatchPage() {
         return 'Line ' + (index + 1) + ': fulfilment quantity must be greater than 0.'
       }
 
-      if (fulfilmentQuantity > line.requestedQuantity) {
-        return 'Line ' + (index + 1) + ': fulfilment quantity cannot exceed requested quantity.'
+      if (fulfilmentQuantity > line.pendingQuantity) {
+        return 'Line ' + (index + 1) + ': fulfilment quantity cannot exceed pending despatch quantity.'
       }
 
       if (line.destinationOptions.length > 0 && !line.destinationAddress) {
@@ -296,7 +344,7 @@ export default function CreateDespatchPage() {
             <h1 className="create-despatch-title">Create Despatch Advice</h1>
             <p className="create-despatch-subtitle">Select a base order and choose fulfilment quantities per line.</p>
           </div>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="create-despatch-nav-btn">
             <Link to="/despatch" className="create-despatch-back-btn">Back to despatch</Link>
           </Button>
         </header>
@@ -377,15 +425,23 @@ export default function CreateDespatchPage() {
                   <PurpleBarLoader statusLabel="Loading order lines" maxWidth="220px" />
                 </div>
               ) : !lineSelections.length ? (
-                <p className="create-despatch-empty">Select an order to configure fulfilment lines.</p>
+                <p className="create-despatch-empty">
+                  {selectedOrder
+                    ? 'All line items for this order are fully despatched.'
+                    : 'Select an order to configure fulfilment lines.'}
+                </p>
               ) : (
                 <div className="create-despatch-lines">
                   {lineSelections.map((line, index) => (
-                    <article key={line.lineId} className="create-despatch-line-card">
+                    <article key={line.lineId} className="create-despatch-line-card create-despatch-line-card-pending">
                       <div className="create-despatch-line-heading">
                         <h3>{line.lineId}</h3>
                         <p>{line.itemName}</p>
                       </div>
+
+                      <p className="create-despatch-pending-highlight">
+                        Pending despatch: {formatQuantity(line.pendingQuantity)}
+                      </p>
 
                       {line.description ? <p className="create-despatch-line-description">{line.description}</p> : null}
 
@@ -397,10 +453,13 @@ export default function CreateDespatchPage() {
                             type="number"
                             min="0.01"
                             step="0.01"
+                            max={String(line.pendingQuantity)}
                             value={line.fulfilmentQuantity}
                             onChange={(event) => handleQuantityChange(line.lineId, event.target.value)}
                           />
-                          <small>Requested: {line.requestedQuantity}</small>
+                          <small>
+                            Ordered: {formatQuantity(line.requestedQuantity)} / Despatched: {formatQuantity(line.despatchedQuantity)} / Pending despatch: {formatQuantity(line.pendingQuantity)}
+                          </small>
                         </div>
 
                         <div className="create-despatch-field create-despatch-field-wide">
@@ -428,10 +487,16 @@ export default function CreateDespatchPage() {
             {error ? <p className="create-despatch-error" role="alert">{error}</p> : null}
 
             <div className="create-despatch-actions">
-              <Button type="submit" variant="secondary" size="sm" disabled={submitting || detailLoading || !lineSelections.length}>
+              <Button
+                type="submit"
+                variant="secondary"
+                size="sm"
+                className="create-despatch-submit-btn"
+                disabled={submitting || detailLoading || !lineSelections.length}
+              >
                 {submitting ? 'Creating Despatch Advice...' : 'Create Despatch Advice'}
               </Button>
-              <Button asChild type="button" variant="ghost" size="sm" disabled={submitting}>
+              <Button asChild type="button" variant="ghost" size="sm" className="create-despatch-cancel-btn" disabled={submitting}>
                 <Link to="/despatch">Cancel</Link>
               </Button>
             </div>

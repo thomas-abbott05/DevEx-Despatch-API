@@ -101,33 +101,39 @@ export default function DespatchPage() {
                 <tr>
                   <th>Despatch ID</th>
                   <th>Order Ref</th>
-                  <th>Carrier</th>
-                  <th>Tracking No.</th>
                   <th>Status</th>
-                  <th>Date</th>
+                  <th>Fulfilment Lines</th>
+                  <th>Date created</th>
                   <th><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 {despatches.map((d) => (
                   <tr key={d.uuid}>
-                    <td>
-                      <span className="despatch-id-badge">{d.displayId}</span>
+                    <td className="despatch-id-cell">
+                      <Link to={`/despatch/${d.uuid}`} className="despatch-id-link" title={d.uuid}>
+                        <span className="despatch-id-badge">{d.displayId}</span>
+                      </Link>
                     </td>
                     <td className="despatch-ref-cell">
-                      <Link to={`/order/${d.orderUuid}`} className="despatch-order-link">{d.orderDisplayId}</Link>
+                      {d.orderUuid ? (
+                        <Link to={`/order/${d.orderUuid}`} className="despatch-order-link" title={d.orderUuid}>
+                          {d.orderDisplayId || '-'}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
                     </td>
-                    <td>{d.carrier}</td>
-                    <td className="despatch-tracking-cell">{d.trackingNo}</td>
                     <td>
                       <span className={`despatch-status-badge ${STATUS_CLASS[d.status] ?? ''}`}>
                         {d.status}
                       </span>
                     </td>
+                    <td className="despatch-line-items-cell">{Number(d.lineItems) || 0}</td>
                     <td className="despatch-date-cell">{d.issueDate}</td>
                     <td className="despatch-row-actions">
                       <Button asChild variant="ghost" size="sm">
-                        <Link to={`/despatch/${d.uuid}`}>View</Link>
+                        <Link className="despatch-view-link" to={`/despatch/${d.uuid}`}>View</Link>
                       </Button>
                     </td>
                   </tr>

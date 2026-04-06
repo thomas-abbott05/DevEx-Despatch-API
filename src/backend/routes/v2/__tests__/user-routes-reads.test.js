@@ -107,6 +107,19 @@ describe('v2 user routes read endpoints', () => {
         destinationOptions: []
       }
     ];
+    seeded.despatch[0].lines = [
+      {
+        lineId: 'DSP-LINE-001',
+        orderLineId: 'LINE-001',
+        quantity: 40,
+        destinationOptions: [
+          {
+            key: 'test-destination',
+            label: '123 Test St, Sydney, 2000, AU'
+          }
+        ]
+      }
+    ];
 
     mockGetDb.mockReturnValue(createDbMock(seeded));
 
@@ -124,7 +137,14 @@ describe('v2 user routes read endpoints', () => {
     expect(detailPayload.order.orderLines[0].requestedQuantity).toBe(100);
     expect(detailPayload.order.orderLines[0].itemName).toBe('Valorant Points');
     expect(detailPayload.order.orderLines[0].unitPrice).toBe(50);
+    expect(detailPayload.order.orderLines[0].despatchedQuantity).toBe(40);
+    expect(detailPayload.order.orderLines[0].pendingQuantity).toBe(60);
     expect(detailPayload.order.orderLines[0].destinationOptions).toHaveLength(1);
+    expect(detailPayload.order.pendingDespatchLines).toHaveLength(1);
+    expect(detailPayload.order.pendingDespatchLines[0].lineId).toBe('LINE-001');
+    expect(detailPayload.order.pendingDespatchLines[0].quantityOrdered).toBe(100);
+    expect(detailPayload.order.pendingDespatchLines[0].quantityPending).toBe(60);
+    expect(detailPayload.order.pendingDespatchLines[0].quantityDespatched).toBe(40);
     expect(Array.isArray(detailPayload.order.despatchAdvice)).toBe(true);
     expect(detailPayload.order.despatchAdvice).toHaveLength(1);
     expect(detailPayload.order.despatchAdvice[0].displayId).toBe('DSP-2026-001');
@@ -164,6 +184,42 @@ describe('v2 user routes read endpoints', () => {
     expect(response.status).toBe(404);
     expect(payload.success).toBe(false);
     expect(payload.errors[0]).toMatch(/despatch/i);
+  });
+
+  test('deletes a known despatch UUID and linked invoices', async () => {
+    const seeded = seedDefaultData();
+    seeded.invoices.push({
+      _id: 'd0cdd6dc-0b82-4ae5-b8a3-7fc77d9fd4a4',
+      userId: 'test-user',
+      displayId: 'INV-2026-001',
+      despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+      issueDate: '2026-04-06',
+      status: 'Issued',
+      total: 100
+    });
+    mockGetDb.mockReturnValue(createDbMock(seeded));
+
+    const deleteResponse = await fetch(baseUrl + '/api/v2/user/despatch/6b17c76a-87cd-4bff-83dc-1257536b6f14', {
+      method: 'DELETE',
+      headers: { cookie: cookieHeader }
+    });
+    const deletePayload = await deleteResponse.json();
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deletePayload.success).toBe(true);
+
+    const despatchResponse = await fetch(baseUrl + '/api/v2/user/despatch/6b17c76a-87cd-4bff-83dc-1257536b6f14', {
+      headers: { cookie: cookieHeader }
+    });
+    expect(despatchResponse.status).toBe(404);
+
+    const invoicesResponse = await fetch(baseUrl + '/api/v2/user/invoices', {
+      headers: { cookie: cookieHeader }
+    });
+    const invoicesPayload = await invoicesResponse.json();
+
+    expect(invoicesResponse.status).toBe(200);
+    expect(invoicesPayload.invoices).toHaveLength(0);
   });
 
   test('returns empty invoice list payload', async () => {

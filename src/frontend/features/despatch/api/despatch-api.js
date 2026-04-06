@@ -1,4 +1,4 @@
-import { getJson, postJson } from '@/lib/api-client'
+import { deleteJson, getJson, postJson } from '@/lib/api-client'
 
 export async function fetchDespatchSummaries() {
   const payload = await getJson('/api/v2/user/despatch', 'Unable to load despatch documents.')
@@ -17,4 +17,9 @@ export async function createDespatchFromOrder(payload) {
     adviceIds: Array.isArray(responsePayload?.adviceIds) ? responsePayload.adviceIds : [],
     despatch: Array.isArray(responsePayload?.despatch) ? responsePayload.despatch : []
   }
+}
+
+export async function deleteDespatch(uuid) {
+  const payload = await deleteJson('/api/v2/user/despatch/' + encodeURIComponent(uuid), 'Unable to delete despatch advice.')
+  return payload
 }

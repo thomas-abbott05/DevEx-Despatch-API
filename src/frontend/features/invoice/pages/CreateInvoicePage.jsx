@@ -115,8 +115,6 @@ export default function CreateInvoicePage() {
         const haystack = [
           despatch.displayId,
           despatch.orderDisplayId,
-          despatch.carrier,
-          despatch.trackingNo,
           despatch.status
         ]
           .join(' ')
@@ -335,7 +333,7 @@ export default function CreateInvoicePage() {
                       setSearchOpen(true)
                     }}
                     onFocus={handleSearchFocus}
-                    placeholder="Search despatch ID, order reference, tracking..."
+                    placeholder="Search despatch ID, order reference, status..."
                     aria-label="Search despatch documents"
                   />
                 </div>

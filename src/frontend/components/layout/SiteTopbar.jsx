@@ -54,8 +54,8 @@ const topbarMenus = [
 ]
 
 function formatBreadcrumbLabel(label) {
-  if (label.length >= 15) {
-    return `${label.slice(0, 15)}...`
+  if (label.length >= 23) {
+    return `${label.slice(0, 23)}...`
   }
 
   return label

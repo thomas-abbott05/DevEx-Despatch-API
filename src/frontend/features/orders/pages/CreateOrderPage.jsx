@@ -315,7 +315,7 @@ export default function CreateOrderPage() {
             <h1 className="create-order-title">Create Order</h1>
             <p className="create-order-subtitle">Enter order details to generate Order XML and save it to your account.</p>
           </div>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="create-order-nav-btn">
             <Link to="/order">Back to orders</Link>
           </Button>
         </header>
@@ -452,10 +452,6 @@ export default function CreateOrderPage() {
             <section className="create-order-section">
               <div className="create-order-line-header">
                 <h2 className="create-order-section-title">Order Lines</h2>
-                <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
-                  <Plus className="size-4" aria-hidden="true" />
-                  Add Line
-                </Button>
               </div>
 
               <div className="create-order-lines">
@@ -585,6 +581,13 @@ export default function CreateOrderPage() {
                   </article>
                 ))}
               </div>
+
+              <div className="create-order-add-line-wrap">
+                <Button type="button" variant="outline" size="sm" className="create-order-add-line-btn" onClick={addLineItem}>
+                  <Plus className="size-4" aria-hidden="true" />
+                  Add Line
+                </Button>
+              </div>
             </section>
 
             {error ? (
@@ -592,10 +595,10 @@ export default function CreateOrderPage() {
             ) : null}
 
             <div className="create-order-actions">
-              <Button type="submit" variant="secondary" size="sm" disabled={!canSubmit}>
+              <Button type="submit" variant="ghost" size="sm" className="create-order-submit-btn" disabled={!canSubmit}>
                 {submitting ? 'Creating Order...' : 'Create Order'}
               </Button>
-              <Button asChild type="button" variant="ghost" size="sm" disabled={submitting}>
+              <Button asChild type="button" variant="ghost" size="sm" className="create-order-cancel-btn" disabled={submitting}>
                 <Link to="/order">Cancel</Link>
               </Button>
             </div>

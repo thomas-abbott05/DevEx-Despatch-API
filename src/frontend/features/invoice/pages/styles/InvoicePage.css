@@ -83,11 +83,14 @@
   border-radius: 16px;
   background: rgba(21, 25, 32, 0.62);
   backdrop-filter: blur(7px);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .invoice-table {
   width: 100%;
+  min-width: 860px;
   border-collapse: collapse;
   font-size: 0.9rem;
   color: #e2e8f4;
@@ -126,7 +129,11 @@
 }
 
 .invoice-id-badge {
-  display: inline-flex;
+  display: inline-block;
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -137,15 +144,47 @@
   font-weight: 500;
 }
 
+.invoice-id-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .invoice-ref-link {
-  color: #a78bfa;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: #dbe5f3;
   text-decoration: none;
   font-size: 0.84rem;
 }
 
-.invoice-ref-link:hover {
-  color: #c4b5fd;
-  text-decoration: underline;
+.invoice-ref-link::after,
+.invoice-view-link[data-slot='button']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.18rem;
+  width: 100%;
+  height: 1px;
+  background: #ffffff;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.invoice-ref-link:hover,
+.invoice-ref-link:focus-visible,
+.invoice-view-link[data-slot='button']:hover,
+.invoice-view-link[data-slot='button']:focus-visible {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.invoice-ref-link:hover::after,
+.invoice-ref-link:focus-visible::after,
+.invoice-view-link[data-slot='button']:hover::after,
+.invoice-view-link[data-slot='button']:focus-visible::after {
+  transform: scaleX(1);
 }
 
 .invoice-total-cell {
@@ -205,6 +244,12 @@
   text-align: right;
 }
 
+.invoice-view-link[data-slot='button'] {
+  position: relative;
+  color: #dbe5f3;
+  text-decoration: none;
+}
+
 /* Empty state */
 .invoice-empty {
   display: flex;
@@ -224,11 +269,12 @@
 
 /* Responsive */
 @media (max-width: 760px) {
-  .invoice-table th:nth-child(2),
-  .invoice-table td:nth-child(2),
-  .invoice-table th:nth-child(4),
-  .invoice-table td:nth-child(4) {
-    display: none;
+  .invoice-table {
+    min-width: 780px;
+  }
+
+  .invoice-id-badge {
+    max-width: 9.5rem;
   }
 
   .invoice-header {
