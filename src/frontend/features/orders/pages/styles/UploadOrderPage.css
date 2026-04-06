@@ -210,6 +210,28 @@
   font-size: 0.84rem;
 }
 
+.order-upload-error {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+  color: #ffb2b2;
+  border-radius: 10px;
+  padding: 0.55rem 0.62rem;
+  font-size: 0.84rem;
+}
+
+.order-upload-failure-list {
+  margin: -0.2rem 0 0;
+  padding-left: 1rem;
+  color: #ffb2b2;
+  font-size: 0.8rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.order-upload-failure-item {
+  line-height: 1.35;
+}
+
 .order-upload-actions {
   display: inline-flex;
   gap: 0.6rem;

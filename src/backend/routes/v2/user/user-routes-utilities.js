@@ -633,19 +633,225 @@ function parseDespatchSummaryFromXml(despatchXml) {
 }
 
 function parseInvoiceSummaryFromXml(invoiceXml) {
-  const parser = createXmlParser(['Invoice.cac:InvoiceLine']);
+  const parser = createXmlParser([
+    'Invoice.cac:InvoiceLine',
+    'Invoice.InvoiceLine',
+    'invoice.cac:InvoiceLine',
+    'invoice.InvoiceLine'
+  ]);
   const parsedTree = parser.parse(invoiceXml);
-  const root = firstObject(parsedTree && parsedTree.Invoice) || {};
+  const root =
+    firstObject(parsedTree && parsedTree.Invoice) ||
+    firstObject(parsedTree && parsedTree.invoice) ||
+    {};
 
-  const legalMonetaryTotalNode = firstObject(root['cac:LegalMonetaryTotal']) || {};
-  const payableAmount = readNumber(legalMonetaryTotalNode['cbc:PayableAmount']);
+  const legalMonetaryTotalNode =
+    firstObject(getObjectValueLoose(root, ['cac:LegalMonetaryTotal', 'LegalMonetaryTotal', 'legalMonetaryTotal'])) ||
+    {};
+  const payableAmount = readNumber(
+    getObjectValueLoose(legalMonetaryTotalNode, ['cbc:PayableAmount', 'PayableAmount', 'payableAmount'])
+  );
 
   return {
-    displayId: readText(root['cbc:ID']) || readText(root['cbc:UUID']),
-    issueDate: readText(root['cbc:IssueDate']) || todayIsoDate(),
-    buyer: extractXmlPartyName(root['cac:AccountingCustomerParty']),
+    displayId:
+      readText(getObjectValueLoose(root, ['cbc:ID', 'ID', 'id'])) ||
+      readText(getObjectValueLoose(root, ['cbc:UUID', 'UUID', 'uuid'])),
+    issueDate: readText(getObjectValueLoose(root, ['cbc:IssueDate', 'IssueDate', 'issueDate'])) || todayIsoDate(),
+    buyer: extractXmlPartyName(
+      getObjectValueLoose(root, ['cac:AccountingCustomerParty', 'AccountingCustomerParty', 'accountingCustomerParty'])
+    ),
     total: Number.isFinite(payableAmount) ? payableAmount : 0
   };
+}
+
+function parseInvoiceReferenceSummaryFromXml(invoiceXml) {
+  const parser = createXmlParser([
+    'Invoice.cac:DespatchDocumentReference',
+    'Invoice.DespatchDocumentReference',
+    'invoice.cac:DespatchDocumentReference',
+    'invoice.DespatchDocumentReference'
+  ]);
+  const parsedTree = parser.parse(invoiceXml);
+  const root =
+    firstObject(parsedTree && parsedTree.Invoice) ||
+    firstObject(parsedTree && parsedTree.invoice) ||
+    {};
+
+  const orderReference = firstObject(
+    getObjectValueLoose(root, ['cac:OrderReference', 'OrderReference', 'orderReference'])
+  );
+
+  const despatchReferences = asArray(
+    getObjectValueLoose(root, [
+      'cac:DespatchDocumentReference',
+      'DespatchDocumentReference',
+      'despatchDocumentReference'
+    ])
+  );
+
+  const despatchDisplayIds = Array.from(
+    new Set(
+      despatchReferences
+        .map((reference) =>
+          readText(getObjectValueLoose(firstObject(reference) || reference, ['cbc:ID', 'ID', 'id']))
+        )
+        .filter(Boolean)
+    )
+  );
+
+  return {
+    orderDisplayId: readText(getObjectValueLoose(orderReference, ['cbc:ID', 'ID', 'id'])),
+    despatchDisplayIds
+  };
+}
+
+function validateInvoiceXmlDocument(invoiceXml) {
+  const xmlText = readText(invoiceXml);
+  if (!xmlText) {
+    return {
+      success: false,
+      errors: ['Invoice XML content cannot be empty.']
+    };
+  }
+
+  try {
+    const parser = createXmlParser([
+      'Invoice.cac:InvoiceLine',
+      'Invoice.InvoiceLine',
+      'invoice.cac:InvoiceLine',
+      'invoice.InvoiceLine'
+    ]);
+    const parsedTree = parser.parse(xmlText);
+    const root =
+      firstObject(parsedTree && parsedTree.Invoice) ||
+      firstObject(parsedTree && parsedTree.invoice);
+
+    if (!root) {
+      return {
+        success: false,
+        errors: ['Invalid Invoice XML: Missing Invoice root element.']
+      };
+    }
+
+    const summary = parseInvoiceSummaryFromXml(xmlText);
+    const references = parseInvoiceReferenceSummaryFromXml(xmlText);
+    const invoiceLines = asArray(
+      getObjectValueLoose(root, ['cac:InvoiceLine', 'InvoiceLine', 'invoiceLine'])
+    );
+    const errors = [];
+
+    if (!summary.displayId) {
+      errors.push('Invalid Invoice XML: Missing Invoice/cbc:ID field.');
+    }
+
+    if (!summary.issueDate) {
+      errors.push('Invalid Invoice XML: Missing Invoice/cbc:IssueDate field.');
+    }
+
+    if (!summary.buyer) {
+      errors.push('Invalid Invoice XML: Missing Invoice/cac:AccountingCustomerParty party name.');
+    }
+
+    if (!invoiceLines.length) {
+      errors.push('Invalid Invoice XML: Missing Invoice/cac:InvoiceLine entries.');
+    }
+
+    if (errors.length > 0) {
+      return {
+        success: false,
+        errors
+      };
+    }
+
+    return {
+      success: true,
+      summary,
+      references
+    };
+  } catch (_error) {
+    return {
+      success: false,
+      errors: ['Invalid Invoice XML content.']
+    };
+  }
+}
+
+function overwriteOrderXmlDocumentId(orderXml, orderId) {
+  const xmlText = readText(orderXml);
+  const localOrderId = readText(orderId);
+
+  if (!xmlText || !localOrderId) {
+    return xmlText;
+  }
+
+  try {
+    const parser = createXmlParser([
+      'Order.cac:OrderLine',
+      'Order.OrderLine',
+      'order.cac:OrderLine',
+      'order.OrderLine'
+    ]);
+    const parsedTree = parser.parse(xmlText);
+    const root = firstObject(parsedTree && parsedTree.Order) || firstObject(parsedTree && parsedTree.order);
+
+    if (!root) {
+      return xmlText;
+    }
+
+    root['cbc:ID'] = localOrderId;
+    root['cbc:UUID'] = localOrderId;
+
+    if (parsedTree && parsedTree.Order) {
+      parsedTree.Order = root;
+    } else if (parsedTree && parsedTree.order) {
+      parsedTree.order = root;
+    }
+
+    const builder = createOrderXmlBuilder();
+    return builder.build(parsedTree);
+  } catch (_error) {
+    return xmlText;
+  }
+}
+
+function overwriteDespatchXmlDocumentId(despatchXml, despatchId) {
+  const xmlText = readText(despatchXml);
+  const localDespatchId = readText(despatchId);
+
+  if (!xmlText || !localDespatchId) {
+    return xmlText;
+  }
+
+  try {
+    const parser = createXmlParser([
+      'DespatchAdvice.cac:DespatchLine',
+      'DespatchAdvice.DespatchLine',
+      'despatchAdvice.cac:DespatchLine',
+      'despatchAdvice.DespatchLine'
+    ]);
+    const parsedTree = parser.parse(xmlText);
+    const root =
+      firstObject(parsedTree && parsedTree.DespatchAdvice) ||
+      firstObject(parsedTree && parsedTree.despatchAdvice);
+
+    if (!root) {
+      return xmlText;
+    }
+
+    root['cbc:ID'] = localDespatchId;
+    root['cbc:UUID'] = localDespatchId;
+
+    if (parsedTree && parsedTree.DespatchAdvice) {
+      parsedTree.DespatchAdvice = root;
+    } else if (parsedTree && parsedTree.despatchAdvice) {
+      parsedTree.despatchAdvice = root;
+    }
+
+    const builder = createOrderXmlBuilder();
+    return builder.build(parsedTree);
+  } catch (_error) {
+    return xmlText;
+  }
 }
 
 function overwriteInvoiceXmlDocumentId(invoiceXml, invoiceId) {
@@ -657,21 +863,27 @@ function overwriteInvoiceXmlDocumentId(invoiceXml, invoiceId) {
   }
 
   try {
-    const parser = createXmlParser(['Invoice.cac:InvoiceLine']);
+    const parser = createXmlParser([
+      'Invoice.cac:InvoiceLine',
+      'Invoice.InvoiceLine',
+      'invoice.cac:InvoiceLine',
+      'invoice.InvoiceLine'
+    ]);
     const parsedTree = parser.parse(xmlText);
-    const root = firstObject(parsedTree && parsedTree.Invoice);
+    const root = firstObject(parsedTree && parsedTree.Invoice) || firstObject(parsedTree && parsedTree.invoice);
 
     if (!root) {
       return xmlText;
     }
 
     root['cbc:ID'] = localInvoiceId;
+    root['cbc:UUID'] = localInvoiceId;
 
-    if (root['cbc:UUID'] !== undefined) {
-      root['cbc:UUID'] = localInvoiceId;
+    if (parsedTree && parsedTree.Invoice) {
+      parsedTree.Invoice = root;
+    } else if (parsedTree && parsedTree.invoice) {
+      parsedTree.invoice = root;
     }
-
-    parsedTree.Invoice = root;
 
     const builder = createOrderXmlBuilder();
     return builder.build(parsedTree);
@@ -1911,6 +2123,10 @@ module.exports = {
   buildSelectedOrderXml,
   parseDespatchSummaryFromXml,
   parseInvoiceSummaryFromXml,
+  parseInvoiceReferenceSummaryFromXml,
+  validateInvoiceXmlDocument,
+  overwriteOrderXmlDocumentId,
+  overwriteDespatchXmlDocumentId,
   overwriteInvoiceXmlDocumentId,
   deriveInvoiceLinesFromDespatch,
   calculateInvoiceTotals

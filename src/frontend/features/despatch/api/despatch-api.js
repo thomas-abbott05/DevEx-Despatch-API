@@ -19,6 +19,21 @@ export async function createDespatchFromOrder(payload) {
   }
 }
 
+export async function uploadDespatchXmlDocuments(documents) {
+  const payload = await postJson(
+    '/api/v2/user/despatch/upload',
+    { documents },
+    'Unable to upload despatch XML documents.',
+  )
+
+  return {
+    despatch: Array.isArray(payload?.despatch) ? payload.despatch : [],
+    uploadedCount: Number(payload?.uploadedCount) || 0,
+    failedCount: Number(payload?.failedCount) || 0,
+    failures: Array.isArray(payload?.failures) ? payload.failures : [],
+  }
+}
+
 export async function deleteDespatch(uuid) {
   const payload = await deleteJson('/api/v2/user/despatch/' + encodeURIComponent(uuid), 'Unable to delete despatch advice.')
   return payload

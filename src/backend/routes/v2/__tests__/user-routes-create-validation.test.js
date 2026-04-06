@@ -70,6 +70,30 @@ describe('v2 user routes create endpoint validation', () => {
     expect(payload.errors.length).toBeGreaterThan(0);
   });
 
+  test('returns 400 for invalid order upload payload', async () => {
+    const response = await fetch(baseUrl + '/api/v2/user/order/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({
+        documents: [
+          {
+            fileName: 'broken-order.xml',
+            xml: '<Order><broken></Order>'
+          }
+        ]
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(Array.isArray(payload.errors)).toBe(true);
+    expect(payload.errors.length).toBeGreaterThan(0);
+  });
+
   test('returns 400 for invalid despatch create payload', async () => {
     const response = await fetch(baseUrl + '/api/v2/user/despatch/create', {
       method: 'POST',
@@ -80,6 +104,30 @@ describe('v2 user routes create endpoint validation', () => {
       body: JSON.stringify({
         orderUuid: 'not-a-uuid',
         lineSelections: []
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(Array.isArray(payload.errors)).toBe(true);
+    expect(payload.errors.length).toBeGreaterThan(0);
+  });
+
+  test('returns 400 for invalid despatch upload payload', async () => {
+    const response = await fetch(baseUrl + '/api/v2/user/despatch/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({
+        documents: [
+          {
+            fileName: 'broken-despatch.xml',
+            xml: '<DespatchAdvice><broken></DespatchAdvice>'
+          }
+        ]
       })
     });
     const payload = await response.json();
@@ -105,6 +153,30 @@ describe('v2 user routes create endpoint validation', () => {
         manualLines: [],
         defaultUnitPrice: -1,
         gstPercent: -10
+      })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(Array.isArray(payload.errors)).toBe(true);
+    expect(payload.errors.length).toBeGreaterThan(0);
+  });
+
+  test('returns 400 for invalid invoice upload payload', async () => {
+    const response = await fetch(baseUrl + '/api/v2/user/invoice/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: cookieHeader
+      },
+      body: JSON.stringify({
+        documents: [
+          {
+            fileName: 'broken-invoice.xml',
+            xml: '<Invoice><cbc:ID>INV-001</cbc:ID></Invoice>'
+          }
+        ]
       })
     });
     const payload = await response.json();

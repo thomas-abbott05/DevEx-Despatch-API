@@ -11,6 +11,10 @@ const {
   calculateInvoiceTotals,
   resolveInvoiceStatus,
   postLastMinutePushInvoiceForXmlResponse,
+  parseInvoiceReferenceSummaryFromXml,
+  validateInvoiceXmlDocument,
+  overwriteOrderXmlDocumentId,
+  overwriteDespatchXmlDocumentId,
   overwriteInvoiceXmlDocumentId,
   postChalksnifferOrderForXmlResponse
 } = require('../user/user-routes-utilities');
@@ -732,4 +736,83 @@ describe('user route utilities', () => {
     expect(rewrittenXml).toContain('<cbc:ID>LINE-001</cbc:ID>');
     expect(rewrittenXml).not.toContain('<cbc:ID>INV-20260316-ABC12345</cbc:ID>');
   });
+
+  test('parseInvoiceReferenceSummaryFromXml extracts order and despatch references', () => {
+    const invoiceXml = [
+      '<Invoice>',
+      '  <cbc:ID>INV-001</cbc:ID>',
+      '  <cac:OrderReference><cbc:ID>ORD-2026-001</cbc:ID></cac:OrderReference>',
+      '  <cac:DespatchDocumentReference><cbc:ID>DSP-2026-001</cbc:ID></cac:DespatchDocumentReference>',
+      '  <cac:DespatchDocumentReference><cbc:ID>DSP-2026-002</cbc:ID></cac:DespatchDocumentReference>',
+      '</Invoice>'
+    ].join('\n')
+
+    const references = parseInvoiceReferenceSummaryFromXml(invoiceXml)
+
+    expect(references.orderDisplayId).toBe('ORD-2026-001')
+    expect(references.despatchDisplayIds).toEqual(['DSP-2026-001', 'DSP-2026-002'])
+  })
+
+  test('validateInvoiceXmlDocument accepts well-formed invoice XML', () => {
+    const invoiceXml = [
+      '<Invoice>',
+      '  <cbc:ID>INV-001</cbc:ID>',
+      '  <cbc:IssueDate>2026-04-06</cbc:IssueDate>',
+      '  <cac:AccountingCustomerParty>',
+      '    <cac:Party>',
+      '      <cac:PartyName><cbc:Name>Acme Buyer</cbc:Name></cac:PartyName>',
+      '    </cac:Party>',
+      '  </cac:AccountingCustomerParty>',
+      '  <cac:LegalMonetaryTotal>',
+      '    <cbc:PayableAmount>129.95</cbc:PayableAmount>',
+      '  </cac:LegalMonetaryTotal>',
+      '  <cac:InvoiceLine><cbc:ID>1</cbc:ID></cac:InvoiceLine>',
+      '</Invoice>'
+    ].join('\n')
+
+    const validation = validateInvoiceXmlDocument(invoiceXml)
+
+    expect(validation.success).toBe(true)
+    expect(validation.summary.displayId).toBe('INV-001')
+  })
+
+  test('validateInvoiceXmlDocument rejects XML missing required invoice fields', () => {
+    const validation = validateInvoiceXmlDocument('<Invoice><cbc:ID>INV-001</cbc:ID></Invoice>')
+
+    expect(validation.success).toBe(false)
+    expect(Array.isArray(validation.errors)).toBe(true)
+    expect(validation.errors.length).toBeGreaterThan(0)
+  })
+
+  test('overwriteOrderXmlDocumentId rewrites order ID and UUID fields', () => {
+    const sourceXml = [
+      '<Order>',
+      '  <cbc:ID>ORD-2026-001</cbc:ID>',
+      '  <cbc:UUID>OLD-UUID</cbc:UUID>',
+      '  <cac:OrderLine><cac:LineItem><cbc:ID>LINE-001</cbc:ID></cac:LineItem></cac:OrderLine>',
+      '</Order>'
+    ].join('\n')
+
+    const rewrittenXml = overwriteOrderXmlDocumentId(sourceXml, '34ec2376-a8c4-4a59-a307-e64f7aaf1150')
+
+    expect(rewrittenXml).toContain('<cbc:ID>34ec2376-a8c4-4a59-a307-e64f7aaf1150</cbc:ID>')
+    expect(rewrittenXml).toContain('<cbc:UUID>34ec2376-a8c4-4a59-a307-e64f7aaf1150</cbc:UUID>')
+    expect(rewrittenXml).toContain('<cbc:ID>LINE-001</cbc:ID>')
+  })
+
+  test('overwriteDespatchXmlDocumentId rewrites despatch ID and UUID fields', () => {
+    const sourceXml = [
+      '<DespatchAdvice>',
+      '  <cbc:ID>DSP-2026-001</cbc:ID>',
+      '  <cbc:UUID>OLD-DSP-UUID</cbc:UUID>',
+      '  <cac:DespatchLine><cbc:ID>1</cbc:ID></cac:DespatchLine>',
+      '</DespatchAdvice>'
+    ].join('\n')
+
+    const rewrittenXml = overwriteDespatchXmlDocumentId(sourceXml, '6b17c76a-87cd-4bff-83dc-1257536b6f14')
+
+    expect(rewrittenXml).toContain('<cbc:ID>6b17c76a-87cd-4bff-83dc-1257536b6f14</cbc:ID>')
+    expect(rewrittenXml).toContain('<cbc:UUID>6b17c76a-87cd-4bff-83dc-1257536b6f14</cbc:UUID>')
+    expect(rewrittenXml).toContain('<cbc:ID>1</cbc:ID>')
+  })
 });

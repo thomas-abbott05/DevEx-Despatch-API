@@ -7,6 +7,8 @@ const {
   createDespatchAdvice,
   getDespatchAdviceByAdviceId
 } = require('../../../despatch/advice/despatch-advice-service');
+const { validateOrder } = require('../../../validators/order/order-xml-validator-service');
+const { validateDespatchAdviceXml } = require('../../../validators/advice/despatch-advice-xml-validator');
 const {
   nowUnix,
   todayIsoDate,
@@ -33,6 +35,10 @@ const {
   buildSelectedOrderXml,
   parseDespatchSummaryFromXml,
   parseInvoiceSummaryFromXml,
+  parseInvoiceReferenceSummaryFromXml,
+  validateInvoiceXmlDocument,
+  overwriteOrderXmlDocumentId,
+  overwriteDespatchXmlDocumentId,
   overwriteInvoiceXmlDocumentId,
   deriveInvoiceLinesFromDespatch,
   calculateInvoiceTotals
@@ -49,6 +55,30 @@ const USER_DESPATCH_COLLECTION = 'user-despatch-advice';
 const USER_INVOICE_COLLECTION = 'user-invoices';
 
 const HOME_SUMMARY_LIMIT = 8;
+
+function normaliseUploadedXmlDocuments(body) {
+  const rawDocuments = Array.isArray(body && body.documents)
+    ? body.documents
+    : body && (body.xml || body.content || body.rawXml)
+      ? [body]
+      : [];
+
+  return rawDocuments.map((entry, index) => {
+    const documentEntry = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry : {};
+    const fileName =
+      readText(documentEntry.fileName || documentEntry.filename || documentEntry.name) ||
+      'document-' + String(index + 1) + '.xml';
+
+    return {
+      fileName,
+      xml: readText(documentEntry.xml || documentEntry.content || documentEntry.rawXml)
+    };
+  });
+}
+
+function buildUploadErrorPrefix(fileName) {
+  return fileName ? '[' + fileName + '] ' : '';
+}
 
 function readQuantity(value) {
   const quantity = Number(value);
@@ -601,6 +631,99 @@ function buildOrderStatusLookup(orderDocs, despatchDocs, invoiceDocs) {
 
 router.use(requireSessionAuth);
 
+router.post('/order/upload', async (req, res) => {
+  try {
+    const uploadedDocuments = normaliseUploadedXmlDocuments(req.body);
+    if (!uploadedDocuments.length) {
+      return sendError(res, 400, 'documents must include at least one XML payload.');
+    }
+
+    const db = getDb();
+    const userId = req.session.userId;
+    const orderCollection = db.collection(USER_ORDER_COLLECTION);
+    const createdOrders = [];
+    const failures = [];
+
+    for (const uploadedDocument of uploadedDocuments) {
+      const failurePrefix = buildUploadErrorPrefix(uploadedDocument.fileName);
+
+      if (!uploadedDocument.xml) {
+        failures.push({
+          fileName: uploadedDocument.fileName,
+          message: failurePrefix + 'File did not include XML content.'
+        });
+        continue;
+      }
+
+      try {
+        const parsedOrderTree = parseOrderXml(uploadedDocument.xml);
+        const orderValidation = await validateOrder(parsedOrderTree);
+        if (!orderValidation.success) {
+          const validationErrors = Array.isArray(orderValidation.errors) ? orderValidation.errors.join(' ') : 'Order validation failed.';
+          throw new Error(validationErrors);
+        }
+
+        const originalSnapshot = buildOrderSnapshotFromXml(uploadedDocument.xml);
+        const orderUuid = randomUUID();
+        const uploadedOrderXml = overwriteOrderXmlDocumentId(uploadedDocument.xml, orderUuid);
+        const uploadedSnapshot = buildOrderSnapshotFromXml(uploadedOrderXml);
+        const now = new Date();
+
+        const orderDoc = {
+          _id: orderUuid,
+          userId,
+          displayId: orderUuid,
+          sourceDisplayId: originalSnapshot.displayId || orderUuid,
+          buyer: uploadedSnapshot.buyer || 'Unknown Buyer',
+          supplier: uploadedSnapshot.supplier || 'Unknown Supplier',
+          lineItems: uploadedSnapshot.orderLines.length,
+          status: 'Pending',
+          issueDate: uploadedSnapshot.issueDate || todayIsoDate(),
+          updatedAt: now,
+          createdAt: now,
+          sellerPartyId: '',
+          supplierAbn: null,
+          customerAbn: null,
+          submittedOrderData: null,
+          chalksnifferOrderPayload: null,
+          generatedOrderXml: uploadedOrderXml,
+          orderLines: uploadedSnapshot.orderLines,
+          uploadedFileName: uploadedDocument.fileName,
+          uploadSource: 'v2-user-order-upload'
+        };
+
+        await orderCollection.insertOne(orderDoc);
+        createdOrders.push(mapOrderSummary(orderDoc));
+      } catch (uploadError) {
+        failures.push({
+          fileName: uploadedDocument.fileName,
+          message: failurePrefix + (uploadError.message || 'Unable to process uploaded order XML.')
+        });
+      }
+    }
+
+    if (!createdOrders.length) {
+      return sendError(
+        res,
+        400,
+        failures.map((failure) => failure.message)
+      );
+    }
+
+    return res.status(failures.length ? 207 : 201).json({
+      success: true,
+      orders: createdOrders,
+      uploadedCount: createdOrders.length,
+      failedCount: failures.length,
+      failures,
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error uploading order XML documents:', error);
+    return sendError(res, 500, error.message || 'Unable to upload order XML documents.');
+  }
+});
+
 router.post('/order/create', async (req, res) => {
   try {
     const validation = validateOrderCreateBody(req.body);
@@ -774,6 +897,107 @@ router.post('/despatch/create', async (req, res) => {
   } catch (error) {
     console.error('Error creating despatch advice documents:', error);
     return sendError(res, 500, error.message || 'Unable to create despatch advice documents.');
+  }
+});
+
+router.post('/despatch/upload', async (req, res) => {
+  try {
+    const uploadedDocuments = normaliseUploadedXmlDocuments(req.body);
+    if (!uploadedDocuments.length) {
+      return sendError(res, 400, 'documents must include at least one XML payload.');
+    }
+
+    const db = getDb();
+    const userId = req.session.userId;
+    const despatchCollection = db.collection(USER_DESPATCH_COLLECTION);
+    const userOrders = await db.collection(USER_ORDER_COLLECTION).find({ userId }).toArray();
+    const createdDespatch = [];
+    const failures = [];
+
+    for (const uploadedDocument of uploadedDocuments) {
+      const failurePrefix = buildUploadErrorPrefix(uploadedDocument.fileName);
+
+      if (!uploadedDocument.xml) {
+        failures.push({
+          fileName: uploadedDocument.fileName,
+          message: failurePrefix + 'File did not include XML content.'
+        });
+        continue;
+      }
+
+      try {
+        const validation = await validateDespatchAdviceXml(uploadedDocument.xml);
+        if (!validation.success) {
+          const validationErrors = Array.isArray(validation.errors) ? validation.errors.join(' ') : 'Despatch validation failed.';
+          throw new Error(validationErrors);
+        }
+
+        const despatchUuid = randomUUID();
+        const despatchXml = overwriteDespatchXmlDocumentId(uploadedDocument.xml, despatchUuid);
+        const xmlSummary = parseDespatchSummaryFromXml(despatchXml);
+        const sourceOrderDisplayId = readText(xmlSummary.orderDisplayId) || readText(validation.originalOrderId);
+        const linkedOrder = sourceOrderDisplayId
+          ? userOrders.find((orderDoc) => {
+              const orderDisplayId = readText(orderDoc && orderDoc.displayId);
+              const sourceDisplayId = readText(orderDoc && orderDoc.sourceDisplayId);
+              return sourceOrderDisplayId === orderDisplayId || sourceOrderDisplayId === sourceDisplayId;
+            })
+          : null;
+
+        const now = new Date();
+        const despatchDoc = {
+          _id: despatchUuid,
+          userId,
+          displayId: despatchUuid,
+          orderUuid: readText(linkedOrder && linkedOrder._id),
+          orderDisplayId:
+            readText(linkedOrder && linkedOrder.displayId) ||
+            readText(linkedOrder && linkedOrder.sourceDisplayId) ||
+            sourceOrderDisplayId,
+          status: 'Shipped',
+          issueDate: xmlSummary.issueDate || todayIsoDate(),
+          buyer: xmlSummary.buyer || readText(linkedOrder && linkedOrder.buyer),
+          supplier: xmlSummary.supplier || readText(linkedOrder && linkedOrder.supplier),
+          lineItems: xmlSummary.lines.length,
+          lines: xmlSummary.lines,
+          updatedAt: now,
+          createdAt: now,
+          despatchXml,
+          sourceOrderId: sourceOrderDisplayId,
+          sourceAdviceCollectionId: '',
+          uploadedFileName: uploadedDocument.fileName,
+          uploadSource: 'v2-user-despatch-upload'
+        };
+
+        await despatchCollection.insertOne(despatchDoc);
+        createdDespatch.push(mapDespatchSummary(despatchDoc));
+      } catch (uploadError) {
+        failures.push({
+          fileName: uploadedDocument.fileName,
+          message: failurePrefix + (uploadError.message || 'Unable to process uploaded despatch XML.')
+        });
+      }
+    }
+
+    if (!createdDespatch.length) {
+      return sendError(
+        res,
+        400,
+        failures.map((failure) => failure.message)
+      );
+    }
+
+    return res.status(failures.length ? 207 : 201).json({
+      success: true,
+      despatch: createdDespatch,
+      uploadedCount: createdDespatch.length,
+      failedCount: failures.length,
+      failures,
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error uploading despatch XML documents:', error);
+    return sendError(res, 500, error.message || 'Unable to upload despatch XML documents.');
   }
 });
 
@@ -1027,6 +1251,139 @@ router.post('/invoice/create', async (req, res) => {
   } catch (error) {
     console.error('Error creating invoice document:', error);
     return sendError(res, 500, error.message || 'Unable to create invoice document.');
+  }
+});
+
+router.post('/invoice/upload', async (req, res) => {
+  try {
+    const uploadedDocuments = normaliseUploadedXmlDocuments(req.body);
+    if (!uploadedDocuments.length) {
+      return sendError(res, 400, 'documents must include at least one XML payload.');
+    }
+
+    const db = getDb();
+    const userId = req.session.userId;
+    const invoiceCollection = db.collection(USER_INVOICE_COLLECTION);
+    const userOrders = await db.collection(USER_ORDER_COLLECTION).find({ userId }).toArray();
+    const userDespatch = await db.collection(USER_DESPATCH_COLLECTION).find({ userId }).toArray();
+    const createdInvoices = [];
+    const failures = [];
+
+    for (const uploadedDocument of uploadedDocuments) {
+      const failurePrefix = buildUploadErrorPrefix(uploadedDocument.fileName);
+
+      if (!uploadedDocument.xml) {
+        failures.push({
+          fileName: uploadedDocument.fileName,
+          message: failurePrefix + 'File did not include XML content.'
+        });
+        continue;
+      }
+
+      try {
+        const invoiceValidation = validateInvoiceXmlDocument(uploadedDocument.xml);
+        if (!invoiceValidation.success) {
+          const validationErrors = Array.isArray(invoiceValidation.errors)
+            ? invoiceValidation.errors.join(' ')
+            : 'Invoice validation failed.';
+          throw new Error(validationErrors);
+        }
+
+        const invoiceUuid = randomUUID();
+        const invoiceXml = overwriteInvoiceXmlDocumentId(uploadedDocument.xml, invoiceUuid);
+        const invoiceSummary = parseInvoiceSummaryFromXml(invoiceXml);
+        const invoiceReferences = parseInvoiceReferenceSummaryFromXml(invoiceXml);
+
+        const linkedDespatch = userDespatch.find((despatchDoc) => {
+          const despatchDisplayId = readText(despatchDoc && despatchDoc.displayId) || readText(despatchDoc && despatchDoc._id);
+          return invoiceReferences.despatchDisplayIds.includes(despatchDisplayId);
+        }) || null;
+
+        const linkedOrderByReference = readText(invoiceReferences.orderDisplayId)
+          ? userOrders.find((orderDoc) => {
+              const orderDisplayId = readText(orderDoc && orderDoc.displayId);
+              const sourceDisplayId = readText(orderDoc && orderDoc.sourceDisplayId);
+              return (
+                invoiceReferences.orderDisplayId === orderDisplayId ||
+                invoiceReferences.orderDisplayId === sourceDisplayId ||
+                invoiceReferences.orderDisplayId === readText(orderDoc && orderDoc._id)
+              );
+            }) || null
+          : null;
+
+        const linkedOrder =
+          linkedOrderByReference ||
+          (linkedDespatch && readText(linkedDespatch.orderUuid)
+            ? userOrders.find((orderDoc) => readText(orderDoc && orderDoc._id) === readText(linkedDespatch.orderUuid)) || null
+            : null);
+
+        const sourceType = linkedDespatch ? 'despatch' : 'order';
+        const now = new Date();
+
+        const invoiceDoc = {
+          _id: invoiceUuid,
+          userId,
+          displayId: invoiceUuid,
+          sourceType,
+          orderUuid: readText(linkedOrder && linkedOrder._id),
+          orderDisplayId:
+            readText(linkedOrder && linkedOrder.displayId) ||
+            readText(linkedOrder && linkedOrder.sourceDisplayId) ||
+            readText(invoiceReferences.orderDisplayId),
+          baseDespatchUuid: readText(linkedDespatch && linkedDespatch._id),
+          baseDespatchDisplayId: readText(linkedDespatch && (linkedDespatch.displayId || linkedDespatch._id)),
+          despatchUuid: sourceType === 'despatch' ? readText(linkedDespatch && linkedDespatch._id) : '',
+          despatchDisplayId:
+            sourceType === 'despatch'
+              ? readText(linkedDespatch && (linkedDespatch.displayId || linkedDespatch._id))
+              : '',
+          buyer: invoiceSummary.buyer || readText(linkedOrder && linkedOrder.buyer),
+          total: Number(invoiceSummary.total) || 0,
+          issueDate: invoiceSummary.issueDate || todayIsoDate(),
+          dueDate: invoiceSummary.issueDate || todayIsoDate(),
+          status: 'Issued',
+          statusManuallySet: false,
+          provider: 'UploadedXml',
+          providerInvoiceId: readText(invoiceValidation.summary && invoiceValidation.summary.displayId),
+          providerInvoiceStatus: '',
+          providerInvoice: null,
+          updatedAt: now,
+          createdAt: now,
+          invoiceXml,
+          invoicePayload: null,
+          uploadedFileName: uploadedDocument.fileName,
+          uploadSource: 'v2-user-invoice-upload'
+        };
+
+        await invoiceCollection.insertOne(invoiceDoc);
+        createdInvoices.push(mapInvoiceSummary(invoiceDoc));
+      } catch (uploadError) {
+        failures.push({
+          fileName: uploadedDocument.fileName,
+          message: failurePrefix + (uploadError.message || 'Unable to process uploaded invoice XML.')
+        });
+      }
+    }
+
+    if (!createdInvoices.length) {
+      return sendError(
+        res,
+        400,
+        failures.map((failure) => failure.message)
+      );
+    }
+
+    return res.status(failures.length ? 207 : 201).json({
+      success: true,
+      invoices: createdInvoices,
+      uploadedCount: createdInvoices.length,
+      failedCount: failures.length,
+      failures,
+      'executed-at': nowUnix()
+    });
+  } catch (error) {
+    console.error('Error uploading invoice XML documents:', error);
+    return sendError(res, 500, error.message || 'Unable to upload invoice XML documents.');
   }
 });
 

@@ -20,6 +20,21 @@ export async function createOrderDocument(orderPayload) {
   return payload?.order || null
 }
 
+export async function uploadOrderXmlDocuments(documents) {
+  const payload = await postJson(
+    '/api/v2/user/order/upload',
+    { documents },
+    'Unable to upload order XML documents.',
+  )
+
+  return {
+    orders: Array.isArray(payload?.orders) ? payload.orders : [],
+    uploadedCount: Number(payload?.uploadedCount) || 0,
+    failedCount: Number(payload?.failedCount) || 0,
+    failures: Array.isArray(payload?.failures) ? payload.failures : [],
+  }
+}
+
 export async function deleteOrder(uuid) {
   const payload = await deleteJson('/api/v2/user/orders/' + encodeURIComponent(uuid), 'Unable to delete order.')
   return payload
