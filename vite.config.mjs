@@ -6,7 +6,8 @@ import path from 'node:path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const backendTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:80';
-  const isProductionBuild = mode === 'production';
+  const nodeEnv = env.NODE_ENV || mode;
+  const isProductionBuild = nodeEnv === 'production';
 
   return {
     root: 'src/frontend',
@@ -22,11 +23,9 @@ export default defineConfig(({ mode }) => {
       outDir: '../../dist',
       emptyOutDir: true,
     },
-    define: isProductionBuild
-      ? {
-          'process.env.NODE_ENV': '"production"'
-        }
-      : {},
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(nodeEnv)
+    },
     esbuild: {
       jsxDev: !isProductionBuild
     },

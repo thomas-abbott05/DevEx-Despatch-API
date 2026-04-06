@@ -15,6 +15,7 @@ const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Za-z])(?=.*\d).+$/
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
+  const isProduction = process.env.NODE_ENV === 'production'
   const turnstileSiteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
 
   const [form, setForm] = useState({
@@ -34,7 +35,7 @@ export default function RegisterPage() {
   async function onSubmit(event) {
     event.preventDefault()
 
-    if (!turnstileToken) {
+    if (isProduction && !turnstileToken) {
       setError('Please complete the Turnstile challenge before creating your account.')
       return
     }
@@ -179,17 +180,19 @@ export default function RegisterPage() {
               {error ? <p className="auth-error">{error}</p> : null}
               {successMessage ? <p className="auth-success">{successMessage}</p> : null}
 
-              <div className="auth-turnstile-block">
-                <Turnstile
-                  siteKey={turnstileSiteKey}
-                  options={{ theme: 'dark' }}
-                  onSuccess={(token) => setTurnstileToken(token)}
-                  onExpire={() => setTurnstileToken('')}
-                  onError={() => setTurnstileToken('')}
-                />
-              </div>
+              {isProduction ? (
+                <div className="auth-turnstile-block">
+                  <Turnstile
+                    siteKey={turnstileSiteKey}
+                    options={{ theme: 'dark' }}
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken('')}
+                    onError={() => setTurnstileToken('')}
+                  />
+                </div>
+              ) : null}
 
-              <Button type="submit" className="auth-main-action" disabled={submitting || !turnstileToken}>
+              <Button type="submit" className="auth-main-action" disabled={submitting || (isProduction && !turnstileToken)}>
                 {submitting ? 'Creating account...' : 'Register'}
               </Button>
 

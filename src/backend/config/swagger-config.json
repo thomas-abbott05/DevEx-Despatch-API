@@ -2,19 +2,23 @@
   "openapi": "3.0.0",
   "info": {
     "title": "DevEx Despatch API",
-    "version": "v1",
-    "description": "API for handling Category 2 despatch documents and API key management. <u>Request a key via the Getting Started section below.</u>\n\n<b>⚠️ Note: protected requests (most endpoints) should be accessed using an Api-Key header alongside your request.</b>\n\nIf you have any questions/suggestions/change requests, contact us at devex@platform.tcore.network.\n\nThanks for using :) - DevEx team."
+    "version": "v1-v2",
+    "description": "API for handling Category 2 despatch documents, API key management, and web app session routes. <u>Request a key via the Getting Started section below.</u>\n\n<b>⚠️ Note: v1 protected requests use an Api-Key header. v2 web app routes use session-cookie auth (no Api-Key required).</b>\n\n<b>⚠️ User registration is intended to be completed through the web GUI, because the production flow includes a Cloudflare Turnstile challenge and the GUI supplies the required token.</b>\n\n⚡ The brand new v2 API is powered by chalksniffer's Ordering API and lastminutepush's Invoicing API - thank you to those groups for making our lives easier!\n\n📩 If you have any questions/suggestions/change requests, contact us at devex@platform.tcore.network.\n\nThanks for using :) - DevEx team."
   },
   "servers": [
     {
       "url": "https://devex.cloud.tcore.network",
       "description": "DevEx Despatch API Server"
+    },
+    {
+      "url": "http://localhost:80",
+      "description": "Local development API server"
     }
   ],
   "tags": [
     {
       "name": "Getting Started",
-      "description": "Registration endpoint to request your first API key and begin using the API."
+      "description": "Start here: request your API key, register through the web GUI, then create and clear web app session cookies via login/logout. Session cookies are short-lived and expire after one week."
     },
     {
       "name": "Health",
@@ -33,6 +37,18 @@
       "description": "Validate supported XML document types against server-side schemas."
     },
     {
+      "name": "Web App v2 Orders",
+      "description": "Session-authenticated v2 order creation, upload, retrieval, and deletion routes used by the web app."
+    },
+    {
+      "name": "Web App v2 Despatch",
+      "description": "Session-authenticated v2 despatch creation, upload, retrieval, deletion, and status routes used by the web app."
+    },
+    {
+      "name": "Web App v2 Invoices",
+      "description": "Session-authenticated v2 invoice creation, upload, retrieval, deletion, and status routes used by the web app."
+    },
+    {
       "name": "Developers Only",
       "description": "Internal API key management routes - intended for DevEx team members only."
     }
@@ -44,6 +60,12 @@
         "in": "header",
         "name": "Api-Key",
         "description": "API key sent in the Api-Key header."
+      },
+      "SessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "devex.sid",
+        "description": "Session cookie set after web app authentication."
       }
     },
     "schemas": {
@@ -67,7 +89,12 @@
             "example": 1772246484
           }
         },
-        "required": ["status", "uptime", "version", "executed-at"]
+        "required": [
+          "status",
+          "uptime",
+          "version",
+          "executed-at"
+        ]
       },
       "ErrorsArrayResponse": {
         "type": "object",
@@ -77,14 +104,18 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing API key header. A valid key is required for this endpoint."]
+            "example": [
+              "Missing API key header. A valid key is required for this endpoint."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors"]
+        "required": [
+          "errors"
+        ]
       },
       "MissingApiKeyErrorsArrayResponse": {
         "type": "object",
@@ -94,14 +125,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing API key header. A valid key is required for this endpoint."]
+            "example": [
+              "Missing API key header. A valid key is required for this endpoint."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "InvalidApiKeyErrorsArrayResponse": {
         "type": "object",
@@ -111,14 +147,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Invalid API key. Check it matches the one we issued you."]
+            "example": [
+              "Invalid API key. Check it matches the one we issued you."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "MissingMasterKeyErrorsArrayResponse": {
         "type": "object",
@@ -128,14 +169,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing API key header. A valid master key is required for this endpoint."]
+            "example": [
+              "Missing API key header. A valid master key is required for this endpoint."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "InvalidMasterKeyErrorsArrayResponse": {
         "type": "object",
@@ -145,14 +191,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Invalid master API key"]
+            "example": [
+              "Invalid master API key"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "ForbiddenErrorsArrayResponse": {
         "type": "object",
@@ -162,14 +213,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Unauthorised access."]
+            "example": [
+              "Unauthorised access."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "BadRequestCreateApiKeyErrorsArrayResponse": {
         "type": "object",
@@ -179,14 +235,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing teamName in request body"]
+            "example": [
+              "Missing teamName in request body"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "BadRequestDespatchCreateErrorsArrayResponse": {
         "type": "object",
@@ -196,14 +257,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Request body must contain raw XML data"]
+            "example": [
+              "Request body must contain raw XML data"
+            ]
           },
           "success": {
             "type": "boolean",
             "example": false
           }
         },
-        "required": ["errors", "success"]
+        "required": [
+          "errors",
+          "success"
+        ]
       },
       "BadRequestDespatchRetrievalErrorsArrayResponse": {
         "type": "object",
@@ -213,14 +279,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing valid search-type parameter - must be one of: order, advice-id"]
+            "example": [
+              "Missing valid search-type parameter - must be one of: order, advice-id"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "BadRequestOrderCancellationErrorsArrayResponse": {
         "type": "object",
@@ -230,14 +301,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing required field: advice-id"]
+            "example": [
+              "Missing required field: advice-id"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "BadRequestFulfilmentCancellationErrorsArrayResponse": {
         "type": "object",
@@ -247,14 +323,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing required field: fulfilment-cancellation-reason"]
+            "example": [
+              "Missing required field: fulfilment-cancellation-reason"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "BadRequestDocumentValidationErrorsArrayResponse": {
         "type": "object",
@@ -264,14 +345,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Missing required parameter: XML body must be provided."]
+            "example": [
+              "Missing required parameter: XML body must be provided."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "NotFoundApiKeyErrorsArrayResponse": {
         "type": "object",
@@ -281,14 +367,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["API key not found"]
+            "example": [
+              "API key not found"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "NotFoundDespatchAdviceErrorsArrayResponse": {
         "type": "object",
@@ -298,14 +389,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Despatch advice not found for provided advice-id"]
+            "example": [
+              "Despatch advice not found for provided advice-id"
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "NotFoundCancellationErrorsArrayResponse": {
         "type": "object",
@@ -315,14 +411,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["Failed to find Despatch Advice with id e553cc8e-8b37-4a9b-a0cf-87c34ea70a35."]
+            "example": [
+              "Failed to find Despatch Advice with id e553cc8e-8b37-4a9b-a0cf-87c34ea70a35."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "NotFoundFulfilmentCancellationErrorsArrayResponse": {
         "type": "object",
@@ -332,14 +433,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["No fulfilment cancellation found for id e553cc8e-8b37-4a9b-a0cf-87c34ea70a35."]
+            "example": [
+              "No fulfilment cancellation found for id e553cc8e-8b37-4a9b-a0cf-87c34ea70a35."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "SuccessErrorResponse": {
         "type": "object",
@@ -353,11 +459,18 @@
             "example": "Request body must contain raw XML data"
           }
         },
-        "required": ["success", "error"]
+        "required": [
+          "success",
+          "error"
+        ]
       },
       "CreateApiKeyRequest": {
         "type": "object",
-        "required": ["teamName", "contactEmail", "contactName"],
+        "required": [
+          "teamName",
+          "contactEmail",
+          "contactName"
+        ],
         "properties": {
           "teamName": {
             "type": "string",
@@ -389,7 +502,202 @@
             "example": 1772246484
           }
         },
-        "required": ["message", "executed-at"]
+        "required": [
+          "message",
+          "executed-at"
+        ]
+      },
+      "AuthRegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "z5555555@ad.unsw.edu.au"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "p4ssw0rd123"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Tom"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Abbott"
+          },
+          "turnstileToken": {
+            "type": "string",
+            "description": "Required by the web GUI when the registration challenge is enabled."
+          }
+        }
+      },
+      "AuthRegisterResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User registered successfully."
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "message",
+          "user",
+          "executed-at"
+        ]
+      },
+      "AuthErrorsArrayResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Invalid email or password."]
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "errors",
+          "executed-at"
+        ]
+      },
+      "AuthTurnstileErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Turnstile verification failed. Please try again."]
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["timeout-or-duplicate"]
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "errors",
+          "executed-at"
+        ]
+      },
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "67f31f6f0e99f8b2ad5d2031"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "z5555555@ad.unsw.edu.au"
+          },
+          "profilePhotoUuid": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Tom"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Abbott"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "profilePhotoUuid",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "AuthLoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "z5555555@ad.unsw.edu.au"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "p4ssw0rd123"
+          }
+        }
+      },
+      "AuthLoginResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Login successful."
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "message",
+          "user",
+          "executed-at"
+        ]
+      },
+      "AuthLogoutResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Logout successful."
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "message",
+          "executed-at"
+        ]
       },
       "ApiKeyRecord": {
         "type": "object",
@@ -411,7 +719,13 @@
             "type": "integer"
           }
         },
-        "required": ["_id", "teamName", "contactEmail", "contactName", "createdAt"]
+        "required": [
+          "_id",
+          "teamName",
+          "contactEmail",
+          "contactName",
+          "createdAt"
+        ]
       },
       "ListApiKeysResponse": {
         "type": "object",
@@ -426,7 +740,10 @@
             "type": "integer"
           }
         },
-        "required": ["results", "executed-at"]
+        "required": [
+          "results",
+          "executed-at"
+        ]
       },
       "DeleteApiKeyResponse": {
         "type": "object",
@@ -443,7 +760,10 @@
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
       },
       "CreateDespatchAdviceResponse": {
         "type": "object",
@@ -464,7 +784,11 @@
             "example": 1772246484
           }
         },
-        "required": ["success", "adviceIds", "executed-at"]
+        "required": [
+          "success",
+          "adviceIds",
+          "executed-at"
+        ]
       },
       "ListDespatchAdvicesResponse": {
         "type": "object",
@@ -483,7 +807,10 @@
                   "example": "<DespatchAdvice>...</DespatchAdvice>"
                 }
               },
-              "required": ["advice-id", "despatch-advice"]
+              "required": [
+                "advice-id",
+                "despatch-advice"
+              ]
             }
           },
           "executed-at": {
@@ -491,7 +818,10 @@
             "example": 1772246484
           }
         },
-        "required": ["results", "executed-at"]
+        "required": [
+          "results",
+          "executed-at"
+        ]
       },
       "NotImplementedResponse": {
         "type": "object",
@@ -509,11 +839,18 @@
             "example": 1772246484
           }
         },
-        "required": ["success", "error", "executed-at"]
+        "required": [
+          "success",
+          "error",
+          "executed-at"
+        ]
       },
       "CancelOrderRequest": {
         "type": "object",
-        "required": ["advice-id", "order-cancellation-document"],
+        "required": [
+          "advice-id",
+          "order-cancellation-document"
+        ],
         "properties": {
           "advice-id": {
             "type": "string",
@@ -575,11 +912,18 @@
             "example": 1772246484
           }
         },
-        "required": ["despatch-advice", "advice-id", "executed-at"]
+        "required": [
+          "despatch-advice",
+          "advice-id",
+          "executed-at"
+        ]
       },
       "FulfilmentCancellationRequest": {
         "type": "object",
-        "required": ["advice-id", "fulfilment-cancellation-reason"],
+        "required": [
+          "advice-id",
+          "fulfilment-cancellation-reason"
+        ],
         "properties": {
           "advice-id": {
             "type": "string",
@@ -643,7 +987,11 @@
             "example": 1772246484
           }
         },
-        "required": ["valid", "errors", "executed-at"]
+        "required": [
+          "valid",
+          "errors",
+          "executed-at"
+        ]
       },
       "InternalErrorsArrayResponse": {
         "type": "object",
@@ -653,21 +1001,1175 @@
             "items": {
               "type": "string"
             },
-            "example": ["Internal server error, please try again later."]
+            "example": [
+              "Internal server error, please try again later."
+            ]
           },
           "executed-at": {
             "type": "integer",
             "example": 1772246484
           }
         },
-        "required": ["errors", "executed-at"]
+        "required": [
+          "errors",
+          "executed-at"
+        ]
+      },
+      "V2SessionAuthErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Not authenticated. Please log in."
+            ]
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "errors",
+          "executed-at"
+        ]
+      },
+      "V2ErrorsArrayResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Request body must be a JSON object."
+            ]
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "errors",
+          "executed-at"
+        ]
+      },
+      "V2UploadFailure": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "broken-order.xml"
+          },
+          "message": {
+            "type": "string",
+            "example": "[broken-order.xml] File did not include XML content."
+          }
+        },
+        "required": [
+          "fileName",
+          "message"
+        ]
+      },
+      "V2DocumentUploadEntry": {
+        "type": "object",
+        "description": "A single uploaded XML document. The server accepts xml/content/rawXml as payload aliases.",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "order.xml"
+          },
+          "xml": {
+            "type": "string",
+            "example": "<Order>...</Order>"
+          },
+          "content": {
+            "type": "string",
+            "example": "<Order>...</Order>"
+          },
+          "rawXml": {
+            "type": "string",
+            "example": "<Order>...</Order>"
+          }
+        },
+        "additionalProperties": false
+      },
+      "V2XmlUploadBatchRequest": {
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2DocumentUploadEntry"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "documents"
+        ]
+      },
+      "V2OrderSummary": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayId": {
+            "type": "string",
+            "example": "ORD-2026-001"
+          },
+          "buyer": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "supplier": {
+            "type": "string",
+            "example": "GlobalSupply Ltd"
+          },
+          "lineItems": {
+            "type": "integer",
+            "example": 2
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "In Progress",
+              "Despatched",
+              "Completed"
+            ],
+            "example": "Pending"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-06"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "uuid",
+          "displayId",
+          "buyer",
+          "supplier",
+          "lineItems",
+          "status",
+          "issueDate",
+          "updatedAt"
+        ]
+      },
+      "V2OrderLine": {
+        "type": "object",
+        "properties": {
+          "lineId": {
+            "type": "string",
+            "example": "LINE-001"
+          },
+          "requestedQuantity": {
+            "type": "number",
+            "example": 100
+          },
+          "despatchedQuantity": {
+            "type": "number",
+            "example": 40
+          },
+          "pendingQuantity": {
+            "type": "number",
+            "example": 60
+          },
+          "itemName": {
+            "type": "string",
+            "example": "Valorant Points"
+          },
+          "description": {
+            "type": "string",
+            "example": "Line item description"
+          },
+          "unitPrice": {
+            "type": "number",
+            "example": 50
+          },
+          "destination": {
+            "type": "string",
+            "example": "123 Test St, Sydney, 2000, AU"
+          },
+          "destinationOptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "address": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "lineId"
+        ],
+        "additionalProperties": true
+      },
+      "V2PendingDespatchLine": {
+        "type": "object",
+        "properties": {
+          "lineId": {
+            "type": "string",
+            "example": "LINE-001"
+          },
+          "quantityOrdered": {
+            "type": "number",
+            "example": 100
+          },
+          "quantityPending": {
+            "type": "number",
+            "example": 60
+          },
+          "quantityDespatched": {
+            "type": "number",
+            "example": 40
+          },
+          "destination": {
+            "type": "string",
+            "example": "123 Test St, Sydney, 2000, AU"
+          }
+        },
+        "required": [
+          "lineId",
+          "quantityOrdered",
+          "quantityPending",
+          "quantityDespatched",
+          "destination"
+        ]
+      },
+      "V2OrderPaymentSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "Not Paid",
+              "Partially Paid",
+              "Paid"
+            ],
+            "example": "Partially Paid"
+          },
+          "paidInFull": {
+            "type": "boolean",
+            "example": false
+          },
+          "hasInvoices": {
+            "type": "boolean",
+            "example": true
+          },
+          "invoiceCount": {
+            "type": "integer",
+            "example": 2
+          },
+          "paidInvoiceCount": {
+            "type": "integer",
+            "example": 1
+          },
+          "outstandingInvoiceCount": {
+            "type": "integer",
+            "example": 1
+          }
+        },
+        "required": [
+          "status",
+          "paidInFull",
+          "hasInvoices",
+          "invoiceCount",
+          "paidInvoiceCount",
+          "outstandingInvoiceCount"
+        ]
+      },
+      "V2DespatchSummary": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayId": {
+            "type": "string",
+            "example": "DSP-2026-001"
+          },
+          "orderDisplayId": {
+            "type": "string",
+            "example": "ORD-2026-001"
+          },
+          "orderUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "buyer": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Shipped",
+              "Received"
+            ],
+            "example": "Shipped"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-06"
+          },
+          "lineItems": {
+            "type": "integer",
+            "example": 2
+          },
+          "destination": {
+            "type": "string",
+            "example": "123 Test St, Sydney, 2000, AU"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "uuid",
+          "displayId",
+          "orderDisplayId",
+          "orderUuid",
+          "buyer",
+          "status",
+          "issueDate",
+          "lineItems",
+          "destination",
+          "updatedAt"
+        ]
+      },
+      "V2InvoiceSummary": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayId": {
+            "type": "string",
+            "example": "INV-2026-001"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "despatch",
+              "order"
+            ],
+            "example": "despatch"
+          },
+          "sourceLabel": {
+            "type": "string",
+            "example": "Despatch Advice"
+          },
+          "orderDisplayId": {
+            "type": "string",
+            "example": "ORD-2026-001"
+          },
+          "orderUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "baseDespatchDisplayId": {
+            "type": "string",
+            "example": "DSP-2026-001"
+          },
+          "baseDespatchUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "despatchDisplayId": {
+            "type": "string",
+            "example": "DSP-2026-001"
+          },
+          "despatchUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "buyer": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "total": {
+            "type": "number",
+            "example": 120
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-06"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-13"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Issued",
+              "Paid",
+              "Overdue"
+            ],
+            "example": "Issued"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "uuid",
+          "displayId",
+          "sourceType",
+          "sourceLabel",
+          "orderDisplayId",
+          "orderUuid",
+          "baseDespatchDisplayId",
+          "baseDespatchUuid",
+          "despatchDisplayId",
+          "despatchUuid",
+          "buyer",
+          "total",
+          "issueDate",
+          "dueDate",
+          "status",
+          "updatedAt"
+        ]
+      },
+      "V2OrderDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2OrderSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "supplierAbn": {
+                "type": "string",
+                "example": "12345678901"
+              },
+              "customerAbn": {
+                "type": "string",
+                "example": "10987654321"
+              },
+              "xml": {
+                "type": "string",
+                "example": "<Order>...</Order>"
+              },
+              "orderLines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V2OrderLine"
+                }
+              },
+              "pendingDespatchLines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V2PendingDespatchLine"
+                }
+              },
+              "despatchAdvice": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V2DespatchSummary"
+                }
+              },
+              "invoiceDocuments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V2InvoiceSummary"
+                }
+              },
+              "payment": {
+                "$ref": "#/components/schemas/V2OrderPaymentSummary"
+              }
+            },
+            "required": [
+              "supplierAbn",
+              "customerAbn",
+              "xml",
+              "orderLines"
+            ]
+          }
+        ]
+      },
+      "V2DespatchDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2DespatchSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "xml": {
+                "type": "string",
+                "example": "<DespatchAdvice>...</DespatchAdvice>"
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "xml",
+              "lines"
+            ]
+          }
+        ]
+      },
+      "V2InvoiceDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/V2InvoiceSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "xml": {
+                "type": "string",
+                "example": "<Invoice>...</Invoice>"
+              }
+            },
+            "required": [
+              "xml"
+            ]
+          }
+        ]
+      },
+      "V2OrderCreateRequest": {
+        "type": "object",
+        "description": "Payload used by /api/v2/user/order/create. data must contain a valid UBL-like Order payload.",
+        "properties": {
+          "sellerPartyId": {
+            "type": "string",
+            "example": "seller-party-123"
+          },
+          "supplierAbn": {
+            "type": "string",
+            "example": "12345678901"
+          },
+          "customerAbn": {
+            "type": "string",
+            "example": "10987654321"
+          },
+          "data": {
+            "type": "object",
+            "description": "Order payload containing ID, IssueDate, BuyerCustomerParty, SellerSupplierParty, and OrderLine entries.",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "V2DespatchCreateRequest": {
+        "type": "object",
+        "properties": {
+          "orderUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineSelections": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "lineId": {
+                  "type": "string",
+                  "example": "LINE-001"
+                },
+                "fulfilmentQuantity": {
+                  "type": "number",
+                  "minimum": 1e-7,
+                  "example": 40
+                },
+                "destinationAddress": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "lineId",
+                "fulfilmentQuantity"
+              ]
+            }
+          }
+        },
+        "required": [
+          "orderUuid",
+          "lineSelections"
+        ]
+      },
+      "V2InvoiceCreateManualLine": {
+        "type": "object",
+        "properties": {
+          "lineId": {
+            "type": "string",
+            "example": "LINE-001"
+          },
+          "orderLineId": {
+            "type": "string",
+            "example": "LINE-001"
+          },
+          "description": {
+            "type": "string",
+            "example": "Line Item 1"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1e-7,
+            "example": 5
+          },
+          "unitPrice": {
+            "type": "number",
+            "minimum": 1e-7,
+            "example": 24
+          }
+        },
+        "required": [
+          "quantity",
+          "unitPrice"
+        ]
+      },
+      "V2InvoiceCreateRequest": {
+        "type": "object",
+        "properties": {
+          "baseOrderUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "baseDespatchUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceSourceType": {
+            "type": "string",
+            "enum": [
+              "despatch",
+              "order"
+            ],
+            "example": "order"
+          },
+          "invoiceSourceDespatchUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-06"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-13"
+          },
+          "currency": {
+            "type": "string",
+            "example": "AUD"
+          },
+          "gstPercent": {
+            "type": "number",
+            "minimum": 0,
+            "example": 10
+          },
+          "defaultUnitPrice": {
+            "type": "number",
+            "minimum": 1e-7,
+            "example": 1
+          },
+          "manualLinesIncludeGst": {
+            "type": "boolean",
+            "example": true
+          },
+          "manualLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2InvoiceCreateManualLine"
+            }
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "supplierAbn": {
+            "type": "string"
+          },
+          "customerAbn": {
+            "type": "string"
+          }
+        }
+      },
+      "V2DespatchStatusUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "Shipped",
+              "Received"
+            ],
+            "example": "Received"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "V2InvoiceStatusUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "Issued",
+              "Paid",
+              "Overdue"
+            ],
+            "example": "Paid"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "V2OrderCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "order": {
+            "$ref": "#/components/schemas/V2OrderDetail"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "order",
+          "executed-at"
+        ]
+      },
+      "V2DespatchCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "adviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "despatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2DespatchSummary"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "adviceIds",
+          "despatch",
+          "executed-at"
+        ]
+      },
+      "V2InvoiceCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "invoice": {
+            "$ref": "#/components/schemas/V2InvoiceDetail"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "invoice",
+          "executed-at"
+        ]
+      },
+      "V2HomeSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2OrderSummary"
+            }
+          },
+          "despatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2DespatchSummary"
+            }
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2InvoiceSummary"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "orders",
+          "despatch",
+          "invoices",
+          "executed-at"
+        ]
+      },
+      "V2OrdersListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2OrderSummary"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "orders",
+          "executed-at"
+        ]
+      },
+      "V2OrderDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "order": {
+            "$ref": "#/components/schemas/V2OrderDetail"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "order",
+          "executed-at"
+        ]
+      },
+      "V2DespatchListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "despatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2DespatchSummary"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "despatch",
+          "executed-at"
+        ]
+      },
+      "V2DespatchDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "despatch": {
+            "$ref": "#/components/schemas/V2DespatchDetail"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "despatch",
+          "executed-at"
+        ]
+      },
+      "V2InvoicesListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2InvoiceSummary"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "invoices",
+          "executed-at"
+        ]
+      },
+      "V2InvoiceDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "invoice": {
+            "$ref": "#/components/schemas/V2InvoiceDetail"
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "invoice",
+          "executed-at"
+        ]
+      },
+      "V2UploadOrdersResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2OrderSummary"
+            }
+          },
+          "uploadedCount": {
+            "type": "integer",
+            "example": 1
+          },
+          "failedCount": {
+            "type": "integer",
+            "example": 0
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2UploadFailure"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "orders",
+          "uploadedCount",
+          "failedCount",
+          "failures",
+          "executed-at"
+        ]
+      },
+      "V2UploadDespatchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "despatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2DespatchSummary"
+            }
+          },
+          "uploadedCount": {
+            "type": "integer",
+            "example": 1
+          },
+          "failedCount": {
+            "type": "integer",
+            "example": 0
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2UploadFailure"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "despatch",
+          "uploadedCount",
+          "failedCount",
+          "failures",
+          "executed-at"
+        ]
+      },
+      "V2UploadInvoicesResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2InvoiceSummary"
+            }
+          },
+          "uploadedCount": {
+            "type": "integer",
+            "example": 1
+          },
+          "failedCount": {
+            "type": "integer",
+            "example": 0
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2UploadFailure"
+            }
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "invoices",
+          "uploadedCount",
+          "failedCount",
+          "failures",
+          "executed-at"
+        ]
+      },
+      "V2DeleteSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Document deleted successfully."
+          },
+          "executed-at": {
+            "type": "integer",
+            "example": 1772246484
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "executed-at"
+        ]
       }
     }
   },
   "paths": {
     "/api/v1/health": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "Get API health",
         "description": "Returns current service health, uptime, and API version.",
         "responses": {
@@ -686,7 +2188,9 @@
     },
     "/api/v1/api-key/create": {
       "post": {
-        "tags": ["Getting Started"],
+        "tags": [
+          "Getting Started"
+        ],
         "summary": "Request an API key",
         "description": "Use this registration endpoint to request your team's API key. If an address already has a key (i.e. you lost it), the service resends the existing key details by email.",
         "requestBody": {
@@ -733,38 +2237,45 @@
         }
       }
     },
-    "/api/v1/api-key/list": {
-      "get": {
-        "tags": ["Developers Only"],
-        "summary": "List all API keys",
-        "description": "Returns all issued client API keys. Requires the master Api-Key header.",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Getting Started"
         ],
+        "summary": "Register a new user account",
+        "description": "Registers a new user account. In production, this flow is intended to run through the web GUI so the Cloudflare Turnstile challenge can supply the required token. The API is documented here for reference, but the GUI is the supported registration path.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "All API keys",
+          "201": {
+            "description": "User registered successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListApiKeysResponse"
+                  "$ref": "#/components/schemas/AuthRegisterResponse"
                 }
               }
             }
           },
-          "401": {
-            "description": "Missing or invalid master API key",
+          "400": {
+            "description": "Invalid registration payload or Turnstile verification failure",
             "content": {
               "application/json": {
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/MissingMasterKeyErrorsArrayResponse"
+                      "$ref": "#/components/schemas/AuthErrorsArrayResponse"
                     },
                     {
-                      "$ref": "#/components/schemas/InvalidMasterKeyErrorsArrayResponse"
+                      "$ref": "#/components/schemas/AuthTurnstileErrorResponse"
                     }
                   ]
                 }
@@ -772,7 +2283,7 @@
             }
           },
           "500": {
-            "description": "Internal server error occured - try again later.",
+            "description": "Internal server error occurred while registering the user",
             "content": {
               "application/json": {
                 "schema": {
@@ -784,66 +2295,66 @@
         }
       }
     },
-    "/api/v1/api-key/retrieve/{key}": {
-      "get": {
-        "tags": ["Developers Only"],
-        "summary": "Retrieve one API key",
-        "description": "Looks up a single issued API key record by key value. Requires the master Api-Key header.",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Getting Started"
         ],
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
+        "summary": "Create web session (login)",
+        "description": "Authenticates a registered user and returns the devex.sid session cookie used for /api/v2/user/* routes. Session cookies expire after one week.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthLoginRequest"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Key found",
+            "description": "Login successful and session cookie issued",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiKeyRecord"
+                  "$ref": "#/components/schemas/AuthLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid login payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorsArrayResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Missing or invalid master API key",
+            "description": "Invalid email or password",
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/MissingMasterKeyErrorsArrayResponse"
-                    },
-                    {
-                      "$ref": "#/components/schemas/InvalidMasterKeyErrorsArrayResponse"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/AuthErrorsArrayResponse"
                 }
               }
             }
           },
-          "404": {
-            "description": "API key not found",
+          "403": {
+            "description": "Email address is not verified yet",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotFoundApiKeyErrorsArrayResponse"
+                  "$ref": "#/components/schemas/AuthErrorsArrayResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "Internal server error occured - try again later.",
+            "description": "Internal server error occurred while creating session",
             "content": {
               "application/json": {
                 "schema": {
@@ -855,66 +2366,41 @@
         }
       }
     },
-    "/api/v1/api-key/delete/{key}": {
-      "delete": {
-        "tags": ["Developers Only"],
-        "summary": "Delete one API key",
-        "description": "Deletes an issued API key by key value. Requires the master Api-Key header.",
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Getting Started"
+        ],
+        "summary": "End web session (logout)",
+        "description": "Destroys the current devex.sid session and clears the cookie. Use this to explicitly end the one-week session.",
         "security": [
           {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "SessionCookieAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Key deleted",
+            "description": "Logout successful and session cookie cleared",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeleteApiKeyResponse"
+                  "$ref": "#/components/schemas/AuthLogoutResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Missing or invalid master API key",
+            "description": "No active authenticated session",
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/MissingMasterKeyErrorsArrayResponse"
-                    },
-                    {
-                      "$ref": "#/components/schemas/InvalidMasterKeyErrorsArrayResponse"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "API key not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundApiKeyErrorsArrayResponse"
+                  "$ref": "#/components/schemas/AuthErrorsArrayResponse"
                 }
               }
             }
           },
           "500": {
-            "description": "Internal server error occured - try again later.",
+            "description": "Internal server error occurred while clearing session",
             "content": {
               "application/json": {
                 "schema": {
@@ -928,7 +2414,9 @@
     },
     "/api/v1/despatch/create": {
       "post": {
-        "tags": ["Despatch"],
+        "tags": [
+          "Despatch"
+        ],
         "summary": "Create despatch advice records from order XML",
         "description": "Accepts raw order XML and creates one or more despatch advice records for the calling API key.",
         "security": [
@@ -1012,7 +2500,9 @@
     },
     "/api/v1/despatch/retrieve": {
       "get": {
-        "tags": ["Despatch"],
+        "tags": [
+          "Despatch"
+        ],
         "summary": "Retrieve a despatch advice",
         "description": "Finds a despatch advice either by advice-id UUID or by providing an order XML document.",
         "security": [
@@ -1028,7 +2518,10 @@
             "description": "Search mode: advice-id for UUID lookup, or order for order XML lookup.",
             "schema": {
               "type": "string",
-              "enum": ["order", "advice-id"]
+              "enum": [
+                "order",
+                "advice-id"
+              ]
             }
           },
           {
@@ -1104,7 +2597,9 @@
     },
     "/api/v1/despatch/list": {
       "get": {
-        "tags": ["Despatch"],
+        "tags": [
+          "Despatch"
+        ],
         "summary": "List despatch advice records for the current API key",
         "description": "Returns all despatch advice records associated with the calling API key.",
         "security": [
@@ -1155,7 +2650,9 @@
     },
     "/api/v1/despatch/cancel/order": {
       "post": {
-        "tags": ["Despatch Cancellation"],
+        "tags": [
+          "Despatch Cancellation"
+        ],
         "summary": "Cancel an existing despatch advice",
         "description": "Cancels a despatch advice using its advice-id and an order cancellation XML document.",
         "security": [
@@ -1244,7 +2741,9 @@
         }
       },
       "get": {
-        "tags": ["Despatch Cancellation"],
+        "tags": [
+          "Despatch Cancellation"
+        ],
         "summary": "Retrieve order cancellation",
         "description": "Retrieves an order cancellation using advice-id or cancellation-id query parameters.",
         "security": [
@@ -1347,7 +2846,9 @@
     },
     "/api/v1/despatch/cancel/fulfilment": {
       "post": {
-        "tags": ["Despatch Cancellation"],
+        "tags": [
+          "Despatch Cancellation"
+        ],
         "summary": "Create fulfilment cancellation",
         "description": "Generates and stores a fulfilment cancellation document for a despatch advice.",
         "security": [
@@ -1436,7 +2937,9 @@
         }
       },
       "get": {
-        "tags": ["Despatch Cancellation"],
+        "tags": [
+          "Despatch Cancellation"
+        ],
         "summary": "Retrieve fulfilment cancellation",
         "description": "Retrieves a fulfilment cancellation using advice-id or fulfilment-cancellation-id.",
         "security": [
@@ -1539,7 +3042,9 @@
     },
     "/api/v1/validate-doc/{document-type}": {
       "post": {
-        "tags": ["Document Validation"],
+        "tags": [
+          "Document Validation"
+        ],
         "summary": "Validate an XML document",
         "description": "Validates a supported XML document type against the corresponding XSD validators.",
         "security": [
@@ -1555,7 +3060,14 @@
             "description": "Document type to validate.",
             "schema": {
               "type": "string",
-              "enum": ["order", "receipt", "despatch", "order-cancel", "order-change", "fulfilment-cancel"]
+              "enum": [
+                "order",
+                "receipt",
+                "despatch",
+                "order-cancel",
+                "order-change",
+                "fulfilment-cancel"
+              ]
             }
           }
         ],
@@ -1630,6 +3142,1441 @@
                       "$ref": "#/components/schemas/InvalidApiKeyErrorsArrayResponse"
                     }
                   ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error occured - try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/home-summary": {
+      "get": {
+        "tags": [
+          "Web App v2 Orders"
+        ],
+        "summary": "Get web app dashboard summary",
+        "description": "Returns combined order, despatch, and invoice summary cards for the authenticated session user.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Home summary loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2HomeSummaryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading home summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/orders": {
+      "get": {
+        "tags": [
+          "Web App v2 Orders"
+        ],
+        "summary": "List order summaries",
+        "description": "Returns all order summary cards for the authenticated session user.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2OrdersListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/orders/{uuid}": {
+      "get": {
+        "tags": [
+          "Web App v2 Orders"
+        ],
+        "summary": "Get order detail",
+        "description": "Returns full order detail, including enriched line status, related despatch advice, and related invoices.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Order UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order detail loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2OrderDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading order detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Web App v2 Orders"
+        ],
+        "summary": "Delete order and linked records",
+        "description": "Deletes an order and cascades deletion to linked despatch advice and invoices for the authenticated user.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Order UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order and linked records deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DeleteSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while deleting the order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/order/create": {
+      "post": {
+        "tags": [
+          "Web App v2 Orders"
+        ],
+        "summary": "Create an order document",
+        "description": "Generates and persists an order XML document using the supplied JSON payload and the Chalksniffer provider.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2OrderCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2OrderCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid order payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Either session authentication failed, or Chalksniffer rejected the upstream Authorization token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error during order creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/order/upload": {
+      "post": {
+        "tags": [
+          "Web App v2 Orders"
+        ],
+        "summary": "Upload order XML documents",
+        "description": "Imports one or more order XML documents. Accepts `{ documents: [...] }` or a single shorthand upload object.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/V2XmlUploadBatchRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/V2DocumentUploadEntry"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "All uploaded order files were successfully imported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2UploadOrdersResponse"
+                }
+              }
+            }
+          },
+          "207": {
+            "description": "Some uploaded order files were imported and some failed validation/parsing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2UploadOrdersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid order uploads were accepted, or request payload was invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while uploading orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/despatch": {
+      "get": {
+        "tags": [
+          "Web App v2 Despatch"
+        ],
+        "summary": "List despatch summaries",
+        "description": "Returns all despatch summary cards for the authenticated session user.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Despatch documents loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DespatchListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading despatch summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/despatch/{uuid}": {
+      "get": {
+        "tags": [
+          "Web App v2 Despatch"
+        ],
+        "summary": "Get despatch detail",
+        "description": "Returns the full despatch advice detail for the specified UUID.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Despatch UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Despatch detail loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DespatchDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Despatch UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading despatch detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Web App v2 Despatch"
+        ],
+        "summary": "Delete despatch and linked invoices",
+        "description": "Deletes a despatch advice and cascades deletion to linked invoices.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Despatch UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Despatch and linked invoices deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DeleteSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Despatch UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while deleting despatch detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/despatch/create": {
+      "post": {
+        "tags": [
+          "Web App v2 Despatch"
+        ],
+        "summary": "Create despatch advice from order lines",
+        "description": "Generates one or more despatch advice documents from selected order lines and fulfilment quantities.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2DespatchCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Despatch advice created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DespatchCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload, source order data unavailable, or selected lines invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while creating despatch advice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/despatch/upload": {
+      "post": {
+        "tags": [
+          "Web App v2 Despatch"
+        ],
+        "summary": "Upload despatch XML documents",
+        "description": "Imports one or more despatch advice XML documents. Accepts `{ documents: [...] }` or a single shorthand upload object.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/V2XmlUploadBatchRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/V2DocumentUploadEntry"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "All uploaded despatch files were successfully imported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2UploadDespatchResponse"
+                }
+              }
+            }
+          },
+          "207": {
+            "description": "Some uploaded despatch files were imported and some failed validation/parsing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2UploadDespatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid despatch uploads were accepted, or request payload was invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while uploading despatch XML",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/despatch/{uuid}/status": {
+      "post": {
+        "tags": [
+          "Web App v2 Despatch"
+        ],
+        "summary": "Update despatch status",
+        "description": "Sets a despatch document status to `Shipped` or `Received`.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Despatch UUID."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2DespatchStatusUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Despatch status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DespatchDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Despatch UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while updating despatch status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/invoices": {
+      "get": {
+        "tags": [
+          "Web App v2 Invoices"
+        ],
+        "summary": "List invoice summaries",
+        "description": "Returns all invoice summary cards for the authenticated session user.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2InvoicesListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading invoice summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/invoices/{uuid}": {
+      "get": {
+        "tags": [
+          "Web App v2 Invoices"
+        ],
+        "summary": "Get invoice detail",
+        "description": "Returns full invoice detail for the specified UUID.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Invoice UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice detail loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2InvoiceDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while loading invoice detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Web App v2 Invoices"
+        ],
+        "summary": "Delete invoice",
+        "description": "Deletes a single invoice document for the authenticated user.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Invoice UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2DeleteSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while deleting invoice detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/invoice/create": {
+      "post": {
+        "tags": [
+          "Web App v2 Invoices"
+        ],
+        "summary": "Create invoice document",
+        "description": "Generates and persists an invoice from either whole-order scope or despatch scope.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2InvoiceCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2InvoiceCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid invoice payload or incompatible order/despatch relationship",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Referenced base order or despatch UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while creating invoice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/invoice/upload": {
+      "post": {
+        "tags": [
+          "Web App v2 Invoices"
+        ],
+        "summary": "Upload invoice XML documents",
+        "description": "Imports one or more invoice XML documents. Accepts `{ documents: [...] }` or a single shorthand upload object.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/V2XmlUploadBatchRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/V2DocumentUploadEntry"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "All uploaded invoice files were successfully imported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2UploadInvoicesResponse"
+                }
+              }
+            }
+          },
+          "207": {
+            "description": "Some uploaded invoice files were imported and some failed validation/parsing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2UploadInvoicesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid invoice uploads were accepted, or request payload was invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while uploading invoice XML",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/user/invoices/{uuid}/status": {
+      "post": {
+        "tags": [
+          "Web App v2 Invoices"
+        ],
+        "summary": "Update invoice status",
+        "description": "Sets an invoice status to `Issued`, `Paid`, or `Overdue` and marks it as manually set.",
+        "security": [
+          {
+            "SessionCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Invoice UUID."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2InvoiceStatusUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2InvoiceDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authenticated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2SessionAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice UUID was not found for the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error while updating invoice status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-key/list": {
+      "get": {
+        "tags": [
+          "Developers Only"
+        ],
+        "summary": "List all API keys",
+        "description": "Returns all issued client API keys. Requires the master Api-Key header.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListApiKeysResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid master API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MissingMasterKeyErrorsArrayResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InvalidMasterKeyErrorsArrayResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error occured - try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-key/retrieve/{key}": {
+      "get": {
+        "tags": [
+          "Developers Only"
+        ],
+        "summary": "Retrieve one API key",
+        "description": "Looks up a single issued API key record by key value. Requires the master Api-Key header.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Key found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid master API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MissingMasterKeyErrorsArrayResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InvalidMasterKeyErrorsArrayResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundApiKeyErrorsArrayResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error occured - try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorsArrayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-key/delete/{key}": {
+      "delete": {
+        "tags": [
+          "Developers Only"
+        ],
+        "summary": "Delete one API key",
+        "description": "Deletes an issued API key by key value. Requires the master Api-Key header.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Key deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteApiKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid master API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MissingMasterKeyErrorsArrayResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InvalidMasterKeyErrorsArrayResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundApiKeyErrorsArrayResponse"
                 }
               }
             }
