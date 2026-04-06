@@ -9,6 +9,9 @@ import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage'
 import TermsPage from '../features/auth/pages/TermsPage'
 import PrivacyPage from '../features/auth/pages/PrivacyPage'
 import NotFoundPage from '../features/auth/pages/NotFoundPage'
+import OrdersPage from '../features/orders/pages/OrdersPage'
+import DespatchPage from '../features/despatch/pages/DespatchPage'
+import InvoicePage from '../features/invoice/pages/InvoicePage'
 
 export default function App() {
   return (
@@ -60,6 +63,30 @@ export default function App() {
           <PublicOnlyRoute>
             <ResetPasswordPage />
           </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/order"
+        element={
+          <ProtectedRoute>
+            <OrdersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/despatch"
+        element={
+          <ProtectedRoute>
+            <DespatchPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoice"
+        element={
+          <ProtectedRoute>
+            <InvoicePage />
+          </ProtectedRoute>
         }
       />
       <Route path="/terms" element={<TermsPage />} />
