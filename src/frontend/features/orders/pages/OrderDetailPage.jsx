@@ -308,71 +308,71 @@ export default function OrderDetailPage() {
 
       <section className="home-content order-detail-content">
         <header className="order-detail-header">
-          <div>
+          <div className="order-detail-heading">
             <h1 className="order-detail-title">Order Details</h1>
             <p className="order-detail-subtitle">UUID: {uuid}</p>
-          </div>
-          <div className="order-detail-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="order-detail-download-btn"
-              onClick={handleDownloadXml}
-              disabled={loading || !order?.xml}
-            >
-              Download XML
-              <Download className="size-4" aria-hidden="true" />
-            </Button>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="order-detail-delete-btn"
-                  disabled={loading || isDeletingOrder || !order}
-                >
-                  Delete Order
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="order-detail-delete-dialog-content">
-                <div className="order-detail-delete-dialog-panel">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this order?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This permanently removes order {order?.displayId || uuid} and all associated Despatch Advice documents, and cannot be undone. You may want to use an Order Cancellation instead to mark it as cancelled and create a Cancellation XML document.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeletingOrder}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="order-detail-delete-confirm-btn"
-                      onClick={handleDeleteOrder}
-                      disabled={isDeletingOrder}
-                    >
-                      {isDeletingOrder ? 'Deleting...' : 'Delete Order'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </div>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button asChild variant="secondary" size="sm" className="order-detail-create-btn">
-              <Link to={`/despatch/create?orderUuid=${encodeURIComponent(uuid)}`}>
-                Create Despatch Advice
-                <ChevronRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm" className="order-detail-create-btn">
-              <Link to={`/invoice/create?orderUuid=${encodeURIComponent(uuid)}`}>
-                Create Invoice
-                <ChevronRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="order-detail-back-btn">
-              <Link to="/order">Back to orders</Link>
-            </Button>
+            <div className="order-detail-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="order-detail-download-btn"
+                onClick={handleDownloadXml}
+                disabled={loading || !order?.xml}
+              >
+                Download XML
+                <Download className="size-4" aria-hidden="true" />
+              </Button>
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="order-detail-delete-btn"
+                    disabled={loading || isDeletingOrder || !order}
+                  >
+                    Delete Order
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="order-detail-delete-dialog-content">
+                  <div className="order-detail-delete-dialog-panel">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently removes order {order?.displayId || uuid} and all associated Despatch Advice AND Invoice documents, and cannot be undone. You may want to use an Order Cancellation instead to mark it as cancelled and create a Cancellation XML document.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeletingOrder}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="order-detail-delete-confirm-btn"
+                        onClick={handleDeleteOrder}
+                        disabled={isDeletingOrder}
+                      >
+                        {isDeletingOrder ? 'Deleting...' : 'Delete Order'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button asChild variant="secondary" size="sm" className="order-detail-create-btn">
+                <Link to={`/despatch/create?orderUuid=${encodeURIComponent(uuid)}`}>
+                  Create Despatch Advice
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm" className="order-detail-create-btn">
+                <Link to={`/invoice/create?orderUuid=${encodeURIComponent(uuid)}`}>
+                  Create Invoice
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="order-detail-back-btn">
+                <Link to="/order">Back to orders</Link>
+              </Button>
+            </div>
           </div>
         </header>
 

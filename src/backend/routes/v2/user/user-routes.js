@@ -1299,16 +1299,29 @@ router.delete('/orders/:uuid', async (req, res) => {
     const userId = req.session.userId;
     const uuid = req.params.uuid;
 
+    const relatedDespatchDocs = await db
+      .collection(USER_DESPATCH_COLLECTION)
+      .find({ userId, orderUuid: uuid })
+      .toArray();
+    const relatedDespatchUuids = relatedDespatchDocs
+      .map((despatchDoc) => readText(despatchDoc && despatchDoc._id))
+      .filter(Boolean);
+
     const deleteResult = await db.collection(USER_ORDER_COLLECTION).deleteOne({ _id: uuid, userId });
     if (!deleteResult.deletedCount) {
       return sendNotFound(res, 'order', uuid);
     }
 
     await db.collection(USER_DESPATCH_COLLECTION).deleteMany({ userId, orderUuid: uuid });
+    await db.collection(USER_INVOICE_COLLECTION).deleteMany({ userId, orderUuid: uuid });
+
+    for (const despatchUuid of relatedDespatchUuids) {
+      await db.collection(USER_INVOICE_COLLECTION).deleteMany({ userId, despatchUuid });
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Order and associated despatch advice deleted successfully.',
+      message: 'Order, associated despatch advice, and invoices deleted successfully.',
       'executed-at': nowUnix()
     });
   } catch (error) {

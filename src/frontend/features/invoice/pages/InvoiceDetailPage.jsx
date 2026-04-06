@@ -221,59 +221,59 @@ export default function InvoiceDetailPage() {
 
       <section className="home-content invoice-detail-content">
         <header className="invoice-detail-header">
-          <div>
+          <div className="invoice-detail-heading">
             <h1 className="invoice-detail-title">Invoice Details</h1>
             <p className="invoice-detail-subtitle">UUID: {uuid}</p>
-          </div>
-          <div className="invoice-detail-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="invoice-detail-download-btn"
-              onClick={handleDownloadXml}
-              disabled={loading || !invoice?.xml}
-            >
-              Download XML
-              <Download className="size-4" aria-hidden="true" />
-            </Button>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="invoice-detail-delete-btn"
-                  disabled={loading || isDeletingInvoice || !invoice}
-                >
-                  Delete Invoice
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="invoice-detail-delete-dialog-content">
-                <div className="invoice-detail-delete-dialog-panel">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this invoice?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This permanently removes invoice {invoice?.displayId || uuid} and cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeletingInvoice}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="invoice-detail-delete-confirm-btn"
-                      onClick={handleDeleteInvoice}
-                      disabled={isDeletingInvoice}
-                    >
-                      {isDeletingInvoice ? 'Deleting...' : 'Delete Invoice'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </div>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button asChild variant="outline" size="sm" className="invoice-detail-back-btn">
-              <Link to="/invoice">Back to invoices</Link>
-            </Button>
+            <div className="invoice-detail-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="invoice-detail-download-btn"
+                onClick={handleDownloadXml}
+                disabled={loading || !invoice?.xml}
+              >
+                Download XML
+                <Download className="size-4" aria-hidden="true" />
+              </Button>
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="invoice-detail-delete-btn"
+                    disabled={loading || isDeletingInvoice || !invoice}
+                  >
+                    Delete Invoice
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="invoice-detail-delete-dialog-content">
+                  <div className="invoice-detail-delete-dialog-panel">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this invoice?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently removes invoice {invoice?.displayId || uuid} and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeletingInvoice}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="invoice-detail-delete-confirm-btn"
+                        onClick={handleDeleteInvoice}
+                        disabled={isDeletingInvoice}
+                      >
+                        {isDeletingInvoice ? 'Deleting...' : 'Delete Invoice'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button asChild variant="outline" size="sm" className="invoice-detail-back-btn">
+                <Link to="/invoice">Back to invoices</Link>
+              </Button>
+            </div>
           </div>
         </header>
 

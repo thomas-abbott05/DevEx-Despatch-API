@@ -251,8 +251,32 @@ describe('v2 user routes read endpoints', () => {
     expect(ordersPayload.orders[0].status).toBe('Completed');
   });
 
-  test('deletes a known order UUID', async () => {
+  test('deletes a known order UUID and linked invoices', async () => {
     const seeded = seedDefaultData();
+    seeded.invoices.push(
+      {
+        _id: 'ce5f076a-8dc2-4142-b4e3-0f0371d650f1',
+        userId: 'test-user',
+        displayId: 'INV-2026-001',
+        sourceType: 'order',
+        orderUuid: '34ec2376-a8c4-4a59-a307-e64f7aaf1150',
+        despatchUuid: '',
+        issueDate: '2026-04-06',
+        status: 'Issued',
+        total: 100
+      },
+      {
+        _id: '5fdcbf12-3c6f-4d95-9f79-ffbe58ab5771',
+        userId: 'test-user',
+        displayId: 'INV-2026-002',
+        sourceType: 'despatch',
+        orderUuid: '',
+        despatchUuid: '6b17c76a-87cd-4bff-83dc-1257536b6f14',
+        issueDate: '2026-04-06',
+        status: 'Issued',
+        total: 120
+      }
+    );
     mockGetDb.mockReturnValue(createDbMock(seeded));
 
     const deleteResponse = await fetch(baseUrl + '/api/v2/user/orders/34ec2376-a8c4-4a59-a307-e64f7aaf1150', {
@@ -272,8 +296,15 @@ describe('v2 user routes read endpoints', () => {
       headers: { cookie: cookieHeader }
     });
 
+    const invoicesResponse = await fetch(baseUrl + '/api/v2/user/invoices', {
+      headers: { cookie: cookieHeader }
+    });
+    const invoicesPayload = await invoicesResponse.json();
+
     expect(detailResponse.status).toBe(404);
     expect(despatchResponse.status).toBe(404);
+    expect(invoicesResponse.status).toBe(200);
+    expect(invoicesPayload.invoices).toHaveLength(0);
   });
 
   test('returns 404 for missing despatch UUID', async () => {

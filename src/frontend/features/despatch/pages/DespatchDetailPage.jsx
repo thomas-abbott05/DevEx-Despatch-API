@@ -195,86 +195,86 @@ export default function DespatchDetailPage() {
 
       <section className="home-content despatch-detail-content">
         <header className="despatch-detail-header">
-          <div>
+          <div className="despatch-detail-heading">
             <h1 className="despatch-detail-title">Despatch Advice Details</h1>
             <p className="despatch-detail-subtitle">UUID: {uuid}</p>
-          </div>
-          <div className="despatch-detail-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="despatch-detail-download-btn"
-              onClick={handleDownloadXml}
-              disabled={loading || !despatch?.xml}
-            >
-              Download XML
-              <Download className="size-4" aria-hidden="true" />
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className={`despatch-detail-receive-btn ${isDespatchReceived ? 'despatch-detail-receive-btn-destructive' : ''}`}
-              onClick={handleToggleDespatchReceival}
-              disabled={
-                loading ||
-                isUpdatingDespatchStatus ||
-                !despatch
-              }
-            >
-              {isUpdatingDespatchStatus
-                ? 'Updating...'
-                : isDespatchReceived
-                  ? 'Cancel Receival'
-                  : 'Mark as Received'}
-              {isDespatchReceived
-                ? <X className="size-4" aria-hidden="true" />
-                : <CheckCircle2 className="size-4" aria-hidden="true" />}
-            </Button>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="despatch-detail-delete-btn"
-                  disabled={loading || isDeletingDespatch || !despatch}
-                >
-                  Delete Despatch
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="despatch-detail-delete-dialog-content">
-                <div className="despatch-detail-delete-dialog-panel">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this despatch advice?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This permanently removes despatch advice {despatch?.displayId || uuid} and all associated invoices, and cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeletingDespatch}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="despatch-detail-delete-confirm-btn"
-                      onClick={handleDeleteDespatch}
-                      disabled={isDeletingDespatch}
-                    >
-                      {isDeletingDespatch ? 'Deleting...' : 'Delete Despatch'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </div>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button asChild variant="secondary" size="sm" className="despatch-detail-create-btn">
-              <Link to={createInvoicePrompt}>
-                Create Invoice
-                <ChevronRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="despatch-detail-back-btn">
-              <Link to="/despatch">Back to despatch advice</Link>
-            </Button>
+            <div className="despatch-detail-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="despatch-detail-download-btn"
+                onClick={handleDownloadXml}
+                disabled={loading || !despatch?.xml}
+              >
+                Download XML
+                <Download className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className={`despatch-detail-receive-btn ${isDespatchReceived ? 'despatch-detail-receive-btn-destructive' : ''}`}
+                onClick={handleToggleDespatchReceival}
+                disabled={
+                  loading ||
+                  isUpdatingDespatchStatus ||
+                  !despatch
+                }
+              >
+                {isUpdatingDespatchStatus
+                  ? 'Updating...'
+                  : isDespatchReceived
+                    ? 'Cancel Receival'
+                    : 'Mark as Received'}
+                {isDespatchReceived
+                  ? <X className="size-4" aria-hidden="true" />
+                  : <CheckCircle2 className="size-4" aria-hidden="true" />}
+              </Button>
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="despatch-detail-delete-btn"
+                    disabled={loading || isDeletingDespatch || !despatch}
+                  >
+                    Delete Despatch
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="despatch-detail-delete-dialog-content">
+                  <div className="despatch-detail-delete-dialog-panel">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this despatch advice?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently removes despatch advice {despatch?.displayId || uuid} and all associated invoices, and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeletingDespatch}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="despatch-detail-delete-confirm-btn"
+                        onClick={handleDeleteDespatch}
+                        disabled={isDeletingDespatch}
+                      >
+                        {isDeletingDespatch ? 'Deleting...' : 'Delete Despatch'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button asChild variant="secondary" size="sm" className="despatch-detail-create-btn">
+                <Link to={createInvoicePrompt}>
+                  Create Invoice
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="despatch-detail-back-btn">
+                <Link to="/despatch">Back to despatch advice</Link>
+              </Button>
+            </div>
           </div>
         </header>
 

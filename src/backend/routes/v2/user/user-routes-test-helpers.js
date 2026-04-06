@@ -115,7 +115,13 @@ function createDbMock({ orders = [], despatch = [], invoices = [] } = {}) {
           deleteMany: jest.fn(async (query) => {
             const beforeCount = invoices.length;
             const filtered = invoices.filter(
-              (record) => !(record.userId === query.userId && record.despatchUuid === query.despatchUuid)
+              (record) => {
+                const sameUser = record.userId === query.userId;
+                const matchesOrder = query.orderUuid !== undefined && record.orderUuid === query.orderUuid;
+                const matchesDespatch = query.despatchUuid !== undefined && record.despatchUuid === query.despatchUuid;
+
+                return !(sameUser && (matchesOrder || matchesDespatch));
+              }
             );
 
             invoices.splice(0, invoices.length, ...filtered);
