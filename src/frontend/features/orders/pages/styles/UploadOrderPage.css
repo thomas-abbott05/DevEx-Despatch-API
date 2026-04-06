@@ -1,0 +1,217 @@
+.order-upload-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-upload-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.order-upload-content .home-footer {
+  margin-top: auto;
+}
+
+.order-upload-header {
+  margin-bottom: 1.2rem;
+}
+
+.order-upload-title {
+  font-size: clamp(1.8rem, 4.1vw, 2.85rem);
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  font-family: 'Arial Black', 'Segoe UI', sans-serif;
+  color: #f2f6fc;
+}
+
+.order-upload-subtitle {
+  margin-top: 0.45rem;
+  font-family: Consolas, 'Courier New', monospace;
+  color: #c4cedd;
+  font-size: 0.95rem;
+}
+
+.order-upload-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(21, 25, 32, 0.62);
+  backdrop-filter: blur(7px);
+  padding: 1rem;
+}
+
+.order-upload-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.order-upload-label {
+  font-size: 0.82rem;
+  color: #dbe5f3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.order-upload-dropzone {
+  border: 1px dashed rgba(163, 174, 193, 0.52);
+  border-radius: 12px;
+  background: rgba(17, 22, 30, 0.58);
+  padding: 1rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.file-picker-button {
+  padding-right: 0.4rem;
+  padding-left: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.upload-confirm-icon {
+  margin-left: 0.5rem;
+  margin-right: 0.1rem;
+}
+
+.upload-confirm-btn {
+  padding-right: 0.5rem;
+  border: 1px solid rgba(103, 216, 164, 0.4);
+}
+
+.upload-cancel-btn {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  color: white;
+  border: 1px solid rgb(137, 4, 4);
+}
+
+.upload-cancel-btn:hover {
+  text-decoration: none;
+}
+
+.order-upload-dropzone.is-dragging {
+  border-color: rgba(151, 163, 255, 0.9);
+  background: rgba(50, 57, 78, 0.45);
+  box-shadow: 0 0 0 3px rgba(151, 163, 255, 0.16);
+}
+
+.order-upload-drop-content {
+  display: grid;
+  justify-items: center;
+  gap: 0.42rem;
+  text-align: center;
+}
+
+.order-upload-input-icon {
+  width: 1.28rem;
+  height: 1.28rem;
+  color: #bdc8da;
+}
+
+.order-upload-drop-prompt {
+  color: #dbe5f3;
+  font-size: 0.9rem;
+}
+
+.order-upload-drop-subtext {
+  color: #95a3b8;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.order-upload-input {
+  display: none;
+}
+
+.order-upload-file-status {
+  color: #95a3b8;
+  font-size: 0.84rem;
+}
+
+.order-upload-file-list {
+  list-style: none;
+  display: grid;
+  gap: 0.38rem;
+  margin: -0.1rem 0 0;
+  padding: 0;
+}
+
+.order-upload-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(16, 21, 28, 0.72);
+  border-radius: 8px;
+  padding: 0.38rem 0.5rem 0.38rem 0.55rem;
+  color: #c8d4e5;
+  font-size: 0.82rem;
+  font-family: Consolas, 'Courier New', monospace;
+}
+
+.order-upload-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-upload-file-remove {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 1.45rem;
+  padding: 0 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.08);
+  color: #ff9b9b;
+}
+
+.order-upload-file-remove:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ffd0d0;
+}
+
+.order-upload-file-remove-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+.order-upload-file-remove-text {
+  margin-left: 0.3rem;
+}
+
+@media (max-width: 520px) {
+  .order-upload-file-item {
+    padding-right: 0.45rem;
+  }
+
+  .order-upload-file-remove {
+    padding: 0 0.4rem;
+  }
+
+  .order-upload-file-remove-text {
+    max-width: 5.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.order-upload-success {
+  border: 1px solid rgba(103, 216, 164, 0.4);
+  background: rgba(103, 216, 164, 0.12);
+  color: #67d8a4;
+  border-radius: 10px;
+  padding: 0.55rem 0.62rem;
+  font-size: 0.84rem;
+}
+
+.order-upload-actions {
+  display: inline-flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}

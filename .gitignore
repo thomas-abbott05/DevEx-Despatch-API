@@ -7,8 +7,10 @@ node_modules
 # jest coverage
 coverage/
 
-# compiled React app
-public/bundle.js
+# frontend build outputs
+dist/
+.vite/
+public/compiled-js/
 
 # IDE files
 .DS_Store
