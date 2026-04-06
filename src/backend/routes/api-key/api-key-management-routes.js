@@ -112,7 +112,7 @@ router.post('/create', jsonParser, async (req, res) => {
     }
 
     // ensure the email is unique and we have not already issued a key to this contact email
-    const existingKey = await db.collection('api-keys').findOne({ contactEmail: contactEmail });
+    const existingKey = await db.collection('api-keys').findOne({ contactEmail: { $eq: contactEmail } });
     if (existingKey) {
       await sendAPIKeyEmail(contactEmail, contactName, existingKey._id, teamName, true);
       return res.send({
