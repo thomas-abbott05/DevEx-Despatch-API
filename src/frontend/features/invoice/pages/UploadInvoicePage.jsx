@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FileUp, Receipt } from 'lucide-react'
+import { FileUp, Receipt, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import SiteFooter from '@/components/layout/SiteFooter'
@@ -10,6 +10,10 @@ import './styles/UploadInvoicePage.css'
 function isXmlFile(file) {
   const fileName = file?.name?.toLowerCase() || ''
   return fileName.endsWith('.xml')
+}
+
+function getFileKey(file) {
+  return `${file.name}-${file.size}-${file.lastModified}`
 }
 
 export default function UploadInvoicePage() {
@@ -29,8 +33,39 @@ export default function UploadInvoicePage() {
 
   function updateSelectedFiles(fileList) {
     const xmlFiles = Array.from(fileList || []).filter(isXmlFile)
-    setSelectedFiles(xmlFiles)
+    setSelectedFiles((currentFiles) => {
+      const seenFiles = new Set(currentFiles.map(getFileKey))
+      const nextFiles = [...currentFiles]
+
+      xmlFiles.forEach((file) => {
+        const fileKey = getFileKey(file)
+
+        if (!seenFiles.has(fileKey)) {
+          seenFiles.add(fileKey)
+          nextFiles.push(file)
+        }
+      })
+
+      return nextFiles
+    })
     setSubmitted(false)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  function removeSelectedFile(fileToRemove) {
+    setSelectedFiles((currentFiles) =>
+      currentFiles.filter(
+        (file) => file.name !== fileToRemove.name || file.lastModified !== fileToRemove.lastModified,
+      ),
+    )
+    setSubmitted(false)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   function handleFileChange(event) {
@@ -65,7 +100,7 @@ export default function UploadInvoicePage() {
       <section className="home-content invoice-upload-content">
         <header className="invoice-upload-header">
           <h1 className="invoice-upload-title">Upload Invoices</h1>
-          <p className="invoice-upload-subtitle">Upload a UBL Invoice XML file for validation and downstream processing.</p>
+          <p className="invoice-upload-subtitle">Upload UBL Invoice XML files for safekeeping or to match with existing orders.</p>
         </header>
 
         <div className="invoice-upload-card">
@@ -102,8 +137,8 @@ export default function UploadInvoicePage() {
                   {isDragging ? 'Drop XML files here to add them' : 'Drag and drop one or more XML files here'}
                 </p>
                 <p className="invoice-upload-drop-subtext">or</p>
-                <Button type="button" variant="outline" size="sm" onClick={openFilePicker}>
-                  Browse XML files
+                <Button type="button" className="file-picker-button" size="sm" onClick={openFilePicker}>
+                  Add files from your device
                 </Button>
               </div>
             </div>
@@ -117,7 +152,20 @@ export default function UploadInvoicePage() {
             {selectedFiles.length ? (
               <ul className="invoice-upload-file-list" aria-label="Selected files">
                 {selectedFiles.map((file) => (
-                  <li key={`${file.name}-${file.lastModified}`} className="invoice-upload-file-item">{file.name}</li>
+                  <li key={`${file.name}-${file.lastModified}`} className="invoice-upload-file-item">
+                    <span className="invoice-upload-file-name">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="invoice-upload-file-remove"
+                      aria-label={`Remove ${file.name}`}
+                      onClick={() => removeSelectedFile(file)}
+                    >
+                      <Trash2 className="invoice-upload-file-remove-icon" aria-hidden="true" />
+                      <span className="invoice-upload-file-remove-text">Remove file</span>
+                    </Button>
+                  </li>
                 ))}
               </ul>
             ) : null}
@@ -129,12 +177,12 @@ export default function UploadInvoicePage() {
             ) : null}
 
             <div className="invoice-upload-actions">
-              <Button type="submit" variant="secondary" size="sm" disabled={!selectedFiles.length}>
-                <FileUp className="size-4" aria-hidden="true" />
+              <Button type="submit" variant="ghost" className="upload-confirm-btn" size="sm" disabled={!selectedFiles.length}>
+                <FileUp className="upload-confirm-icon" aria-hidden="true" />
                 Upload XML Files
               </Button>
-              <Button asChild type="button" variant="outline" size="sm">
-                <Link to="/invoice">Back to Invoices</Link>
+              <Button asChild type="button" variant="ghost" className="upload-cancel-btn" size="sm">
+                <Link to="/invoice">Cancel upload</Link>
               </Button>
             </div>
           </form>

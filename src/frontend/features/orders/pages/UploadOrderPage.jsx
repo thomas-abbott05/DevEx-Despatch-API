@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FileUp, FileText } from 'lucide-react'
+import { FileText, FileUp, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import SiteFooter from '@/components/layout/SiteFooter'
@@ -10,6 +10,10 @@ import './styles/UploadOrderPage.css'
 function isXmlFile(file) {
   const fileName = file?.name?.toLowerCase() || ''
   return fileName.endsWith('.xml')
+}
+
+function getFileKey(file) {
+  return `${file.name}-${file.size}-${file.lastModified}`
 }
 
 export default function UploadOrderPage() {
@@ -29,8 +33,39 @@ export default function UploadOrderPage() {
 
   function updateSelectedFiles(fileList) {
     const xmlFiles = Array.from(fileList || []).filter(isXmlFile)
-    setSelectedFiles(xmlFiles)
+    setSelectedFiles((currentFiles) => {
+      const seenFiles = new Set(currentFiles.map(getFileKey))
+      const nextFiles = [...currentFiles]
+
+      xmlFiles.forEach((file) => {
+        const fileKey = getFileKey(file)
+
+        if (!seenFiles.has(fileKey)) {
+          seenFiles.add(fileKey)
+          nextFiles.push(file)
+        }
+      })
+
+      return nextFiles
+    })
     setSubmitted(false)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  function removeSelectedFile(fileToRemove) {
+    setSelectedFiles((currentFiles) =>
+      currentFiles.filter(
+        (file) => file.name !== fileToRemove.name || file.lastModified !== fileToRemove.lastModified,
+      ),
+    )
+    setSubmitted(false)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   function handleFileChange(event) {
@@ -65,7 +100,7 @@ export default function UploadOrderPage() {
       <section className="home-content order-upload-content">
         <header className="order-upload-header">
           <h1 className="order-upload-title">Upload Orders</h1>
-          <p className="order-upload-subtitle">Upload a UBL Order XML file to begin processing.</p>
+          <p className="order-upload-subtitle">Upload UBL Order XML documents to begin managing them.</p>
         </header>
 
         <div className="order-upload-card">
@@ -102,8 +137,8 @@ export default function UploadOrderPage() {
                   {isDragging ? 'Drop XML files here to add them' : 'Drag and drop one or more XML files here'}
                 </p>
                 <p className="order-upload-drop-subtext">or</p>
-                <Button type="button" variant="outline" size="sm" onClick={openFilePicker}>
-                  Browse XML files
+                <Button type="button" className="file-picker-button" size="sm" onClick={openFilePicker}>
+                  Add files from your device
                 </Button>
               </div>
             </div>
@@ -117,7 +152,20 @@ export default function UploadOrderPage() {
             {selectedFiles.length ? (
               <ul className="order-upload-file-list" aria-label="Selected files">
                 {selectedFiles.map((file) => (
-                  <li key={`${file.name}-${file.lastModified}`} className="order-upload-file-item">{file.name}</li>
+                  <li key={`${file.name}-${file.lastModified}`} className="order-upload-file-item">
+                    <span className="order-upload-file-name">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="order-upload-file-remove"
+                      aria-label={`Remove ${file.name}`}
+                      onClick={() => removeSelectedFile(file)}
+                    >
+                      <Trash2 className="order-upload-file-remove-icon" aria-hidden="true" />
+                      <span className="order-upload-file-remove-text">Remove file</span>
+                    </Button>
+                  </li>
                 ))}
               </ul>
             ) : null}
@@ -129,12 +177,12 @@ export default function UploadOrderPage() {
             ) : null}
 
             <div className="order-upload-actions">
-              <Button type="submit" variant="secondary" size="sm" disabled={!selectedFiles.length}>
-                <FileUp className="size-4" aria-hidden="true" />
+              <Button type="submit" variant="ghost" className="upload-confirm-btn" size="sm" disabled={!selectedFiles.length}>
+                <FileUp className="upload-confirm-icon" aria-hidden="true" />
                 Upload XML Files
               </Button>
-              <Button asChild type="button" variant="outline" size="sm">
-                <Link to="/order">Back to Orders</Link>
+              <Button asChild type="button" variant="ghost" className="upload-cancel-btn" size="sm">
+                <Link to="/order">Cancel upload</Link>
               </Button>
             </div>
           </form>

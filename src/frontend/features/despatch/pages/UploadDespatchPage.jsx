@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FileUp, Truck } from 'lucide-react'
+import { FileUp, Trash2, Truck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import SiteFooter from '@/components/layout/SiteFooter'
@@ -10,6 +10,10 @@ import './styles/UploadDespatchPage.css'
 function isXmlFile(file) {
   const fileName = file?.name?.toLowerCase() || ''
   return fileName.endsWith('.xml')
+}
+
+function getFileKey(file) {
+  return `${file.name}-${file.size}-${file.lastModified}`
 }
 
 export default function UploadDespatchPage() {
@@ -29,8 +33,39 @@ export default function UploadDespatchPage() {
 
   function updateSelectedFiles(fileList) {
     const xmlFiles = Array.from(fileList || []).filter(isXmlFile)
-    setSelectedFiles(xmlFiles)
+    setSelectedFiles((currentFiles) => {
+      const seenFiles = new Set(currentFiles.map(getFileKey))
+      const nextFiles = [...currentFiles]
+
+      xmlFiles.forEach((file) => {
+        const fileKey = getFileKey(file)
+
+        if (!seenFiles.has(fileKey)) {
+          seenFiles.add(fileKey)
+          nextFiles.push(file)
+        }
+      })
+
+      return nextFiles
+    })
     setSubmitted(false)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  function removeSelectedFile(fileToRemove) {
+    setSelectedFiles((currentFiles) =>
+      currentFiles.filter(
+        (file) => file.name !== fileToRemove.name || file.lastModified !== fileToRemove.lastModified,
+      ),
+    )
+    setSubmitted(false)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   function handleFileChange(event) {
@@ -65,7 +100,7 @@ export default function UploadDespatchPage() {
       <section className="home-content despatch-upload-content">
         <header className="despatch-upload-header">
           <h1 className="despatch-upload-title">Upload Despatch Advice</h1>
-          <p className="despatch-upload-subtitle">Upload a UBL Despatch Advice XML file for review and dispatch workflows.</p>
+          <p className="despatch-upload-subtitle">Upload UBL Despatch Advice XML files for invoice creation or receipt advice generation.</p>
         </header>
 
         <div className="despatch-upload-card">
@@ -102,8 +137,8 @@ export default function UploadDespatchPage() {
                   {isDragging ? 'Drop XML files here to add them' : 'Drag and drop one or more XML files here'}
                 </p>
                 <p className="despatch-upload-drop-subtext">or</p>
-                <Button type="button" variant="outline" size="sm" onClick={openFilePicker}>
-                  Browse XML files
+                <Button type="button" className="file-picker-button" size="sm" onClick={openFilePicker}>
+                  Add files from your device
                 </Button>
               </div>
             </div>
@@ -117,7 +152,20 @@ export default function UploadDespatchPage() {
             {selectedFiles.length ? (
               <ul className="despatch-upload-file-list" aria-label="Selected files">
                 {selectedFiles.map((file) => (
-                  <li key={`${file.name}-${file.lastModified}`} className="despatch-upload-file-item">{file.name}</li>
+                  <li key={`${file.name}-${file.lastModified}`} className="despatch-upload-file-item">
+                    <span className="despatch-upload-file-name">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="despatch-upload-file-remove"
+                      aria-label={`Remove ${file.name}`}
+                      onClick={() => removeSelectedFile(file)}
+                    >
+                      <Trash2 className="despatch-upload-file-remove-icon" aria-hidden="true" />
+                      <span className="despatch-upload-file-remove-text">Remove file</span>
+                    </Button>
+                  </li>
                 ))}
               </ul>
             ) : null}
@@ -129,12 +177,12 @@ export default function UploadDespatchPage() {
             ) : null}
 
             <div className="despatch-upload-actions">
-              <Button type="submit" variant="secondary" size="sm" disabled={!selectedFiles.length}>
-                <FileUp className="size-4" aria-hidden="true" />
+              <Button type="submit" variant="ghost" className="upload-confirm-btn" size="sm" disabled={!selectedFiles.length}>
+                <FileUp className="upload-confirm-icon" aria-hidden="true" />
                 Upload XML Files
               </Button>
-              <Button asChild type="button" variant="outline" size="sm">
-                <Link to="/despatch">Back to Despatch Advice</Link>
+              <Button asChild type="button" variant="ghost" className="upload-cancel-btn" size="sm">
+                <Link to="/despatch">Cancel upload</Link>
               </Button>
             </div>
           </form>

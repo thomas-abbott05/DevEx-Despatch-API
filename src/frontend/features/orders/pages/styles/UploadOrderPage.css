@@ -63,6 +63,33 @@
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
+.file-picker-button {
+  padding-right: 0.4rem;
+  padding-left: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.upload-confirm-icon {
+  margin-left: 0.5rem;
+  margin-right: 0.1rem;
+}
+
+.upload-confirm-btn {
+  padding-right: 0.5rem;
+  border: 1px solid rgba(103, 216, 164, 0.4);
+}
+
+.upload-cancel-btn {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  color: white;
+  border: 1px solid rgb(137, 4, 4);
+}
+
+.upload-cancel-btn:hover {
+  text-decoration: none;
+}
+
 .order-upload-dropzone.is-dragging {
   border-color: rgba(151, 163, 255, 0.9);
   background: rgba(50, 57, 78, 0.45);
@@ -112,13 +139,66 @@
 }
 
 .order-upload-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.1rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(16, 21, 28, 0.72);
   border-radius: 8px;
-  padding: 0.38rem 0.55rem;
+  padding: 0.38rem 0.5rem 0.38rem 0.55rem;
   color: #c8d4e5;
   font-size: 0.82rem;
   font-family: Consolas, 'Courier New', monospace;
+}
+
+.order-upload-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-upload-file-remove {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 1.45rem;
+  padding: 0 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.08);
+  color: #ff9b9b;
+}
+
+.order-upload-file-remove:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ffd0d0;
+}
+
+.order-upload-file-remove-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+.order-upload-file-remove-text {
+  margin-left: 0.3rem;
+}
+
+@media (max-width: 520px) {
+  .order-upload-file-item {
+    padding-right: 0.45rem;
+  }
+
+  .order-upload-file-remove {
+    padding: 0 0.4rem;
+  }
+
+  .order-upload-file-remove-text {
+    max-width: 5.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .order-upload-success {
