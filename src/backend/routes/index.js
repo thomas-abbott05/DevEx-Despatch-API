@@ -20,6 +20,8 @@ router.get('/health', (req, res) => {
   });
 });
 
+router.use(require('../middleware/api-rate-limit').apiRateLimiter);
+
 // Internal API key management routes, protected with master key in .env file.
 router.use('/api-key', apiKeyManagementRoutes);
 

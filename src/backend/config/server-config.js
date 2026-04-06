@@ -17,6 +17,7 @@ function requestLogger(req, res, next) {
 
 function createExpressApp() {
   const app = express();
+  app.set('trust proxy', 1);
   const distPath = path.join(__dirname, '../../../dist');
   const distIndexPath = path.join(distPath, 'index.html');
   const publicPath = path.join(__dirname, '../../../public');
