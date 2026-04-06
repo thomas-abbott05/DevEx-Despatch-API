@@ -11,8 +11,11 @@ on:
         required: true
         default: 'Manual deployment trigger'
 
+permissions: {}
+
 jobs:
   notify-test-failure:
+    permissions: {}
     if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion != 'success'
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +24,7 @@ jobs:
         curl https://discord.com/api/webhooks/${{ secrets.DISCORD_WEBHOOK_ID }}/${{ secrets.DISCORD_WEBHOOK_TOKEN }} -H "Content-Type: application/json" -d '{"content": ":x: Deployment skipped because Jest tests failed on main. Workflow: ${{ github.event.workflow_run.html_url }}"}'
 
   deploy:
+    permissions: {}
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
