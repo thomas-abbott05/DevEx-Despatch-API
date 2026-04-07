@@ -16,7 +16,19 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
   const isProduction = process.env.NODE_ENV === 'production'
-  const turnstileSiteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
+  const runtimeTurnstileSiteKey = typeof window !== 'undefined' ? window.__DEVEX_CONFIG__?.turnstileSiteKey || '' : ''
+  const buildTurnstileSiteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || ''
+  const turnstileSiteKey = runtimeTurnstileSiteKey || buildTurnstileSiteKey
+  const hasTurnstileKey = Boolean(turnstileSiteKey)
+
+  console.info('[RegisterPage] Turnstile env check', {
+    nodeEnv: process.env.NODE_ENV,
+    isProduction,
+    hasTurnstileKey,
+    runtimeTurnstileSiteKeyLength: runtimeTurnstileSiteKey.length,
+    buildTurnstileSiteKeyLength: buildTurnstileSiteKey.length,
+    resolvedTurnstileSiteKeyLength: turnstileSiteKey.length
+  })
 
   const [form, setForm] = useState({
     email: '',
@@ -35,7 +47,13 @@ export default function RegisterPage() {
   async function onSubmit(event) {
     event.preventDefault()
 
-    if (isProduction && !turnstileToken) {
+    console.info('[RegisterPage] submit attempt', {
+      isProduction,
+      hasTurnstileKey,
+      hasTurnstileToken: Boolean(turnstileToken)
+    })
+
+    if (isProduction && (!hasTurnstileKey || !turnstileToken)) {
       setError('Please complete the Turnstile challenge before creating your account.')
       return
     }
@@ -180,19 +198,38 @@ export default function RegisterPage() {
               {error ? <p className="auth-error">{error}</p> : null}
               {successMessage ? <p className="auth-success">{successMessage}</p> : null}
 
-              {isProduction ? (
+              {hasTurnstileKey ? (
                 <div className="auth-turnstile-block">
                   <Turnstile
                     siteKey={turnstileSiteKey}
                     options={{ theme: 'dark' }}
-                    onSuccess={(token) => setTurnstileToken(token)}
-                    onExpire={() => setTurnstileToken('')}
-                    onError={() => setTurnstileToken('')}
+                    onLoad={() => {
+                      console.info('[RegisterPage] Turnstile loaded', {
+                        hasTurnstileKey,
+                        turnstileSiteKeyLength: turnstileSiteKey.length
+                      })
+                    }}
+                    onSuccess={(token) => {
+                      console.info('[RegisterPage] Turnstile success', { tokenLength: token.length })
+                      setTurnstileToken(token)
+                    }}
+                    onExpire={() => {
+                      console.info('[RegisterPage] Turnstile expired')
+                      setTurnstileToken('')
+                    }}
+                    onError={() => {
+                      console.info('[RegisterPage] Turnstile error')
+                      setTurnstileToken('')
+                    }}
                   />
                 </div>
               ) : null}
 
-              <Button type="submit" className="auth-main-action" disabled={submitting || (isProduction && !turnstileToken)}>
+              <Button
+                type="submit"
+                className="auth-main-action"
+                disabled={submitting || (isProduction && (!hasTurnstileKey || !turnstileToken))}
+              >
                 {submitting ? 'Creating account...' : 'Register'}
               </Button>
 

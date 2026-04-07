@@ -32,6 +32,14 @@ function createExpressApp() {
     return res.status(503).send('Frontend build not found. Run "npm run build" for production or "npm run dev" for development.');
   }
 
+  app.get('/runtime-config.js', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.type('application/javascript');
+    res.send(`window.__DEVEX_CONFIG__ = ${JSON.stringify({
+      turnstileSiteKey: process.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || ''
+    })};`);
+  });
+
     app.use(requestLogger);
 
     // parse JSON bodies
