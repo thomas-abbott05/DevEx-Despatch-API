@@ -73,4 +73,13 @@ describe('validateFulfilmentCancellationXml', () => {
       errors: ['Missing FulfilmentCancellation root element']
     });
   });
+
+  test('malformed XML returns invalid content error', async () => {
+    const result = await validateFulfilmentCancellationXml('<FulfilmentCancellation><broken></FulfilmentCancellation>');
+
+    expect(result).toEqual({
+      success: false,
+      errors: ['Invalid XML content']
+    });
+  });
 });

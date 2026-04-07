@@ -1,4 +1,4 @@
-const { createDespatchAdvice, listDespatchAdvices } = require('../despatch-advice-service');
+const { createDespatchAdvice, listDespatchAdvices, getDespatchAdviceByAdviceId, getDespatchAdviceByOrderId } = require('../despatch-advice-service');
 const { searchDespatchAdvice } = require('../despatch-retrieval-service');
 const { validateOrder } = require('../../../validators/order/order-xml-validator-service');
 const { isValidUuid } = require('../../../validators/common/basic-xml-validator-service');
@@ -141,6 +141,17 @@ describe('createDespatchAdvice', () => {
 
     await expect(createDespatchAdvice('test-api-key', '<xml>valid</xml>', {})).rejects.toThrow('Despatch advice generation failed: Missing generated advice UUID');
   });
+
+  test('requestMetadata defaults to {} when not provided', async () => {
+    validateOrder.mockResolvedValue(validatedOrderResult);
+    fakeCollection.insertOne.mockResolvedValue({ insertedId: 'advice-uuid-default' });
+
+    const result = await createDespatchAdvice('test-api-key', '<xml>valid</xml>');
+    expect(result).toEqual({ adviceIds: ['advice-uuid-default'] });
+    expect(fakeCollection.insertOne).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: {}
+    }));
+  });
 });
 
 describe('listDespatchAdvices', () => {
@@ -184,6 +195,58 @@ describe('listDespatchAdvices', () => {
     });
 
     await expect(listDespatchAdvices('k1')).rejects.toThrow('list failure');
+  });
+});
+
+describe('getDespatchAdviceByAdviceId', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('returns the found document', async () => {
+    const doc = { _id: 'advice-uuid-123', apiKey: 'k1', despatchXml: '<DespatchAdvice/>' };
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(doc)
+      })
+    });
+
+    const result = await getDespatchAdviceByAdviceId('k1', 'advice-uuid-123');
+    expect(result).toEqual(doc);
+  });
+
+  test('rethrows database errors', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockRejectedValue(new Error('db error'))
+      })
+    });
+
+    await expect(getDespatchAdviceByAdviceId('k1', 'advice-uuid-123')).rejects.toThrow('db error');
+  });
+});
+
+describe('getDespatchAdviceByOrderId', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('returns the found document', async () => {
+    const doc = { _id: 'advice-uuid-123', apiKey: 'k1', originalOrderId: 'ORD-001' };
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue(doc)
+      })
+    });
+
+    const result = await getDespatchAdviceByOrderId('k1', 'ORD-001');
+    expect(result).toEqual(doc);
+  });
+
+  test('rethrows database errors', async () => {
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockRejectedValue(new Error('db error'))
+      })
+    });
+
+    await expect(getDespatchAdviceByOrderId('k1', 'ORD-001')).rejects.toThrow('db error');
   });
 });
 

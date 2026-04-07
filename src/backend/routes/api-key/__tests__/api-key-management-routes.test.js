@@ -429,4 +429,49 @@ describe('api-key-management routes', () => {
     expect(response.status).toBe(500);
     expect(payload.errors).toEqual(['Internal server error']);
   });
+
+  test('POST /create returns 400 when body is missing (no Content-Type)', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: { 'Api-Key': process.env.MASTER_API_KEY }
+    });
+
+    const payload = await response.json();
+    expect(response.status).toBe(400);
+    expect(payload.errors).toBeDefined();
+  });
+
+  test('POST /create re-sends email when key already exists for contact email (resend=true path)', async () => {
+    const mockSendMail = jest.fn().mockResolvedValue({ messageId: 'resend-message-id' });
+    nodemailer.createTransport.mockReturnValue({ sendMail: mockSendMail });
+
+    getDb.mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        findOne: jest.fn().mockResolvedValue({
+          _id: 'existing-key-123',
+          contactEmail: 'team@ad.unsw.edu.au',
+          contactName: 'Test Team',
+          teamName: 'TestTeam'
+        })
+      })
+    });
+
+    const response = await fetch(`${baseUrl}/api/v1/api-key/create`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': process.env.MASTER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        teamName: 'TestTeam',
+        contactEmail: 'team@ad.unsw.edu.au',
+        contactName: 'Test Team'
+      })
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockSendMail).toHaveBeenCalled();
+    const payload = await response.json();
+    expect(payload.message).toContain('already been issued');
+  });
 });

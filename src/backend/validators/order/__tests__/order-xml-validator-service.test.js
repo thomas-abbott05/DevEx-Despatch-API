@@ -67,6 +67,40 @@ describe('validateOrder', () => {
       errors: ['Invalid Order XML: Missing Order root element']
     });
   });
+
+  test('missing required field cbc:ID returns error', async () => {
+    const parsedOrderTree = parseOrderXml(validOrderXml);
+    delete parsedOrderTree.Order['cbc:ID'];
+
+    const result = await validateOrder(parsedOrderTree);
+
+    expect(result).toEqual({
+      success: false,
+      errors: ['Invalid Order XML: Missing required field cbc:ID']
+    });
+  });
+
+  test('buyer customer party missing cac:Party returns error', async () => {
+    const parsedOrderTree = parseOrderXml(validOrderXml);
+    parsedOrderTree.Order['cac:BuyerCustomerParty'] = {};
+
+    const result = await validateOrder(parsedOrderTree);
+
+    expect(result).toEqual({
+      success: false,
+      errors: ['Invalid Order XML: Missing cac:Party element in cac:BuyerCustomerParty']
+    });
+  });
+
+  test('seller supplier party missing cac:Party returns error', async () => {
+    const parsedOrderTree = parseOrderXml(validOrderXml);
+    parsedOrderTree.Order['cac:SellerSupplierParty'] = {};
+
+    const result = await validateOrder(parsedOrderTree);
+
+    expect(result).toEqual({
+      success: false,
+      errors: ['Invalid Order XML: Missing cac:Party element in cac:SellerSupplierParty']
+    });
+  });
 });
-
-

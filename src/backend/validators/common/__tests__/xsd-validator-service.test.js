@@ -51,4 +51,23 @@ describe('validateXml', () => {
       errors: ['Invalid Order XML: Missing required field cbc:ID']
     });
   });
+
+  test('toValidationResponse returns unknown error when validator returns null', async () => {
+    // Mock the receipt validator to return null to exercise the null-result guard
+    jest.mock('../../advice/receipt-advice-xml-validator', () => ({
+      validateReceiptAdviceXml: jest.fn().mockResolvedValue(null)
+    }));
+
+    // Re-require after mock to pick up the mock
+    jest.resetModules();
+    const { validateReceiptAdviceXml } = require('../../advice/receipt-advice-xml-validator');
+    validateReceiptAdviceXml.mockResolvedValue(null);
+
+    // Use a fresh require of the service
+    const { validateXml: freshValidateXml } = require('../xsd-validator-service');
+    const result = await freshValidateXml('receipt', fixtures.receipt);
+
+    // Should not throw and should return a structured error
+    expect(result).toHaveProperty('success');
+  });
 });

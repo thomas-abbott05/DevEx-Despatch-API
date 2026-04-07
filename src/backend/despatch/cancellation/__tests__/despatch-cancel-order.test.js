@@ -193,4 +193,67 @@ describe('getCancellation', () => {
 
     await expect(getCancellation(VALID_API_KEY, { adviceId: VALID_ADVICE_ID })).rejects.toThrow(CancellationForbiddenError);
   });
+
+  test('throws CancellationNotFoundError when document exists but has no cancellationId', async () => {
+    fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc()); // no cancellationId field
+
+    await expect(getCancellation(VALID_API_KEY, { adviceId: VALID_ADVICE_ID })).rejects.toThrow(CancellationNotFoundError);
+  });
+
+  test('throws CancellationNotFoundError using cancellationId in message when adviceId is absent', async () => {
+    fakeCollection.findOne.mockResolvedValue(null);
+
+    try {
+      await getCancellation(VALID_API_KEY, { cancellationId: GENERATED_CANCELLATION_ID });
+      throw new Error('Expected error not thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(CancellationNotFoundError);
+      expect(err.message).toContain(GENERATED_CANCELLATION_ID);
+    }
+  });
+});
+
+describe('cancelDespatchAdvice - mismatched order IDs', () => {
+  let fakeCollection;
+
+  beforeEach(() => {
+    fakeCollection = {
+      findOne: jest.fn(),
+      updateOne: jest.fn()
+    };
+    getDb.mockReturnValue({ collection: () => fakeCollection });
+    fakeCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+  });
+
+  test('throws BasicXmlValidationError when cancellation orderId does not match despatch orderId', async () => {
+    fakeCollection.findOne.mockResolvedValue(makeActiveDespatchDoc({ originalOrderId: 'ORIGINAL-ORDER' }));
+
+    validateOrderCancellationXml.mockResolvedValue({
+      success: true,
+      id: XML_DOCUMENT_ID,
+      originalOrderId: 'DIFFERENT-ORDER',
+      cancellationNote: 'Change of mind'
+    });
+
+    await expect(cancelDespatchAdvice(VALID_API_KEY, {
+      adviceId: VALID_ADVICE_ID,
+      orderCancellationDocument: VALID_CANCELLATION_XML
+    })).rejects.toThrow(BasicXmlValidationError);
+  });
+});
+
+describe('CancellationNotFoundError and CancellationForbiddenError defaults', () => {
+  test('CancellationNotFoundError uses default message when none is provided', () => {
+    const err = new CancellationNotFoundError();
+    expect(err.message).toBe('Despatch advice not found');
+    expect(err.name).toBe('CancellationNotFoundError');
+    expect(err.statusCode).toBe(404);
+  });
+
+  test('CancellationForbiddenError uses default message when none is provided', () => {
+    const err = new CancellationForbiddenError();
+    expect(err.message).toBe('Unauthorised access');
+    expect(err.name).toBe('CancellationForbiddenError');
+    expect(err.statusCode).toBe(403);
+  });
 });

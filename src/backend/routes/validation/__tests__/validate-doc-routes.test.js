@@ -85,4 +85,58 @@ describe('validate-doc routes', () => {
     expect(payload['executed-at']).toEqual(expect.any(Number));
     expect(validateXml).not.toHaveBeenCalled();
   });
+
+  test('POST with empty body returns 400', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/validate-doc/order`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': 'issued-test-key',
+        'Content-Type': 'application/xml'
+      },
+      body: '   '
+    });
+
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.errors).toContain('Missing required parameter: XML body must be provided.');
+    expect(validateXml).not.toHaveBeenCalled();
+  });
+
+  test('POST returns 500 when validateXml throws', async () => {
+    validateXml.mockRejectedValue(new Error('unexpected parse failure'));
+
+    const response = await fetch(`${baseUrl}/api/v1/validate-doc/order`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': 'issued-test-key',
+        'Content-Type': 'application/xml'
+      },
+      body: '<Order/>'
+    });
+
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.errors).toContain('Internal server error during validation.');
+  });
+
+  test('POST returns empty errors array when validateXml returns success with no errors field', async () => {
+    validateXml.mockResolvedValue({ success: true });
+
+    const response = await fetch(`${baseUrl}/api/v1/validate-doc/order`, {
+      method: 'POST',
+      headers: {
+        'Api-Key': 'issued-test-key',
+        'Content-Type': 'application/xml'
+      },
+      body: '<Order/>'
+    });
+
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.valid).toBe(true);
+    expect(payload.errors).toEqual([]);
+  });
 });

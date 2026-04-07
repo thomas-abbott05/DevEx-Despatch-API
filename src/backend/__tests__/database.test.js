@@ -59,6 +59,53 @@ describe('database module', () => {
     expect(dbModule.getDb()).toBe(devexDb);
   });
 
+  test('connectToDatabase second call skips re-creating indexes (indexesInitialised guard)', async () => {
+    const mockCommand = jest.fn().mockResolvedValue({ ok: 1 });
+    const mockCreateIndex = jest.fn().mockResolvedValue('email_1');
+    const mockCollection = jest.fn().mockReturnValue({ createIndex: mockCreateIndex });
+    const devexDb = { name: 'devex', collection: mockCollection };
+    const mockDb = jest.fn((name) => {
+      if (name === 'admin') return { command: mockCommand };
+      if (name === 'devex') return devexDb;
+      return null;
+    });
+    const mockConnect = jest.fn().mockResolvedValue(undefined);
+
+    jest.doMock('mongodb', () => ({
+      MongoClient: jest.fn().mockImplementation(() => ({ connect: mockConnect, db: mockDb })),
+      ServerApiVersion: { v1: 'v1' }
+    }));
+    jest.doMock('dotenv', () => ({ config: jest.fn() }));
+    jest.doMock('dns', () => ({ setServers: jest.fn() }));
+
+    const dbModule = require('../database');
+
+    await dbModule.connectToDatabase();
+    await dbModule.connectToDatabase();
+
+    expect(mockCreateIndex).toHaveBeenCalledTimes(10);
+  });
+
+  test('console.log shows parsed keys when dotenv finds a .env file', () => {
+    jest.doMock('mongodb', () => ({
+      MongoClient: jest.fn().mockImplementation(() => ({ connect: jest.fn(), db: jest.fn() })),
+      ServerApiVersion: { v1: 'v1' }
+    }));
+    jest.doMock('dotenv', () => ({
+      config: jest.fn().mockReturnValue({ parsed: { MONGODB_URI: 'mongodb://localhost' } })
+    }));
+    jest.doMock('dns', () => ({ setServers: jest.fn() }));
+
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    require('../database');
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Environment variables loaded from .env file:',
+      expect.arrayContaining(['MONGODB_URI'])
+    );
+    consoleSpy.mockRestore();
+  });
+
   test('getDb throws before connectToDatabase is called', () => {
     jest.doMock('mongodb', () => ({
       MongoClient: jest.fn().mockImplementation(() => ({

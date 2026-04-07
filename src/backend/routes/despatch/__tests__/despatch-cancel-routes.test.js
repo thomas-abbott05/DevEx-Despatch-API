@@ -146,6 +146,18 @@ describe('despatch cancellation routes', () => {
       expect(response.status).toBe(400);
       expect(payload.errors).toEqual(['Missing OrderCancellation root element']);
     });
+
+    test('returns 500 when error has no statusCode', async () => {
+      cancelDespatchAdvice.mockRejectedValue(new Error('unexpected crash'));
+
+      const response = await fetch(`${baseUrl}/api/v1/despatch/cancel/order`, {
+        method: 'POST',
+        headers: { 'api-key': 'issued-test-key', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 'advice-id': VALID_ADVICE_ID })
+      });
+
+      expect(response.status).toBe(500);
+    });
   });
 
   describe('GET /order', () => {
@@ -302,6 +314,52 @@ describe('despatch cancellation routes', () => {
       );
 
       expect(response.status).toBe(403);
+    });
+
+    test('returns 500 and falls back to message when error has no errors array', async () => {
+      const error = new Error('unexpected crash');
+      getFulfilmentCancellation.mockRejectedValue(error);
+
+      const response = await fetch(
+        `${baseUrl}/api/v1/despatch/cancel/fulfilment?id=${VALID_ADVICE_ID}`,
+        { headers: { 'api-key': 'issued-test-key' } }
+      );
+
+      const payload = await response.json();
+      expect(response.status).toBe(500);
+      expect(payload.errors).toEqual(['unexpected crash']);
+    });
+  });
+
+  describe('GET /order - error fallbacks', () => {
+    test('returns 500 and falls back to message when error has no errors array', async () => {
+      const error = new Error('db crash');
+      getCancellation.mockRejectedValue(error);
+
+      const response = await fetch(
+        `${baseUrl}/api/v1/despatch/cancel/order?id=${VALID_ADVICE_ID}`,
+        { headers: { 'api-key': 'issued-test-key' } }
+      );
+
+      const payload = await response.json();
+      expect(response.status).toBe(500);
+      expect(payload.errors).toEqual(['db crash']);
+    });
+  });
+
+  describe('POST /fulfilment - error fallbacks', () => {
+    test('returns 500 when error has no statusCode or errors array', async () => {
+      createFulfilmentCancellation.mockRejectedValue(new Error('crash'));
+
+      const response = await fetch(`${baseUrl}/api/v1/despatch/cancel/fulfilment`, {
+        method: 'POST',
+        headers: { 'api-key': 'issued-test-key', 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+
+      const payload = await response.json();
+      expect(response.status).toBe(500);
+      expect(payload.errors).toEqual(['crash']);
     });
   });
 });
