@@ -139,17 +139,8 @@ function sanitiseText(value) {
   return value.trim();
 }
 
-function isSecureRequest(req) {
-  const forwardedProto = req.get('x-forwarded-proto');
-  if (typeof forwardedProto === 'string' && forwardedProto.length > 0) {
-    return forwardedProto.split(',')[0].trim() === 'https';
-  }
-
-  return Boolean(req.secure);
-}
-
-function isSslProductionMode(req) {
-  return process.env.NODE_ENV === 'production' && isSecureRequest(req);
+function isProductionMode() {
+  return process.env.NODE_ENV === 'production';
 }
 
 function buildSafeUser(userDoc) {
@@ -382,7 +373,7 @@ router.post('/register', jsonParser, async (req, res) => {
       });
     }
 
-    const shouldVerifyTurnstile = isSslProductionMode(req);
+    const shouldVerifyTurnstile = isProductionMode();
     const { errors, data } = validateRegistrationInput(req.body, {
       requireTurnstileToken: shouldVerifyTurnstile
     });

@@ -1,5 +1,10 @@
 .home-screen {
+  --home-rail-gap: 0.86rem;
+  --home-rail-card-width: calc((100% - (var(--home-rail-gap) * 2)) / 3);
+  --home-rail-card-min-height: 6.75rem;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   overflow-x: clip;
   background:
     radial-gradient(circle at 6% -8%, rgb(27, 27, 27) 0%, transparent 42%),
@@ -9,9 +14,12 @@
 }
 
 .home-content {
-  width: min(1220px, calc(100% - 2.2rem));
+  width: min(1500px, calc(100% - 2.2rem));
   margin: 0 auto;
   padding: clamp(1.2rem, 2.4vw, 2.3rem) 0 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .home-greeting h1 {
@@ -81,6 +89,19 @@
   color: #dbe5f3;
   border-radius: 9px;
   border: 1px solid transparent;
+  padding: 0.45rem 0.8rem;
+}
+
+.home-view-all.home-nav-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+}
+
+.home-view-all.home-nav-item-link:hover,
+.home-view-all.home-nav-item-link:focus-visible {
+  text-decoration: none;
 }
 
 .home-view-all[data-slot='button']:hover,
@@ -97,7 +118,7 @@
 
 .home-rail-controls {
   display: inline-flex;
-  gap: 0.42rem;
+  gap: 0.5rem;
 }
 
 .home-view-all[data-slot='button'] {
@@ -105,6 +126,9 @@
 }
 
 .home-rail-control[data-slot='button'] {
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: 2.2rem;
   border-color: rgba(255, 255, 255, 0.24);
   background: rgba(255, 255, 255, 0.09);
   color: #f2f8ff;
@@ -147,18 +171,152 @@
 
 .home-rail-track {
   display: flex;
-  gap: 0.86rem;
+  align-items: stretch;
+  gap: var(--home-rail-gap);
   margin-bottom: 0.5rem;
 }
 
+.home-rail-card-link {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 var(--home-rail-card-width);
+  width: var(--home-rail-card-width);
+  min-width: var(--home-rail-card-width);
+  max-width: var(--home-rail-card-width);
+  text-decoration: none;
+  color: inherit;
+}
+
+a.home-rail-card-link:hover,
+a.home-rail-card-link:focus-visible {
+  text-decoration: none;
+  color: inherit;
+}
+
+.home-rail-card-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
 .home-rail-card {
-  flex: 0 0 clamp(220px, 24vw, 276px);
+  flex: 1 1 auto;
+  height: 100%;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  min-height: var(--home-rail-card-min-height);
   border-radius: 13px;
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(160deg, rgba(42, 51, 64, 0.82) 0%, rgba(26, 30, 36, 0.88) 100%);
   box-shadow: none;
+}
+
+.home-rail-card-link:hover .home-rail-card {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: linear-gradient(160deg, rgba(54, 67, 84, 0.88) 0%, rgba(30, 36, 45, 0.9) 100%);
+}
+
+.home-rail-card-view-all {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(var(--home-rail-card-min-height) + 0.35rem);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: #181818;
+}
+
+.home-rail-card-link:hover .home-rail-card-view-all,
+.home-rail-card-link:focus-visible .home-rail-card-view-all {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: #222222;
+}
+
+.home-rail-card-view-all-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.home-rail-card-view-all-text {
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: #f2f8ff;
+  letter-spacing: 0.01em;
+}
+
+.home-rail-empty-state {
+  min-height: var(--home-rail-card-min-height);
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.home-rail-empty-text {
+  margin: 0;
+  margin-top: 1rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #d5deec;
+  text-align: center;
+}
+
+.home-rail-empty-subtitle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #c7d1df;
+  text-align: center;
+  flex-wrap: wrap;
+}
+
+.home-rail-empty-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  margin-left: 0.08rem;
+}
+
+.home-rail-empty-link:hover,
+.home-rail-empty-link:focus-visible {
+  text-decoration: none;
+}
+
+.home-rail-empty-link .size-4 {
+  transition: transform 180ms ease;
+}
+
+.home-rail-empty-link:hover .size-4,
+.home-rail-empty-link:focus-visible .size-4 {
+  transform: translateX(3px);
+}
+
+.home-rail-track-empty {
+  justify-content: center;
+}
+
+.home-rail-feedback {
+  padding: 1rem 0.3rem 0.5rem;
+  color: #c3cee0;
+  font-size: 0.86rem;
+}
+
+.home-rail-feedback-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .home-rail-card-content {
@@ -174,7 +332,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 1.75rem;
+  width: 1.5rem;
   height: 1.75rem;
   margin-left: 0.4rem;
 }
@@ -194,25 +352,49 @@
 
 .home-rail-card-title-row {
   display: flex;
-  align-items: center;
-  gap: 0.45rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
   min-width: 0;
 }
 
 .home-rail-card-id {
-  display: inline-flex;
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
   flex: 0 0 auto;
-  width: fit-content;
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
+  width: 75%;
+  max-width: 75%;
+  min-width: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
   text-transform: uppercase;
   color: #cad4e5;
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 999px;
-  padding: 0.14rem 0.44rem;
+  border-radius: 6px;
+  padding: 0.16rem 0.44rem;
+  overflow: hidden;
+}
+
+.home-rail-card-id-icon {
+  width: 0.68rem;
+  height: 0.68rem;
+  color: #ffffff;
+  stroke-width: 2.35;
+  flex: 0 0 auto;
+}
+
+.home-rail-card-id span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-rail-card-title {
+  position: relative;
+  display: inline-block;
   font-size: 0.99rem;
   line-height: 1.3;
   font-weight: 700;
@@ -220,20 +402,160 @@
   min-width: 0;
 }
 
+.home-rail-card-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.12rem;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.home-rail-card-link:hover .home-rail-card-title::after,
+.home-rail-card-link:focus-visible .home-rail-card-title::after {
+  transform: scaleX(1);
+}
+
 .home-rail-card-summary {
   font-size: 0.84rem;
   color: #ccd6e5;
 }
 
+
+.home-order-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.17rem 0.58rem;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.home-order-status-pending {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fbbf24;
+}
+
+.home-order-status-in-progress {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.home-order-status-despatched {
+  background: rgba(21, 128, 61, 0.2);
+  border-color: rgba(21, 128, 61, 0.45);
+  color: #4ade80;
+}
+
+.home-order-status-completed {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-despatch-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid transparent;
+}
+
+.home-despatch-status-pending {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fbbf24;
+}
+
+.home-despatch-status-shipped {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.home-despatch-status-received {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-despatch-status-transit {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.home-despatch-status-delivered {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-despatch-status-cancelled {
+  background: rgba(255, 0, 89, 0.1);
+  border-color: rgba(255, 0, 89, 0.3);
+  color: #ff6090;
+}
+
+.home-invoice-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid transparent;
+}
+
+.home-invoice-status-issued {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.home-invoice-status-paid {
+  background: rgba(103, 216, 164, 0.12);
+  border-color: rgba(103, 216, 164, 0.35);
+  color: #67d8a4;
+}
+
+.home-invoice-status-overdue {
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
 .home-rail-card-updated {
   font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.14);
+  color: rgba(214, 224, 239, 0.74);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-rail-card-meta-subtle {
+  margin-top: -0.2rem;
+  font-size: 0.67rem;
+  color: rgba(226, 232, 242, 0.44);
+  letter-spacing: 0.02em;
 }
 
 .home-footer {
   position: relative;
   z-index: 1;
-  margin-top: 2rem;
+  margin-top: auto;
   padding-top: 1.2rem;
   padding-bottom: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.13);
@@ -276,6 +598,11 @@
 }
 
 @media (max-width: 720px) {
+  .home-screen {
+    --home-rail-card-width: 260px;
+    --home-rail-card-min-height: 6.2rem;
+  }
+
   .home-rail-header {
     flex-direction: column;
     align-items: stretch;
@@ -290,7 +617,17 @@
   }
 
   .home-rail-card {
-    flex-basis: min(84vw, 260px);
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    flex-basis: auto;
+  }
+
+  .home-rail-card-link {
+    flex-basis: min(84vw, var(--home-rail-card-width));
+    width: min(84vw, var(--home-rail-card-width));
+    min-width: min(84vw, var(--home-rail-card-width));
+    max-width: min(84vw, var(--home-rail-card-width));
   }
 
   .home-rail-card-content {
@@ -310,5 +647,11 @@
   .home-rail-card-icon {
     width: 1.2rem;
     height: 1.2rem;
+  }
+
+  .home-rail-control[data-slot='button'] {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
   }
 }

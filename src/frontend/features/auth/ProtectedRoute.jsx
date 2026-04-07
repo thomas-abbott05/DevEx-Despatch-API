@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import { BarLoader } from 'react-spinners'
+import PurpleBarLoader from '@/components/ui/PurpleBarLoader'
 import { useAuth } from './AuthContext'
 import MeshGradientBackground from './components/MeshGradientBackground'
 import './pages/styles/AuthShared.css'
@@ -9,9 +9,7 @@ export function AuthRouteLoader({ statusLabel = 'Checking your session' }) {
     <MeshGradientBackground animated={false}>
       <section className="route-loading" aria-live="polite" aria-busy="true">
         <img className="auth-logo route-loading-logo" src="/img/devexlogo2.png" alt="DevEx" />
-        <div className="route-loading-bar-wrap" role="status" aria-label={statusLabel}>
-          <BarLoader color="#3f3593" width="100%" height={5} speedMultiplier={2} />
-        </div>
+        <PurpleBarLoader className="route-loading-bar-wrap" statusLabel={statusLabel} maxWidth="320px" />
       </section>
     </MeshGradientBackground>
   )
