@@ -1,4 +1,4 @@
-const { createDespatchAdvice, listDespatchAdvices } = require('../despatch-advice-service');
+const { createDespatchAdvice, listDespatchAdvices, getDespatchAdviceByOrderId } = require('../despatch-advice-service');
 const { searchDespatchAdvice } = require('../despatch-retrieval-service');
 const { validateOrder } = require('../../../validators/order/order-xml-validator-service');
 const { isValidUuid } = require('../../../validators/common/basic-xml-validator-service');
@@ -266,6 +266,24 @@ describe('retrieveDespatchAdvice', () => {
         'advice-id': VALID_UUID,
         'executed-at': expect.any(Number)
       }));
+    });
+
+    test('returns the advice record when searched by order-id', async () => {
+      getDb.mockReturnValue({
+        collection: jest.fn().mockReturnValue({
+          findOne: jest.fn().mockResolvedValue({
+            _id: 'advice-uuid-456',
+            originalOrderId: 'ORD-123',
+            despatchXml: '<DespatchAdvice/>'
+          })
+        })
+      });
+
+      await expect(getDespatchAdviceByOrderId('test-api-key', 'ORD-123')).resolves.toEqual({
+        _id: 'advice-uuid-456',
+        originalOrderId: 'ORD-123',
+        despatchXml: '<DespatchAdvice/>'
+      });
     });
   });
 

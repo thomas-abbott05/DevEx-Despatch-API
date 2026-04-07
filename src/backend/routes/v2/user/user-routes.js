@@ -1912,4 +1912,22 @@ router.post('/invoices/:uuid/status', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.normaliseUploadedXmlDocuments = normaliseUploadedXmlDocuments;
+module.exports.buildUploadErrorPrefix = buildUploadErrorPrefix;
+module.exports.readQuantity = readQuantity;
+module.exports.roundCurrency = roundCurrency;
+module.exports.buildProviderIdentifier = buildProviderIdentifier;
+module.exports.mapLastMinutePushInvoiceStatus = mapLastMinutePushInvoiceStatus;
+module.exports.deriveOrderPaymentSummary = deriveOrderPaymentSummary;
+module.exports.buildLineIdCandidates = buildLineIdCandidates;
+module.exports.readOrderLineUnitPrice = readOrderLineUnitPrice;
+module.exports.deriveInvoiceLinesFromOrder = deriveInvoiceLinesFromOrder;
+module.exports.buildDestinationSummary = buildDestinationSummary;
+module.exports.enrichOrderLinesWithDespatch = enrichOrderLinesWithDespatch;
+module.exports.hasLineCandidateMatch = hasLineCandidateMatch;
+module.exports.buildOrderLineStatusEntries = buildOrderLineStatusEntries;
+module.exports.mapDespatchLinesToOrderLines = mapDespatchLinesToOrderLines;
+module.exports.applyPaidInvoiceQuantities = applyPaidInvoiceQuantities;
+module.exports.resolveOrderLifecycleStatus = resolveOrderLifecycleStatus;
+module.exports.buildOrderStatusLookup = buildOrderStatusLookup;
 
