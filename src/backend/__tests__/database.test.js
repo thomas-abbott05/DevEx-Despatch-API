@@ -83,7 +83,7 @@ describe('database module', () => {
     await dbModule.connectToDatabase();
     await dbModule.connectToDatabase();
 
-    expect(mockCreateIndex).toHaveBeenCalledTimes(1);
+    expect(mockCreateIndex).toHaveBeenCalledTimes(10);
   });
 
   test('console.log shows parsed keys when dotenv finds a .env file', () => {

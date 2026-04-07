@@ -1,7 +1,10 @@
-const apiKeyAuth = require('../api-key-validation');
-const { getDb } = require('../../database');
+const mockGetDb = jest.fn();
 
-jest.mock('../../database');
+jest.mock('../../database', () => ({
+  getDb: () => mockGetDb()
+}));
+
+const apiKeyAuth = require('../api-key-validation');
 
 describe('apiKeyAuth middleware', () => {
     test('Missing API key: returns 401', async () => {
@@ -40,7 +43,7 @@ describe('apiKeyAuth middleware', () => {
             })
         };
 
-        getDb.mockReturnValue(mockDb);
+        mockGetDb.mockReturnValue(mockDb);
 
         await apiKeyAuth(req, res, next);
 
@@ -66,7 +69,7 @@ describe('apiKeyAuth middleware', () => {
             })
         };
 
-        getDb.mockReturnValue(mockDb);
+        mockGetDb.mockReturnValue(mockDb);
 
         await apiKeyAuth(req, res, next);
 
@@ -91,7 +94,7 @@ describe('apiKeyAuth middleware', () => {
             })
         };
 
-        getDb.mockReturnValue(mockDb);
+        mockGetDb.mockReturnValue(mockDb);
 
         await apiKeyAuth(req, res, next);
 

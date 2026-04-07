@@ -1,6 +1,20 @@
 const express = require('express');
 const { buildRateLimitConfig, createApiRateLimiter } = require('../../middleware/api-rate-limit');
 
+jest.mock('../../database', () => ({
+  getDb: jest.fn(),
+  getDbClient: jest.fn(),
+  connectToDatabase: jest.fn()
+}));
+
+jest.mock('../../config/server-config', () => ({
+  getServerConstants: jest.fn().mockReturnValue({
+    API_VERSION: 'test',
+    STARTED_AT: new Date(),
+    HEALTHY: true
+  })
+}));
+
 function startServerWithRouter(router) {
   const app = express();
   app.use('/api/v1', router);
@@ -22,7 +36,6 @@ describe('API rate limiting', () => {
   let router;
 
   beforeAll(async () => {
-    jest.resetModules();
     router = require('../index');
 
     const started = await startServerWithRouter(router);
