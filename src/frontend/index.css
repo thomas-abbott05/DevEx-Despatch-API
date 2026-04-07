@@ -58,6 +58,10 @@ body,
   min-height: 100%;
 }
 
+html {
+  font-size: 120%;
+}
+
 body {
   font-family: Arial, 'Helvetica Neue', sans-serif;
   color: var(--ink);

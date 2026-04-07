@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FileUp, Trash2, Truck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { uploadDespatchXmlDocuments } from '@/features/despatch/api/despatch-api'
 import { Button } from '@/components/ui/button'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
@@ -21,10 +22,18 @@ export default function UploadDespatchPage() {
   const { user, logout } = useAuth()
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const fileInputRef = useRef(null)
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Despatch Advice', to: '/despatch' },
+    { label: 'Upload Despatch Advice' },
+  ]
 
   const [selectedFiles, setSelectedFiles] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadResult, setUploadResult] = useState(null)
+  const [uploadError, setUploadError] = useState('')
 
   async function handleLogout() {
     await logout()
@@ -49,6 +58,8 @@ export default function UploadDespatchPage() {
       return nextFiles
     })
     setSubmitted(false)
+    setUploadResult(null)
+    setUploadError('')
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -62,6 +73,8 @@ export default function UploadDespatchPage() {
       ),
     )
     setSubmitted(false)
+    setUploadResult(null)
+    setUploadError('')
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -84,18 +97,54 @@ export default function UploadDespatchPage() {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    if (!selectedFiles.length) {
+    if (!selectedFiles.length || isSubmitting) {
       return
     }
 
-    setSubmitted(true)
+    setIsSubmitting(true)
+    setUploadError('')
+    setUploadResult(null)
+
+    try {
+      const documents = await Promise.all(
+        selectedFiles.map(async (file) => ({
+          fileName: file.name,
+          xml: await file.text(),
+        })),
+      )
+
+      const result = await uploadDespatchXmlDocuments(documents)
+      const failedFileNames = new Set(
+        (Array.isArray(result?.failures) ? result.failures : [])
+          .map((failure) => String(failure?.fileName || '').trim())
+          .filter(Boolean),
+      )
+
+      setUploadResult(result)
+      setSubmitted(true)
+
+      if (failedFileNames.size > 0) {
+        setSelectedFiles((currentFiles) => currentFiles.filter((file) => failedFileNames.has(file.name)))
+      } else {
+        setSelectedFiles([])
+      }
+    } catch (error) {
+      setSubmitted(false)
+      setUploadError(error?.message || 'Unable to upload despatch XML documents.')
+    } finally {
+      setIsSubmitting(false)
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
   }
 
   return (
     <main className="home-screen despatch-upload-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content despatch-upload-content">
         <header className="despatch-upload-header">
@@ -170,16 +219,41 @@ export default function UploadDespatchPage() {
               </ul>
             ) : null}
 
-            {submitted ? (
-              <p className="despatch-upload-success" role="status">
-                Draft upload complete for {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''}. API integration can be connected next.
+            {uploadError ? (
+              <p className="despatch-upload-error" role="alert">
+                {uploadError}
               </p>
             ) : null}
 
+            {submitted && uploadResult ? (
+              <p className="despatch-upload-success" role="status">
+                Uploaded {uploadResult.uploadedCount} despatch XML file{uploadResult.uploadedCount === 1 ? '' : 's'}.
+                {uploadResult.failedCount
+                  ? ` ${uploadResult.failedCount} file${uploadResult.failedCount === 1 ? '' : 's'} still need attention.`
+                  : ' All selected files were processed successfully.'}
+              </p>
+            ) : null}
+
+            {uploadResult?.failedCount ? (
+              <ul className="despatch-upload-failure-list" aria-label="Upload failures">
+                {uploadResult.failures.map((failure, index) => (
+                  <li key={`${failure.fileName || 'file'}-${index}`} className="despatch-upload-failure-item">
+                    {failure.message || 'Unable to process one uploaded file.'}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
             <div className="despatch-upload-actions">
-              <Button type="submit" variant="ghost" className="upload-confirm-btn" size="sm" disabled={!selectedFiles.length}>
+              <Button
+                type="submit"
+                variant="ghost"
+                className="upload-confirm-btn"
+                size="sm"
+                disabled={!selectedFiles.length || isSubmitting}
+              >
                 <FileUp className="upload-confirm-icon" aria-hidden="true" />
-                Upload XML Files
+                {isSubmitting ? 'Uploading...' : 'Upload XML Files'}
               </Button>
               <Button asChild type="button" variant="ghost" className="upload-cancel-btn" size="sm">
                 <Link to="/despatch">Cancel upload</Link>
