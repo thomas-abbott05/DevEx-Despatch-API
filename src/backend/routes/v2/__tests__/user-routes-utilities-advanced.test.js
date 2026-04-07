@@ -289,6 +289,26 @@ describe('user route utilities - advanced coverage', () => {
       invoice: { invoice_id: 'INV-1' },
       invoiceXml: '<Invoice><cbc:ID>INV-1</cbc:ID></Invoice>'
     });
+
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://lastminutepush.one/v1/invoices',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'token-123'
+        })
+      })
+    );
+
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://lastminutepush.one/v1/invoices/INV-1',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'token-123'
+        })
+      })
+    );
   });
 
   test('postLastMinutePushInvoiceForXmlResponse rejects missing token and missing invoice data', async () => {

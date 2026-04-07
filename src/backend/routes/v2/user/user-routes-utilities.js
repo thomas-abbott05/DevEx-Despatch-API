@@ -1586,7 +1586,7 @@ async function postJsonForXmlResponse(url, payload, requestLabel, requestHeaders
 }
 
 async function postLastMinutePushInvoiceForXmlResponse(baseUrl, payload, requestLabel, apiTokenValue) {
-  const normalisedApiToken = normaliseAuthHeaderValue(apiTokenValue);
+  const normalisedApiToken = normaliseApiKeyHeaderValue(apiTokenValue);
   if (!normalisedApiToken) {
     throw new Error(requestLabel + ' failed: missing LASTMINUTEPUSH_API_TOKEN.');
   }
@@ -1715,6 +1715,16 @@ function parseJsonSafe(textValue) {
 
 function normaliseAuthHeaderValue(value) {
   const trimmed = readText(value).replace(/^Authorization\s*:\s*/i, '').trim();
+  return trimmed;
+}
+
+function normaliseApiKeyHeaderValue(value) {
+  let trimmed = readText(value).trim();
+
+  trimmed = trimmed.replace(/^Authorization\s*:\s*/i, '').trim();
+  trimmed = trimmed.replace(/^X-API-Key\s*:\s*/i, '').trim();
+  trimmed = trimmed.replace(/^Bearer\s+/i, '').trim();
+
   return trimmed;
 }
 
