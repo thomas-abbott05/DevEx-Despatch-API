@@ -107,7 +107,7 @@ describe('auth routes', () => {
     ]));
   });
 
-  test('POST /register skips Turnstile verification when not in SSL production mode', async () => {
+  test('POST /register skips Turnstile verification when not in production mode', async () => {
     const insertOne = jest.fn().mockResolvedValue({ insertedId: '507f1f77bcf86cd799439011' });
     const findOne = jest
       .fn()
@@ -146,15 +146,12 @@ describe('auth routes', () => {
     expect(outboundTurnstileCalls).toHaveLength(0);
   });
 
-  test('POST /register enforces Turnstile in SSL production mode', async () => {
+  test('POST /register enforces Turnstile in production mode', async () => {
     process.env.NODE_ENV = 'production';
 
     const response = await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-forwarded-proto': 'https'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: 'ssl-prod-missing-token@example.com',
         password: 'Password123',

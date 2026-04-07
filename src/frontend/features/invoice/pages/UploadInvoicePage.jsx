@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FileUp, Receipt, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { uploadInvoiceXmlDocuments } from '@/features/invoice/api/invoice-api'
 import { Button } from '@/components/ui/button'
 import SiteFooter from '@/components/layout/SiteFooter'
 import SiteTopbar from '@/components/layout/SiteTopbar'
@@ -21,10 +22,18 @@ export default function UploadInvoicePage() {
   const { user, logout } = useAuth()
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
   const fileInputRef = useRef(null)
+  const breadcrumbs = [
+    { label: 'Home', to: '/' },
+    { label: 'Invoices', to: '/invoice' },
+    { label: 'Upload Invoice' },
+  ]
 
   const [selectedFiles, setSelectedFiles] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadResult, setUploadResult] = useState(null)
+  const [uploadError, setUploadError] = useState('')
 
   async function handleLogout() {
     await logout()
@@ -49,6 +58,8 @@ export default function UploadInvoicePage() {
       return nextFiles
     })
     setSubmitted(false)
+    setUploadResult(null)
+    setUploadError('')
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -62,6 +73,8 @@ export default function UploadInvoicePage() {
       ),
     )
     setSubmitted(false)
+    setUploadResult(null)
+    setUploadError('')
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -84,18 +97,54 @@ export default function UploadInvoicePage() {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    if (!selectedFiles.length) {
+    if (!selectedFiles.length || isSubmitting) {
       return
     }
 
-    setSubmitted(true)
+    setIsSubmitting(true)
+    setUploadError('')
+    setUploadResult(null)
+
+    try {
+      const documents = await Promise.all(
+        selectedFiles.map(async (file) => ({
+          fileName: file.name,
+          xml: await file.text(),
+        })),
+      )
+
+      const result = await uploadInvoiceXmlDocuments(documents)
+      const failedFileNames = new Set(
+        (Array.isArray(result?.failures) ? result.failures : [])
+          .map((failure) => String(failure?.fileName || '').trim())
+          .filter(Boolean),
+      )
+
+      setUploadResult(result)
+      setSubmitted(true)
+
+      if (failedFileNames.size > 0) {
+        setSelectedFiles((currentFiles) => currentFiles.filter((file) => failedFileNames.has(file.name)))
+      } else {
+        setSelectedFiles([])
+      }
+    } catch (error) {
+      setSubmitted(false)
+      setUploadError(error?.message || 'Unable to upload invoice XML documents.')
+    } finally {
+      setIsSubmitting(false)
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
   }
 
   return (
     <main className="home-screen invoice-upload-page">
-      <SiteTopbar firstName={firstName} onLogout={handleLogout} />
+      <SiteTopbar firstName={firstName} onLogout={handleLogout} breadcrumbs={breadcrumbs} />
 
       <section className="home-content invoice-upload-content">
         <header className="invoice-upload-header">
@@ -170,16 +219,41 @@ export default function UploadInvoicePage() {
               </ul>
             ) : null}
 
-            {submitted ? (
-              <p className="invoice-upload-success" role="status">
-                Draft upload complete for {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''}. API integration can be connected next.
+            {uploadError ? (
+              <p className="invoice-upload-error" role="alert">
+                {uploadError}
               </p>
             ) : null}
 
+            {submitted && uploadResult ? (
+              <p className="invoice-upload-success" role="status">
+                Uploaded {uploadResult.uploadedCount} invoice XML file{uploadResult.uploadedCount === 1 ? '' : 's'}.
+                {uploadResult.failedCount
+                  ? ` ${uploadResult.failedCount} file${uploadResult.failedCount === 1 ? '' : 's'} still need attention.`
+                  : ' All selected files were processed successfully.'}
+              </p>
+            ) : null}
+
+            {uploadResult?.failedCount ? (
+              <ul className="invoice-upload-failure-list" aria-label="Upload failures">
+                {uploadResult.failures.map((failure, index) => (
+                  <li key={`${failure.fileName || 'file'}-${index}`} className="invoice-upload-failure-item">
+                    {failure.message || 'Unable to process one uploaded file.'}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
             <div className="invoice-upload-actions">
-              <Button type="submit" variant="ghost" className="upload-confirm-btn" size="sm" disabled={!selectedFiles.length}>
+              <Button
+                type="submit"
+                variant="ghost"
+                className="upload-confirm-btn"
+                size="sm"
+                disabled={!selectedFiles.length || isSubmitting}
+              >
                 <FileUp className="upload-confirm-icon" aria-hidden="true" />
-                Upload XML Files
+                {isSubmitting ? 'Uploading...' : 'Upload XML Files'}
               </Button>
               <Button asChild type="button" variant="ghost" className="upload-cancel-btn" size="sm">
                 <Link to="/invoice">Cancel upload</Link>

@@ -29,6 +29,21 @@ async function initialiseIndexes() {
   const usersCollection = db.collection('users');
   await usersCollection.createIndex({ email: 1 }, { unique: true });
 
+  const userOrdersCollection = db.collection('user-orders');
+  await userOrdersCollection.createIndex({ userId: 1, updatedAt: -1 });
+  await userOrdersCollection.createIndex({ userId: 1, displayId: 1 });
+
+  const userDespatchCollection = db.collection('user-despatch-advice');
+  await userDespatchCollection.createIndex({ userId: 1, updatedAt: -1 });
+  await userDespatchCollection.createIndex({ userId: 1, orderUuid: 1 });
+  await userDespatchCollection.createIndex({ userId: 1, displayId: 1 });
+
+  const userInvoiceCollection = db.collection('user-invoices');
+  await userInvoiceCollection.createIndex({ userId: 1, updatedAt: -1 });
+  await userInvoiceCollection.createIndex({ userId: 1, despatchUuid: 1 });
+  await userInvoiceCollection.createIndex({ userId: 1, displayId: 1 });
+  await userInvoiceCollection.createIndex({ userId: 1, status: 1, updatedAt: -1 });
+
   indexesInitialised = true;
 }
 
