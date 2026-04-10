@@ -64,6 +64,9 @@ function createExpressApp() {
 
     // Swagger config
     const swaggerSpecJSON = require('./swagger-config.json');
+    app.get('/api-docs/openapi.json', (req, res) => {
+      res.json(swaggerSpecJSON);
+    });
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecJSON));
 
     // Serve the React app for all non-API routes in production so deep links work.
