@@ -376,7 +376,6 @@ export default function HomePage() {
       <section className="home-content">
         <header className="home-greeting" aria-label="Welcome message">
           <h1>{greeting}, {firstName}</h1>
-          <p className="home-greeting-subtitle">{subtitle}</p>
         </header>
 
         <div className="home-rails">

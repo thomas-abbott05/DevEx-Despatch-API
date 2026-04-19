@@ -21,15 +21,6 @@ export default function RegisterPage() {
   const turnstileSiteKey = runtimeTurnstileSiteKey || buildTurnstileSiteKey
   const hasTurnstileKey = Boolean(turnstileSiteKey)
 
-  console.info('[RegisterPage] Turnstile env check', {
-    nodeEnv: process.env.NODE_ENV,
-    isProduction,
-    hasTurnstileKey,
-    runtimeTurnstileSiteKeyLength: runtimeTurnstileSiteKey.length,
-    buildTurnstileSiteKeyLength: buildTurnstileSiteKey.length,
-    resolvedTurnstileSiteKeyLength: turnstileSiteKey.length
-  })
-
   const [form, setForm] = useState({
     email: '',
     password: '',

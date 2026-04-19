@@ -92,7 +92,6 @@ async function sendAuthEmail({ to, subject, templateName, values }) {
 
 async function sendVerificationCodeEmail(email, firstName, code) {
   const expiresAt = nowUnix() + EMAIL_VERIFICATION_CODE_EXPIRY_SECONDS;
-
   await sendAuthEmail({
     to: email,
     subject: 'Verify your DevEx account',

@@ -129,7 +129,7 @@ export function AuthProvider({ children }) {
     const payload = await readResponsePayload(response)
 
     if (!response.ok) {
-      throw new Error('Registration failed.')
+      throw new Error(errors?.message || 'Registration failed. Please check your details and try again.')
     }
 
     return payload?.user || null
