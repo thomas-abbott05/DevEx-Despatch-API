@@ -10,14 +10,6 @@ import SiteTopbar from '@/components/layout/SiteTopbar'
 import { fetchHomeSummary } from '../api/home-api'
 import './styles/HomePage.css'
 
-const subtitleOptions = [
-  "Let's get started :)",
-  'Ready to get some stuff done?',
-  'What are we working on today?',
-  'Ducks: in a row. Ordered. Immaculate. Like your XML documents.',
-  '196 page UBL spec document? No worries!!'
-]
-
 const railIcons = {
   orders: FileText,
   despatchAdvice: Truck,
@@ -85,7 +77,6 @@ function resolveGreetingByHour() {
 
 function ActivityRail({
   title,
-  subtitle,
   viewAllTo,
   viewAllLabel,
   detailBaseTo,
@@ -190,7 +181,6 @@ function ActivityRail({
       <header className="home-rail-header">
         <div className="home-rail-heading">
           <h2 className="home-rail-title">{title}</h2>
-          {subtitle ? <p className="home-rail-subtitle">{subtitle}</p> : null}
         </div>
 
         <div className="home-rail-header-actions">
@@ -261,7 +251,7 @@ function ActivityRail({
                 const cardId = typeof resolveCardId === 'function' ? resolveCardId(item) : item.displayId
                 const metaText = typeof resolveMetaText === 'function' ? resolveMetaText(item) : ''
                 const buyerName = item.buyer || 'Unknown Buyer'
-                const issuedText = `Issued ${item.issueDate || 'Unknown date'} for ${buyerName}`
+                const issuedText = `Created ${item.issueDate || 'Unknown date'}`
                 const isOrderCard = String(documentType || '').toLowerCase() === 'order'
                 const isDespatchCard = String(documentType || '').toLowerCase() === 'despatch advice'
                 const isInvoiceCard = String(documentType || '').toLowerCase() === 'invoice'
@@ -281,11 +271,7 @@ function ActivityRail({
 
                         <div className="home-rail-card-body">
                           <div className="home-rail-card-title-row">
-                            <h3 className="home-rail-card-title">{documentType}</h3>
-                            <p className="home-rail-card-id">
-                              <Hash className="home-rail-card-id-icon" aria-hidden="true" />
-                              <span title={cardId || item.displayId}>{cardId || item.displayId}</span>
-                            </p>
+                            <h3 className="home-rail-card-title">{buyerName}</h3>
                           </div>
                             {isOrderCard ? (
                               <p className="home-rail-card-summary">
@@ -339,10 +325,6 @@ export default function HomePage() {
   const [error, setError] = useState('')
 
   const greeting = useMemo(() => resolveGreetingByHour(), [])
-  const subtitle = useMemo(
-    () => subtitleOptions[Math.floor(Math.random() * subtitleOptions.length)],
-    []
-  )
   const firstName = user?.firstName?.trim() || user?.email?.split('@')[0] || 'there'
 
   async function handleLogout() {
@@ -381,7 +363,6 @@ export default function HomePage() {
         <div className="home-rails">
           <ActivityRail
             title="Recent Orders"
-            subtitle="View, create or upload existing Order XML documents, or create Despatch Advice/Invoices from them."
             viewAllTo="/order"
             viewAllLabel="View all orders"
             detailBaseTo="/order"
@@ -397,7 +378,6 @@ export default function HomePage() {
           />
           <ActivityRail
             title="Recent Despatch Advice"
-            subtitle="View, create, delete or upload existing Despatch Advice XML documents, or create Invoices from them."
             viewAllTo="/despatch"
             viewAllLabel="View all despatch advice"
             detailBaseTo="/despatch"
@@ -408,14 +388,13 @@ export default function HomePage() {
             error={error}
             onRetry={loadHomeSummary}
             resolveCardId={(item) => item.uuid}
-            resolveMetaText={(item) => `Order: ${item.orderDisplayId || item.displayId || 'Unknown'}`}
+            resolveMetaText={(item) => ``}
             emptyMessage="Nothing here, yet!"
             emptyCtaTo="/despatch/create"
             emptyCtaLabel="Create Despatch Advice"
           />
           <ActivityRail
             title="Recent Invoices"
-            subtitle="View existing invoices, or upload/create new ones from existing XML/Despatch Advice."
             viewAllTo="/invoice"
             viewAllLabel="View all invoices"
             detailBaseTo="/invoice"
@@ -425,7 +404,7 @@ export default function HomePage() {
             loading={loading}
             error={error}
             onRetry={loadHomeSummary}
-            resolveMetaText={(item) => `Order: ${item.orderDisplayId || item.orderUuid || 'Unknown'}`}
+            resolveMetaText={(item) => ``}
             emptyMessage="Nothing here, yet!"
             emptyCtaTo="/invoice/create"
             emptyCtaLabel="Create Invoice"

@@ -1,4 +1,4 @@
-.home-screen {
+  .home-screen {
   --home-rail-gap: 0.86rem;
   --home-rail-card-width: calc((100% - (var(--home-rail-gap) * 2)) / 3);
   --home-rail-card-min-height: 6.75rem;
